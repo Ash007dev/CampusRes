@@ -1,0 +1,23 @@
+{
+  "name": "campus-resource-engine",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Intelligent Campus Resource Reservation System - Production Grade",
+  "scripts": {
+    "dev": "pnpm --filter @campus/server dev & pnpm --filter @campus/client dev",
+    "dev:server": "pnpm --filter @campus/server dev",
+    "dev:client": "pnpm --filter @campus/client dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "db:generate": "pnpm --filter @campus/server prisma:generate",
+    "db:push": "pnpm --filter @campus/server exec prisma db push",
+    "db:seed": "pnpm --filter @campus/server exec prisma db seed"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "Campus Resource Engine Team",
+  "license": "MIT"
+}
