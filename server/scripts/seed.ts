@@ -1,14 +1,14 @@
 /**
  * =============================================================================
- * Campus Resource Engine - Database Seeder (Supabase)
+ * Campus Resource Engine - Database Seeder (Supabase Auth)
  * =============================================================================
- * Seeds the database with test data using Supabase client
- * Uses snake_case table and column names
+ * Seeds the database with test data using Supabase Auth for users
+ * Users are created in both auth.users and public.users
  * =============================================================================
  */
 
 import { createClient } from '@supabase/supabase-js';
-import bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -23,7 +23,7 @@ if (!supabaseUrl || !supabaseServiceKey) {
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function main() {
-    console.log('🌱 Starting database seed...');
+    console.log('🌱 Starting database seed with Supabase Auth...');
 
     // ==========================================================================
     // Seed Departments
@@ -41,7 +41,6 @@ async function main() {
     const deptResults: Record<string, string> = {};
 
     for (const dept of departments) {
-        // Check if exists
         const { data: existing } = await supabase
             .from('departments')
             .select('id')
@@ -69,64 +68,62 @@ async function main() {
     console.log(`  ✓ Created ${Object.keys(deptResults).length} departments`);
 
     // ==========================================================================
-    // Seed Users
+    // Seed Users via Supabase Auth
     // ==========================================================================
-    console.log('👤 Seeding users...');
-
-    const hashedPassword = await bcrypt.hash('Password123!', 10);
+    console.log('👤 Seeding users via Supabase Auth...');
 
     const users = [
         {
-            email: 'admin@amrita.edu',
-            password_hash: hashedPassword,
+            email: 'admin@campus.edu',
+            password: 'Admin123!',
             first_name: 'Admin',
             last_name: 'User',
             role: 'ADMIN',
-            department_id: deptResults['ADMIN'],
+            department_code: 'ADMIN',
             reputation_score: 100,
             credits_balance: 1000,
             quota_limit_hours: 20,
         },
         {
-            email: 'faculty@amrita.edu',
-            password_hash: hashedPassword,
+            email: 'faculty@campus.edu',
+            password: 'Faculty123!',
             first_name: 'Prof.',
             last_name: 'Sharma',
             role: 'FACULTY',
-            department_id: deptResults['CSE'],
+            department_code: 'CSE',
             reputation_score: 100,
             credits_balance: 500,
             quota_limit_hours: 10,
         },
         {
-            email: 'labadmin@amrita.edu',
-            password_hash: hashedPassword,
+            email: 'labadmin@campus.edu',
+            password: 'LabAdmin123!',
             first_name: 'Lab',
             last_name: 'Coordinator',
             role: 'LAB_ADMIN',
-            department_id: deptResults['CSE'],
+            department_code: 'CSE',
             reputation_score: 100,
             credits_balance: 800,
             quota_limit_hours: 15,
         },
         {
-            email: 'student@amrita.edu',
-            password_hash: hashedPassword,
+            email: 'student@campus.edu',
+            password: 'Student123!',
             first_name: 'Ashish',
             last_name: 'M',
             role: 'STUDENT',
-            department_id: deptResults['CSE'],
+            department_code: 'CSE',
             reputation_score: 95,
             credits_balance: 200,
             quota_limit_hours: 4,
         },
         {
-            email: 'student2@amrita.edu',
-            password_hash: hashedPassword,
+            email: 'student2@campus.edu',
+            password: 'Student123!',
             first_name: 'Priya',
             last_name: 'Raj',
             role: 'STUDENT',
-            department_id: deptResults['ECE'],
+            department_code: 'ECE',
             reputation_score: 88,
             credits_balance: 150,
             quota_limit_hours: 4,
@@ -134,36 +131,123 @@ async function main() {
     ];
 
     let usersCreated = 0;
-    for (const user of users) {
+
+    for (const userData of users) {
+        // Check if user already exists in public.users
         const { data: existing } = await supabase
             .from('users')
             .select('id')
-            .eq('email', user.email)
+            .eq('email', userData.email)
             .single();
 
         if (existing) {
+            console.log(`  ⏭️  User ${userData.email} already exists, skipping`);
             continue;
         }
 
-        const { error } = await supabase.from('users').insert(user);
+        // Create user in Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+            email: userData.email,
+            password: userData.password,
+            email_confirm: true, // Auto-confirm email
+            user_metadata: {
+                first_name: userData.first_name,
+                last_name: userData.last_name,
+            },
+        });
 
-        if (error) {
-            console.error(`Failed to create user ${user.email}:`, error.message);
+        if (authError) {
+            // If user exists in auth but not in public.users, try to get their ID
+            if (authError.message.includes('already been registered')) {
+                console.log(`  ⚠️  Auth user ${userData.email} exists, syncing to public.users...`);
+
+                // List users to find existing auth user
+                const { data: { users: authUsers } } = await supabase.auth.admin.listUsers();
+                const existingAuthUser = authUsers?.find(u => u.email === userData.email);
+
+                if (existingAuthUser) {
+                    // Create public.users entry
+                    const { error: syncError } = await supabase.from('users').insert({
+                        id: existingAuthUser.id,
+                        email: userData.email,
+                        first_name: userData.first_name,
+                        last_name: userData.last_name,
+                        role: userData.role,
+                        department_id: deptResults[userData.department_code],
+                        reputation_score: userData.reputation_score,
+                        credits_balance: userData.credits_balance,
+                        quota_limit_hours: userData.quota_limit_hours,
+                        is_active: true,
+                        email_verified: true,
+                        no_show_count: 0,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                    });
+
+                    if (!syncError) {
+                        usersCreated++;
+                        console.log(`  ✓ Synced ${userData.email} to public.users`);
+                    } else {
+                        console.error(`  ❌ Failed to sync ${userData.email}:`, syncError.message);
+                    }
+                }
+                continue;
+            }
+
+            console.error(`  ❌ Failed to create auth user ${userData.email}:`, authError.message);
             continue;
         }
+
+        if (!authData.user) {
+            console.error(`  ❌ No user returned for ${userData.email}`);
+            continue;
+        }
+
+        // Create corresponding entry in public.users
+        const { error: userError } = await supabase.from('users').insert({
+            id: authData.user.id, // Use same ID as auth.users
+            email: userData.email,
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            role: userData.role,
+            department_id: deptResults[userData.department_code],
+            reputation_score: userData.reputation_score,
+            credits_balance: userData.credits_balance,
+            quota_limit_hours: userData.quota_limit_hours,
+            is_active: true,
+            email_verified: true,
+            no_show_count: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        });
+
+        if (userError) {
+            console.error(`  ❌ Failed to create public user ${userData.email}:`, userError.message);
+            // Cleanup: delete auth user if public user creation fails
+            await supabase.auth.admin.deleteUser(authData.user.id);
+            continue;
+        }
+
         usersCreated++;
+        console.log(`  ✓ Created ${userData.email} (${userData.role})`);
     }
 
-    console.log(`  ✓ Created ${usersCreated} users`);
-    console.log('  📧 Login credentials (password for all: Password123!):');
-    console.log('     Admin: admin@amrita.edu');
-    console.log('     Faculty: faculty@amrita.edu');
-    console.log('     Student: student@amrita.edu');
+    console.log(`\n  📊 Created ${usersCreated} users in Supabase Auth + public.users`);
+    console.log('\n  📧 Login credentials:');
+    console.log('  ┌─────────────────────────────────────────────────┐');
+    console.log('  │ Role       │ Email                │ Password    │');
+    console.log('  ├─────────────────────────────────────────────────┤');
+    console.log('  │ Admin      │ admin@campus.edu     │ Admin123!   │');
+    console.log('  │ Faculty    │ faculty@campus.edu   │ Faculty123! │');
+    console.log('  │ Lab Admin  │ labadmin@campus.edu  │ LabAdmin123!│');
+    console.log('  │ Student    │ student@campus.edu   │ Student123! │');
+    console.log('  │ Student 2  │ student2@campus.edu  │ Student123! │');
+    console.log('  └─────────────────────────────────────────────────┘');
 
     // ==========================================================================
     // Seed Rooms
     // ==========================================================================
-    console.log('🏢 Seeding rooms...');
+    console.log('\n🏢 Seeding rooms...');
 
     const operatingHours = {
         monday: { open: '08:00', close: '20:00' },
@@ -247,21 +331,31 @@ async function main() {
             .single();
 
         if (existing) {
+            console.log(`  ⏭️  Room ${room.code} already exists, skipping`);
             continue;
         }
 
-        const { error } = await supabase.from('rooms').insert(room);
+        const { error } = await supabase.from('rooms').insert({
+            id: randomUUID(),
+            ...room,
+            is_maintenance: false,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        });
 
         if (error) {
-            console.error(`Failed to create room ${room.code}:`, error.message);
+            console.error(`  ❌ Failed to create room ${room.code}:`, error.message);
             continue;
         }
         roomsCreated++;
+        console.log(`  ✓ Created room ${room.name} (${room.code})`);
     }
 
-    console.log(`  ✓ Created ${roomsCreated} rooms`);
+    console.log(`\n  📊 Created ${roomsCreated} rooms`);
 
     console.log('\n✨ Seed completed successfully!');
+    console.log('\n👉 Check Supabase Dashboard → Authentication tab to see the users!');
 }
 
 main().catch((e) => {

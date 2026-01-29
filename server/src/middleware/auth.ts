@@ -2,17 +2,14 @@
  * =============================================================================
  * Campus Resource Engine - Authentication Middleware
  * =============================================================================
- * JWT-based authentication with Role-Based Access Control (RBAC)
- * Now using Supabase client instead of Prisma
+ * Supabase Auth based authentication with Role-Based Access Control (RBAC)
  * =============================================================================
  */
 
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { config } from '../config/index.js';
-import { logger } from '../config/logger.js';
-import { UnauthorizedError, ForbiddenError, TokenExpiredError } from '../utils/errors.js';
 import { supabase } from '../lib/supabase.js';
+import { logger } from '../config/logger.js';
+import { UnauthorizedError, ForbiddenError } from '../utils/errors.js';
 import { USER_ROLES } from '../config/constants.js';
 
 /**
@@ -21,15 +18,13 @@ import { USER_ROLES } from '../config/constants.js';
 type UserRole = 'STUDENT' | 'FACULTY' | 'LAB_ADMIN' | 'ADMIN';
 
 /**
- * JWT Payload structure
+ * JWT Payload structure (compatible with Supabase tokens)
  */
 export interface JwtPayload {
   userId: string;
   email: string;
   role: UserRole;
-  departmentId: string;
-  iat?: number;
-  exp?: number;
+  departmentId: string | null;
 }
 
 /**
@@ -69,14 +64,14 @@ function extractToken(req: Request): string | null {
 }
 
 /**
- * Authentication middleware
- * Validates JWT token and injects user into request
+ * Authentication middleware using Supabase Auth
+ * Validates Supabase JWT token and injects user into request
  */
-export function authenticate(
+export async function authenticate(
   req: Request,
   _res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   try {
     const token = extractToken(req);
 
@@ -84,22 +79,47 @@ export function authenticate(
       throw new UnauthorizedError('No authentication token provided');
     }
 
-    // Verify and decode token
-    const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
+    // Verify token with Supabase
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !authUser) {
+      logger.debug({ error: authError }, 'Supabase auth verification failed');
+      throw new UnauthorizedError('Invalid or expired authentication token');
+    }
+
+    // Get user profile from public.users
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('id, email, role, department_id, is_active')
+      .eq('id', authUser.id)
+      .single();
+
+    if (profileError || !userProfile) {
+      logger.error({ userId: authUser.id }, 'User profile not found in public.users');
+      throw new UnauthorizedError('User profile not found');
+    }
+
+    if (!userProfile.is_active) {
+      throw new ForbiddenError('Your account has been deactivated');
+    }
 
     // Inject user into request
-    (req as AuthenticatedRequest).user = decoded;
+    (req as AuthenticatedRequest).user = {
+      userId: userProfile.id,
+      email: userProfile.email,
+      role: userProfile.role as UserRole,
+      departmentId: userProfile.department_id,
+    };
 
-    logger.debug({ userId: decoded.userId, role: decoded.role }, 'User authenticated');
+    logger.debug({ userId: userProfile.id, role: userProfile.role }, 'User authenticated via Supabase');
 
     next();
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      next(new TokenExpiredError());
-    } else if (error instanceof jwt.JsonWebTokenError) {
-      next(new UnauthorizedError('Invalid authentication token'));
-    } else {
+    if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
       next(error);
+    } else {
+      logger.error({ error }, 'Authentication error');
+      next(new UnauthorizedError('Authentication failed'));
     }
   }
 }
@@ -107,11 +127,11 @@ export function authenticate(
 /**
  * Optional authentication middleware
  */
-export function optionalAuth(
+export async function optionalAuth(
   req: Request,
   _res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   const token = extractToken(req);
 
   if (!token) {
@@ -120,8 +140,24 @@ export function optionalAuth(
   }
 
   try {
-    const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
-    (req as AuthenticatedRequest).user = decoded;
+    const { data: { user: authUser } } = await supabase.auth.getUser(token);
+
+    if (authUser) {
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('id, email, role, department_id')
+        .eq('id', authUser.id)
+        .single();
+
+      if (userProfile) {
+        (req as AuthenticatedRequest).user = {
+          userId: userProfile.id,
+          email: userProfile.email,
+          role: userProfile.role as UserRole,
+          departmentId: userProfile.department_id,
+        };
+      }
+    }
   } catch {
     logger.debug('Invalid token in optional auth, proceeding without user');
   }
@@ -215,6 +251,7 @@ export function authorizeOwnerOrAdmin(
 
 /**
  * Verify user still exists and is active in database
+ * Note: This is now handled in the authenticate middleware itself
  */
 export async function verifyActiveUser(
   req: Request,
@@ -228,6 +265,7 @@ export async function verifyActiveUser(
     return;
   }
 
+  // Already verified in authenticate middleware, but double-check if needed
   try {
     const { data: user, error } = await supabase
       .from('users')
@@ -249,21 +287,4 @@ export async function verifyActiveUser(
   } catch (error) {
     next(error);
   }
-}
-
-/**
- * Generate JWT tokens for a user
- */
-export function generateTokens(payload: Omit<JwtPayload, 'iat' | 'exp'>) {
-  const accessToken = jwt.sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.expiresIn as string,
-  } as jwt.SignOptions);
-
-  const refreshToken = config.jwt.refreshSecret
-    ? jwt.sign(payload, config.jwt.refreshSecret, {
-      expiresIn: config.jwt.refreshExpiresIn as string,
-    } as jwt.SignOptions)
-    : null;
-
-  return { accessToken, refreshToken };
 }

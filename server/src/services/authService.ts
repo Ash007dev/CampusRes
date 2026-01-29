@@ -2,13 +2,11 @@
  * =============================================================================
  * Campus Resource Engine - Auth Service
  * =============================================================================
- * Authentication and authorization logic using Supabase
- * Table: users (snake_case columns)
+ * Authentication using Supabase Auth
+ * Users are created in auth.users and linked to public.users
  * =============================================================================
  */
 
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { supabase } from '../lib/supabase.js';
 import { config } from '../config/index.js';
 import { logger } from '../config/logger.js';
@@ -27,25 +25,6 @@ interface RegisterUserInput {
   firstName: string;
   lastName: string;
   departmentCode?: string;
-}
-
-// User interface matching snake_case columns
-interface User {
-  id: string;
-  email: string;
-  password_hash: string;
-  first_name: string;
-  last_name: string;
-  role: string;
-  quota_limit_hours: number;
-  reputation_score: number;
-  credits_balance: number;
-  is_active: boolean;
-  department_id: string | null;
-  no_show_count: number;
-  blocked_until: string | null;
-  created_at: string;
-  updated_at: string;
 }
 
 interface AuthResult {
@@ -72,30 +51,16 @@ interface QuotaUsage {
 }
 
 /**
- * Auth Service
+ * Auth Service using Supabase Auth
  */
 export class AuthService {
   /**
-   * Register a new user
+   * Register a new user using Supabase Auth
    */
   async register(input: RegisterUserInput): Promise<AuthResult> {
-    logger.info({ email: input.email }, 'Registering new user');
+    logger.info({ email: input.email }, 'Registering new user via Supabase Auth');
 
-    // Check if email exists
-    const { data: existing } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', input.email)
-      .single();
-
-    if (existing) {
-      throw new EmailAlreadyExistsError(input.email);
-    }
-
-    // Hash password
-    const passwordHash = await bcrypt.hash(input.password, 10);
-
-    // Get department
+    // Get department ID if code provided
     let departmentId: string | null = null;
     if (input.departmentCode) {
       const { data: dept } = await supabase
@@ -109,12 +74,37 @@ export class AuthService {
       }
     }
 
-    // Create user
-    const { data: user, error } = await supabase
+    // Create user in Supabase Auth using admin API
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: input.email,
+      password: input.password,
+      email_confirm: true, // Auto-confirm email for now
+      user_metadata: {
+        first_name: input.firstName,
+        last_name: input.lastName,
+      },
+    });
+
+    if (authError) {
+      logger.error({ error: authError }, 'Failed to create auth user');
+      if (authError.message.includes('already registered')) {
+        throw new EmailAlreadyExistsError(input.email);
+      }
+      throw new AppError(`Failed to create user: ${authError.message}`, 500);
+    }
+
+    if (!authData.user) {
+      throw new AppError('Failed to create user', 500);
+    }
+
+    const authUserId = authData.user.id;
+
+    // Create corresponding entry in public.users table
+    const { data: user, error: userError } = await supabase
       .from('users')
       .insert({
+        id: authUserId, // Use same ID as auth.users
         email: input.email,
-        password_hash: passwordHash,
         first_name: input.firstName,
         last_name: input.lastName,
         role: 'STUDENT',
@@ -123,13 +113,23 @@ export class AuthService {
       .select()
       .single();
 
-    if (error || !user) {
-      logger.error({ error }, 'Failed to create user');
-      throw new AppError('Failed to create user', 500);
+    if (userError || !user) {
+      logger.error({ error: userError }, 'Failed to create public user');
+      // Cleanup: delete auth user if public user creation fails
+      await supabase.auth.admin.deleteUser(authUserId);
+      throw new AppError('Failed to create user profile', 500);
     }
 
-    // Generate tokens
-    const tokens = this.generateTokens(user);
+    // Sign in to get tokens
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: input.email,
+      password: input.password,
+    });
+
+    if (signInError || !signInData.session) {
+      logger.error({ error: signInError }, 'Failed to sign in after registration');
+      throw new AppError('Registration successful but login failed', 500);
+    }
 
     // Audit log
     await supabase.from('audit_logs').insert({
@@ -149,25 +149,41 @@ export class AuthService {
         role: user.role,
         departmentId: user.department_id,
       },
-      tokens,
+      tokens: {
+        accessToken: signInData.session.access_token,
+        refreshToken: signInData.session.refresh_token,
+      },
     };
   }
 
   /**
-   * Login user
+   * Login user using Supabase Auth
    */
   async login(input: { email: string; password: string }): Promise<AuthResult> {
     const { email, password } = input;
-    logger.info({ email }, 'User login attempt');
+    logger.info({ email }, 'User login attempt via Supabase Auth');
 
-    const { data: user, error } = await supabase
+    // Sign in with Supabase Auth
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError || !signInData.session || !signInData.user) {
+      logger.warn({ email, error: signInError }, 'Login failed');
+      throw new InvalidCredentialsError();
+    }
+
+    // Get user profile from public.users
+    const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
-      .eq('email', email)
+      .eq('id', signInData.user.id)
       .single();
 
-    if (error || !user) {
-      throw new InvalidCredentialsError();
+    if (userError || !user) {
+      logger.error({ userId: signInData.user.id }, 'User profile not found in public.users');
+      throw new AppError('User profile not found', 500);
     }
 
     if (!user.is_active) {
@@ -182,20 +198,11 @@ export class AuthService {
       );
     }
 
-    // Verify password
-    const validPassword = await bcrypt.compare(password, user.password_hash);
-    if (!validPassword) {
-      throw new InvalidCredentialsError();
-    }
-
     // Update last login
     await supabase
       .from('users')
       .update({ last_login_at: new Date().toISOString() })
       .eq('id', user.id);
-
-    // Generate tokens
-    const tokens = this.generateTokens(user);
 
     // Audit log
     await supabase.from('audit_logs').insert({
@@ -214,7 +221,10 @@ export class AuthService {
         role: user.role,
         departmentId: user.department_id,
       },
-      tokens,
+      tokens: {
+        accessToken: signInData.session.access_token,
+        refreshToken: signInData.session.refresh_token,
+      },
     };
   }
 
@@ -298,16 +308,17 @@ export class AuthService {
   }
 
   /**
-   * Change password
+   * Change password using Supabase Auth
    */
   async changePassword(
     userId: string,
     currentPassword: string,
     newPassword: string
   ): Promise<void> {
+    // Get user email
     const { data: user } = await supabase
       .from('users')
-      .select('password_hash')
+      .select('email')
       .eq('id', userId)
       .single();
 
@@ -315,44 +326,26 @@ export class AuthService {
       throw new UserNotFoundError(userId);
     }
 
-    const validPassword = await bcrypt.compare(currentPassword, user.password_hash);
-    if (!validPassword) {
+    // Verify current password by attempting to sign in
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+
+    if (verifyError) {
       throw new AppError('Current password is incorrect', 400);
     }
 
-    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    // Update password using admin API
+    const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
+      password: newPassword,
+    });
 
-    await supabase
-      .from('users')
-      .update({ password_hash: newPasswordHash })
-      .eq('id', userId);
-
-    logger.info({ userId }, 'Password changed');
-  }
-
-  /**
-   * Generate tokens
-   */
-  private generateTokens(user: User): { accessToken: string; refreshToken?: string } {
-    const payload = {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      departmentId: user.department_id,
-    };
-
-    const accessToken = jwt.sign(payload, config.jwt.secret, {
-      expiresIn: config.jwt.expiresIn as string,
-    } as jwt.SignOptions);
-
-    let refreshToken: string | undefined;
-    if (config.jwt.refreshSecret) {
-      refreshToken = jwt.sign(payload, config.jwt.refreshSecret, {
-        expiresIn: config.jwt.refreshExpiresIn as string,
-      } as jwt.SignOptions);
+    if (updateError) {
+      throw new AppError('Failed to update password', 500);
     }
 
-    return { accessToken, refreshToken };
+    logger.info({ userId }, 'Password changed via Supabase Auth');
   }
 
   private getWeekStart(date: Date): Date {
@@ -380,6 +373,40 @@ export class AuthService {
     }
 
     return user.preferences || {};
+  }
+
+  /**
+   * Verify Supabase access token and get user
+   */
+  async verifyToken(accessToken: string): Promise<{
+    userId: string;
+    email: string;
+    role: string;
+    departmentId: string | null;
+  } | null> {
+    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+
+    if (error || !user) {
+      return null;
+    }
+
+    // Get user profile from public.users
+    const { data: profile } = await supabase
+      .from('users')
+      .select('id, email, role, department_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile) {
+      return null;
+    }
+
+    return {
+      userId: profile.id,
+      email: profile.email,
+      role: profile.role,
+      departmentId: profile.department_id,
+    };
   }
 }
 

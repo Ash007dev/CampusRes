@@ -34,7 +34,7 @@ export const bookingController = {
 
     const booking = await bookingService.createBooking(
       authReq.user.userId,
-      authReq.user.departmentId,
+      authReq.user.departmentId || undefined,
       input
     );
 
@@ -57,7 +57,7 @@ export const bookingController = {
 
     const bookings = await bookingService.createRecurringBooking(
       authReq.user.userId,
-      authReq.user.departmentId,
+      authReq.user.departmentId || undefined,
       input
     );
 

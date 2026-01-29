@@ -52,7 +52,7 @@ interface BookingWithRelations {
 export class BookingService {
   async createBooking(
     userId: string,
-    userDepartmentId: string,
+    userDepartmentId: string | null | undefined,
     input: CreateBookingInput
   ): Promise<any> {
     const startTime = new Date(input.startTime);
@@ -191,7 +191,7 @@ export class BookingService {
 
   async createRecurringBooking(
     userId: string,
-    userDepartmentId: string,
+    userDepartmentId: string | null | undefined,
     input: CreateRecurringBookingInput
   ): Promise<any[]> {
     const baseStartTime = new Date(input.startTime);
@@ -836,7 +836,9 @@ export class BookingService {
     }
   }
 
-  private async checkDepartmentRestrictions(userDepartmentId: string, roomDepartmentId: string, startTime: Date): Promise<void> {
+  private async checkDepartmentRestrictions(userDepartmentId: string | null | undefined, roomDepartmentId: string | null, startTime: Date): Promise<void> {
+    // If user has no department or room has no department, skip restriction check
+    if (!userDepartmentId || !roomDepartmentId) return;
     if (userDepartmentId === roomDepartmentId) return;
     const hour = startTime.getUTCHours();
     if (hour >= config.booking.crossDepartmentAllowedAfterHour) return;
