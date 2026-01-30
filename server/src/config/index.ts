@@ -78,7 +78,7 @@ const configSchema = z.object({
     peakHoursStart: z.coerce.number().min(0).max(23).default(9),
     peakHoursEnd: z.coerce.number().min(0).max(23).default(17),
     peakHourCreditMultiplier: z.coerce.number().default(2),
-    crossDepartmentAllowedAfterHour: z.coerce.number().min(0).max(23).default(18),
+    crossDepartmentAllowedAfterHour: z.coerce.number().min(0).max(23).default(0),
     maxRecurringWeeks: z.coerce.number().default(10),
   }),
 

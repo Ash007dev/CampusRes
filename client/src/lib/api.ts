@@ -50,12 +50,15 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config;
 
-    // Handle 401 Unauthorized
+    // Handle 401 Unauthorized - just clear the token, don't redirect
+    // The middleware and components will handle redirects appropriately
     if (error.response?.status === 401) {
-      // Clear token and redirect to login
       if (typeof window !== 'undefined') {
         localStorage.removeItem('accessToken');
-        window.location.href = '/auth/login';
+        localStorage.removeItem('user');
+        document.cookie = 'accessToken=; path=/; max-age=0';
+        // Don't redirect here - let the components/middleware handle it
+        // This prevents infinite redirect loops
       }
     }
 

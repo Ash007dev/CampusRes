@@ -53,10 +53,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = localStorage.getItem("accessToken");
       const storedUser = localStorage.getItem("user");
 
+      console.log("[Auth] Checking auth, token exists:", !!token);
+
       if (token && storedUser) {
         // Load stored user immediately so UI shows correct name right away
         try {
           const parsedUser = JSON.parse(storedUser);
+          console.log("[Auth] Loaded stored user:", parsedUser?.name);
           if (parsedUser && parsedUser.name) {
             setUser(parsedUser);
           }
@@ -66,8 +69,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         try {
           // Verify token is still valid and refresh user data
+          console.log("[Auth] Fetching /auth/me...");
           const response = await authApi.getMe();
           const apiUser = response.data.data;
+          console.log("[Auth] Got user from API:", apiUser);
           // Map API user to context User type
           const userData: User = {
             id: apiUser.id,
@@ -79,8 +84,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
           setUser(userData);
           localStorage.setItem("user", JSON.stringify(userData));
-        } catch {
+          console.log("[Auth] Updated user to:", userData.name);
+        } catch (error) {
           // Token invalid, clear storage
+          console.error("[Auth] Failed to fetch /auth/me:", error);
           localStorage.removeItem("accessToken");
           localStorage.removeItem("user");
           document.cookie = 'accessToken=; path=/; max-age=0';
@@ -101,13 +108,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const response = await authApi.login(email, password);
+      console.log("[Auth] Login response:", response.data);
       const apiUser = response.data.data.user;
       const token = response.data.data.tokens.accessToken;
 
-      localStorage.setItem("accessToken", token);
-      // Set cookie for middleware SSR checks
+      // Set cookie FIRST (for middleware SSR checks)
       document.cookie = `accessToken=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+      localStorage.setItem("accessToken", token);
 
+      console.log("[Auth] API User from login:", apiUser);
       // Map API user to context User type
       const userData: User = {
         id: apiUser.id,
@@ -115,16 +124,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: apiUser.email,
         role: apiUser.role,
         departmentId: apiUser.departmentId,
-        reputationScore: apiUser.reputationScore,
+        reputationScore: apiUser.reputationScore || 0,
       };
+      console.log("[Auth] Mapped user data:", userData);
       localStorage.setItem("user", JSON.stringify(userData));
 
       setUser(userData);
-      router.push("/dashboard");
-    } finally {
+
+      // Use window.location.replace for a clean navigation that ensures 
+      // the browser reads the newly set cookie for the middleware
+      window.location.replace("/dashboard");
+    } catch (error) {
       setIsLoading(false);
+      throw error;
     }
-  }, [router]);
+    // Note: Don't set isLoading to false here since we're navigating away
+  }, []);
 
   // Register
   const register = useCallback(async (data: RegisterData) => {

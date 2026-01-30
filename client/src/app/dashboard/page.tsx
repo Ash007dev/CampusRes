@@ -86,6 +86,30 @@ export default function DashboardPage() {
   // US 3.8: Check-in reminders (5 min before booking)
   useBookingReminders();
 
+  // Get user with localStorage fallback for immediate display
+  // Use useState + useEffect to avoid hydration mismatch (SSR vs client)
+  const [displayUser, setDisplayUser] = React.useState<typeof user>(null);
+
+  React.useEffect(() => {
+    // If user is available from context, use it
+    if (user) {
+      setDisplayUser(user);
+      return;
+    }
+    // Otherwise try to load from localStorage (only on client)
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        setDisplayUser(JSON.parse(stored));
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }, [user]);
+
+  // Debug log
+  console.log("[Dashboard] User from auth context:", user, "displayUser:", displayUser);
+
   // Fetch rooms and bookings
   const fetchData = useCallback(async () => {
     try {
@@ -146,7 +170,13 @@ export default function DashboardPage() {
   }, [user?.id]);
 
   useEffect(() => {
-    fetchData();
+    // Only fetch data if we have an access token
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      fetchData();
+    } else {
+      setIsLoading(false);
+    }
   }, [fetchData]);
 
   // Refresh data
@@ -351,14 +381,14 @@ export default function DashboardPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold">
-                  Welcome back, {user?.name?.split(" ")[0] || "User"}! 👋
+                  Welcome back, {displayUser?.name?.split(" ")[0] || "User"}! 👋
                 </h2>
                 <p className="text-muted-foreground mt-1">
-                  {user?.role === "ADMIN" && "You have full admin access to manage the campus resources."}
-                  {user?.role === "FACULTY" && "You have unlimited booking access for your classes and meetings."}
-                  {user?.role === "STUDENT" && "Book rooms for study sessions, group projects, and club meetings."}
-                  {user?.role === "LAB_ADMIN" && "Manage bookings and approve requests for your assigned labs."}
-                  {!user?.role && "Ready to book a room for your next session?"}
+                  {displayUser?.role === "ADMIN" && "You have full admin access to manage the campus resources."}
+                  {displayUser?.role === "FACULTY" && "You have unlimited booking access for your classes and meetings."}
+                  {displayUser?.role === "STUDENT" && "Book rooms for study sessions, group projects, and club meetings."}
+                  {displayUser?.role === "LAB_ADMIN" && "Manage bookings and approve requests for your assigned labs."}
+                  {!displayUser?.role && "Ready to book a room for your next session?"}
                 </p>
               </div>
 

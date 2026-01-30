@@ -130,9 +130,12 @@ export class BookingService {
       const initialStatus = requiresApproval ? BOOKING_STATUS.PENDING_APPROVAL : BOOKING_STATUS.CONFIRMED;
 
       // Create booking
+      const now = new Date().toISOString();
+      const bookingId = crypto.randomUUID();
       const { data: newBooking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
+          id: bookingId,
           user_id: userId,
           room_id: input.roomId,
           start_time: startTime.toISOString(),
@@ -144,12 +147,20 @@ export class BookingService {
           check_in_status: 'PENDING',
           credits_charged: creditsRequired,
           is_peak_hours: isPeakHours,
+          created_at: now,
+          updated_at: now,
         })
         .select()
         .single();
 
       if (bookingError || !newBooking) {
-        logger.error({ bookingError }, 'Failed to create booking');
+        logger.error({
+          bookingError,
+          errorMessage: bookingError?.message,
+          errorCode: bookingError?.code,
+          errorDetails: bookingError?.details,
+          errorHint: bookingError?.hint,
+        }, 'Failed to create booking');
         throw new AppError('Failed to create booking', 500);
       }
 

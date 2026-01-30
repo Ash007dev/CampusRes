@@ -100,6 +100,7 @@ export class AuthService {
     const authUserId = authData.user.id;
 
     // Create corresponding entry in public.users table
+    const now = new Date().toISOString();
     const { data: user, error: userError } = await supabase
       .from('users')
       .insert({
@@ -109,6 +110,8 @@ export class AuthService {
         last_name: input.lastName,
         role: 'STUDENT',
         department_id: departmentId,
+        created_at: now,
+        updated_at: now,
       })
       .select()
       .single();
