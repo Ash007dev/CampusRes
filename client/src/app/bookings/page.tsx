@@ -16,6 +16,7 @@ import {
     ChevronLeft,
     RefreshCw,
     Loader2,
+    PlusCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -70,6 +71,8 @@ export default function BookingsPage() {
     const [activeTab, setActiveTab] = useState("upcoming");
     const [cancellingId, setCancellingId] = useState<string | null>(null);
     const [checkingInId, setCheckingInId] = useState<string | null>(null);
+    const [earlyCheckoutId, setEarlyCheckoutId] = useState<string | null>(null);
+    const [extendingId, setExtendingId] = useState<string | null>(null);
 
     // Fetch bookings from API
     const fetchBookings = useCallback(async () => {
@@ -169,6 +172,51 @@ export default function BookingsPage() {
         }
     };
 
+    // Handle early checkout (US 3.4) - End booking early and get credit refund
+    const handleEarlyCheckout = async (id: string) => {
+        setEarlyCheckoutId(id);
+        try {
+            const response = await bookingsApi.earlyCheckout(id);
+            const refundedCredits = response.data?.data?.refundedCredits || 0;
+            toast({
+                title: "Early Checkout Successful ✓",
+                description: refundedCredits > 0 
+                    ? `You ended your booking early. ${refundedCredits} credits refunded!`
+                    : "You have ended your booking early.",
+            });
+            await fetchBookings();
+        } catch (error: any) {
+            toast({
+                title: "Early Checkout Failed",
+                description: error.message || "Unable to end booking early. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setEarlyCheckoutId(null);
+        }
+    };
+
+    // Handle extend booking (US 3.5) - Extend active booking by 15 minutes
+    const handleExtend = async (id: string) => {
+        setExtendingId(id);
+        try {
+            await bookingsApi.extendBooking(id, 15); // Extend by 15 minutes
+            toast({
+                title: "Booking Extended ✓",
+                description: "Your booking has been extended by 15 minutes.",
+            });
+            await fetchBookings();
+        } catch (error: any) {
+            toast({
+                title: "Extension Failed",
+                description: error.message || "Unable to extend booking. The room may be booked after your slot.",
+                variant: "destructive",
+            });
+        } finally {
+            setExtendingId(null);
+        }
+    };
+
     if (authLoading || isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-background">
@@ -192,8 +240,10 @@ export default function BookingsPage() {
             (booking.description || "").toLowerCase().includes(searchQuery.toLowerCase());
         const matchesStatus =
             statusFilter === "all" || booking.status === statusFilter;
-        const bookingDate = new Date(booking.startTime);
-        const isUpcoming = bookingDate >= new Date();
+        const bookingStartTime = new Date(booking.startTime);
+        const now = new Date();
+        // Compare full datetime, not just date - a booking is upcoming if its start time is in the future
+        const isUpcoming = bookingStartTime.getTime() > now.getTime();
         const matchesTab =
             activeTab === "all" ||
             (activeTab === "upcoming" && isUpcoming) ||
@@ -333,14 +383,25 @@ export default function BookingsPage() {
                             ) : (
                                 filteredBookings.map((booking) => {
                                     const StatusIcon = STATUS_ICONS[booking.status] || AlertCircle;
-                                    const startTime = new Date(booking.startTime);
-                                    const endTime = new Date(booking.endTime);
+                                    const startTime = booking.startTime ? new Date(booking.startTime) : null;
+                                    const endTime = booking.endTime ? new Date(booking.endTime) : null;
+                                    const isValidDate = startTime && !isNaN(startTime.getTime()) && endTime && !isNaN(endTime.getTime());
                                     const roomName = booking.room?.name || booking.title || "Room";
                                     const building = booking.room?.building || "Building";
                                     const floor = booking.room?.floor || "1";
-                                    const isUpcoming = startTime >= new Date();
+                                    const isUpcoming = isValidDate && startTime >= new Date();
                                     const canCancel = isUpcoming && booking.status === "CONFIRMED";
                                     const canCheckIn = isUpcoming && booking.status === "CONFIRMED";
+                                    
+                                    // US 3.4: Early checkout - booking is active if checked in and currently in progress
+                                    const now = new Date();
+                                    const isActiveBooking = isValidDate && 
+                                        booking.checkInStatus === "CHECKED_IN" && 
+                                        startTime <= now && 
+                                        endTime > now;
+                                    const canEarlyCheckout = isActiveBooking;
+                                    // US 3.5: Extend meeting - can extend active bookings by 15 minutes
+                                    const canExtend = isActiveBooking;
 
                                     return (
                                         <Card key={booking.id} className="overflow-hidden">
@@ -366,19 +427,19 @@ export default function BookingsPage() {
                                                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                                                     <div className="flex items-center gap-1">
                                                         <Calendar className="h-4 w-4" />
-                                                        {format(startTime, "PPP")}
+                                                        {isValidDate ? format(startTime, "PPP") : "Invalid date"}
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <Clock className="h-4 w-4" />
-                                                        {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
+                                                        {isValidDate ? `${format(startTime, "HH:mm")} - ${format(endTime, "HH:mm")}` : "--:-- - --:--"}
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <MapPin className="h-4 w-4" />
                                                         {building}, Floor {floor}
                                                     </div>
                                                 </div>
-                                                {(canCancel || canCheckIn) && (
-                                                    <div className="mt-4 flex gap-2">
+                                                {(canCancel || canCheckIn || canEarlyCheckout || canExtend) && (
+                                                    <div className="mt-4 flex flex-wrap gap-2">
                                                         {canCheckIn && (
                                                             <Button
                                                                 variant="outline"
@@ -390,6 +451,36 @@ export default function BookingsPage() {
                                                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                                                 ) : null}
                                                                 Check In
+                                                            </Button>
+                                                        )}
+                                                        {canEarlyCheckout && (
+                                                            <Button
+                                                                variant="secondary"
+                                                                size="sm"
+                                                                onClick={() => handleEarlyCheckout(booking.id)}
+                                                                disabled={earlyCheckoutId === booking.id}
+                                                                className="bg-orange-500 hover:bg-orange-600 text-white"
+                                                            >
+                                                                {earlyCheckoutId === booking.id ? (
+                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                ) : null}
+                                                                End Now
+                                                            </Button>
+                                                        )}
+                                                        {canExtend && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => handleExtend(booking.id)}
+                                                                disabled={extendingId === booking.id}
+                                                                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                                                            >
+                                                                {extendingId === booking.id ? (
+                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                                                )}
+                                                                +15 Mins
                                                             </Button>
                                                         )}
                                                         {canCancel && (

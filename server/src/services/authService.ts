@@ -35,6 +35,7 @@ interface AuthResult {
     lastName: string;
     role: string;
     departmentId: string | null;
+    departmentName: string | null;
   };
   tokens: {
     accessToken: string;
@@ -62,15 +63,17 @@ export class AuthService {
 
     // Get department ID if code provided
     let departmentId: string | null = null;
+    let departmentName: string | null = null;
     if (input.departmentCode) {
       const { data: dept } = await supabase
         .from('departments')
-        .select('id')
+        .select('id, name')
         .eq('code', input.departmentCode)
         .single();
 
       if (dept) {
         departmentId = dept.id;
+        departmentName = dept.name;
       }
     }
 
@@ -151,6 +154,7 @@ export class AuthService {
         lastName: user.last_name,
         role: user.role,
         departmentId: user.department_id,
+        departmentName: departmentName,
       },
       tokens: {
         accessToken: signInData.session.access_token,
@@ -173,7 +177,7 @@ export class AuthService {
     });
 
     if (signInError || !signInData.session || !signInData.user) {
-      logger.warn({ email, error: signInError }, 'Login failed');
+      logger.warn({ email, error: signInError, errorMessage: signInError?.message, errorCode: signInError?.code }, 'Login failed - Supabase Auth error');
       throw new InvalidCredentialsError();
     }
 
@@ -185,8 +189,19 @@ export class AuthService {
       .single();
 
     if (userError || !user) {
-      logger.error({ userId: signInData.user.id }, 'User profile not found in public.users');
+      logger.error({ userId: signInData.user.id, userError }, 'User profile not found in public.users');
       throw new AppError('User profile not found', 500);
+    }
+
+    // Get department name if user has a department
+    let departmentName: string | null = null;
+    if (user.department_id) {
+      const { data: dept } = await supabase
+        .from('departments')
+        .select('name')
+        .eq('id', user.department_id)
+        .single();
+      departmentName = dept?.name || null;
     }
 
     if (!user.is_active) {
@@ -223,6 +238,7 @@ export class AuthService {
         lastName: user.last_name,
         role: user.role,
         departmentId: user.department_id,
+        departmentName: departmentName,
       },
       tokens: {
         accessToken: signInData.session.access_token,
@@ -241,6 +257,7 @@ export class AuthService {
     lastName: string;
     role: string;
     departmentId: string | null;
+    departmentName: string | null;
     creditsBalance: number;
     reputationScore: number;
   } | null> {
@@ -254,6 +271,17 @@ export class AuthService {
       return null;
     }
 
+    // Get department name if user has a department
+    let departmentName: string | null = null;
+    if (data.department_id) {
+      const { data: dept } = await supabase
+        .from('departments')
+        .select('name')
+        .eq('id', data.department_id)
+        .single();
+      departmentName = dept?.name || null;
+    }
+
     return {
       id: data.id,
       email: data.email,
@@ -261,6 +289,7 @@ export class AuthService {
       lastName: data.last_name,
       role: data.role,
       departmentId: data.department_id,
+      departmentName: departmentName,
       creditsBalance: data.credits_balance,
       reputationScore: data.reputation_score,
     };

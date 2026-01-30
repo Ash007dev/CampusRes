@@ -10,6 +10,8 @@
 import { supabase } from '../lib/supabase.js';
 import { logger } from '../config/logger.js';
 import { config } from '../config/index.js';
+import { emitBookingUpdate, emitRoomUpdate } from '../lib/socket.js';
+import { waitlistService } from './waitlistService.js';
 import {
   BOOKING_STATUS,
   APPROVAL_REQUIRED_ROOM_TYPES,
@@ -190,6 +192,22 @@ export class BookingService {
 
       logger.info({ bookingId: newBooking.id, status: newBooking.status }, 'Booking created successfully');
 
+      // Emit real-time updates for live occupancy (US 3.3)
+      emitBookingUpdate({
+        type: 'CREATED',
+        bookingId: newBooking.id,
+        roomId: room.id,
+        roomName: room.name,
+        startTime: newBooking.start_time,
+        endTime: newBooking.end_time,
+        userId,
+      });
+      emitRoomUpdate({
+        type: 'OCCUPIED',
+        roomId: room.id,
+        roomName: room.name,
+      });
+
       return { ...newBooking, room, user: { id: userId, department_id: userDepartmentId } };
 
     } catch (error) {
@@ -317,7 +335,30 @@ export class BookingService {
 
     await this.invalidateAvailabilityCache(booking.room_id, new Date(booking.start_time));
 
-    logger.info({ bookingId }, 'Booking cancelled');
+    // Emit real-time updates for live occupancy (US 3.3)
+    emitBookingUpdate({
+      type: 'CANCELLED',
+      bookingId,
+      roomId: booking.room_id,
+      roomName: booking.rooms?.name || 'Room',
+      startTime: booking.start_time,
+      endTime: booking.end_time,
+      userId,
+    });
+    emitRoomUpdate({
+      type: 'AVAILABLE',
+      roomId: booking.room_id,
+      roomName: booking.rooms?.name || 'Room',
+    });
+
+    // US 3.7: Notify waitlisted users that a slot is now available
+    await waitlistService.notifyWaitlistedUsers(
+      booking.room_id,
+      new Date(booking.start_time),
+      new Date(booking.end_time)
+    );
+
+    logger.info({ bookingId }, 'Booking cancelled');;
 
     return updated;
   }
@@ -561,6 +602,22 @@ export class BookingService {
 
     logger.info({ bookingId, userId }, 'User checked in to booking');
 
+    // Emit real-time updates for live occupancy (US 3.3)
+    emitBookingUpdate({
+      type: 'CONFIRMED',
+      bookingId,
+      roomId: booking.room_id,
+      roomName: booking.rooms?.name || 'Room',
+      startTime: booking.start_time,
+      endTime: booking.end_time,
+      userId,
+    });
+    emitRoomUpdate({
+      type: 'OCCUPIED',
+      roomId: booking.room_id,
+      roomName: booking.rooms?.name || 'Room',
+    });
+
     return updated;
   }
 
@@ -740,7 +797,23 @@ export class BookingService {
 
     logger.info({ bookingId, userId, refundCredits }, 'Early checkout completed');
 
-    return updated;
+    // Emit real-time updates for live occupancy (US 3.3)
+    emitBookingUpdate({
+      type: 'COMPLETED',
+      bookingId,
+      roomId: booking.room_id,
+      roomName: booking.rooms?.name || 'Room',
+      startTime: booking.start_time,
+      endTime: now.toISOString(),
+      userId,
+    });
+    emitRoomUpdate({
+      type: 'AVAILABLE',
+      roomId: booking.room_id,
+      roomName: booking.rooms?.name || 'Room',
+    });
+
+    return { ...updated, refundedCredits: refundCredits };
   }
 
   async extendBooking(bookingId: string, userId: string, additionalMinutes: number): Promise<any> {
@@ -825,6 +898,22 @@ export class BookingService {
     });
 
     logger.info({ bookingId, userId, additionalMinutes, additionalCredits }, 'Booking extended');
+
+    // Emit real-time update for extended booking (US 3.5)
+    emitBookingUpdate({
+      type: 'CONFIRMED',
+      bookingId,
+      roomId: updated.room_id,
+      roomName: updated.rooms?.name || 'Room',
+      startTime: updated.start_time,
+      endTime: updated.end_time,
+      userId,
+    });
+    emitRoomUpdate({
+      type: 'OCCUPIED',
+      roomId: updated.room_id,
+      roomName: updated.rooms?.name || 'Room',
+    });
 
     return updated;
   }

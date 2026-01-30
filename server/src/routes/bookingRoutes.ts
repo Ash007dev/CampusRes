@@ -89,6 +89,21 @@ router.get(
 
 /**
  * @openapi
+ * /api/v1/bookings/calendar:
+ *   get:
+ *     summary: Get all bookings for calendar view
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get(
+  '/calendar',
+  authenticate,
+  bookingController.getCalendarBookings
+);
+
+/**
+ * @openapi
  * /api/v1/bookings/availability:
  *   get:
  *     summary: Get room availability for a date

@@ -15,6 +15,8 @@ import {
   LayoutGrid,
   CheckCircle2,
   XCircle,
+  Bell,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +50,9 @@ interface RoomCardProps {
   room: Room;
   onBook?: (room: Room) => void;
   onViewDetails?: (room: Room) => void;
+  onNotify?: (room: Room) => void;
   isSelected?: boolean;
+  isNotifying?: boolean;
   className?: string;
 }
 
@@ -75,7 +79,9 @@ export function RoomCard({
   room,
   onBook,
   onViewDetails,
+  onNotify,
   isSelected = false,
+  isNotifying = false,
   className,
 }: RoomCardProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -130,7 +136,7 @@ export function RoomCard({
               </div>
             )}
 
-            {/* Availability Badge */}
+            {/* Availability Badge with Pulse Animation for Live Occupancy (US 3.3) */}
             <div className="absolute right-3 top-3">
               {room.isAvailable ? (
                 <Badge className="bg-green-500 hover:bg-green-600">
@@ -138,7 +144,8 @@ export function RoomCard({
                   Available
                 </Badge>
               ) : (
-                <Badge variant="destructive">
+                <Badge variant="destructive" className="animate-pulse">
+                  <span className="mr-1.5 h-2 w-2 rounded-full bg-white animate-ping inline-block" />
                   <XCircle className="mr-1 h-3 w-3" />
                   Occupied
                 </Badge>
@@ -234,13 +241,28 @@ export function RoomCard({
             >
               View Details
             </Button>
-            <Button
-              className="flex-1"
-              disabled={!room.isAvailable}
-              onClick={() => onBook?.(room)}
-            >
-              Book Now
-            </Button>
+            {room.isAvailable ? (
+              <Button
+                className="flex-1"
+                onClick={() => onBook?.(room)}
+              >
+                Book Now
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
+                onClick={() => onNotify?.(room)}
+                disabled={isNotifying}
+              >
+                {isNotifying ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Bell className="mr-2 h-4 w-4" />
+                )}
+                Notify Me
+              </Button>
+            )}
           </CardFooter>
         </Card>
       </motion.div>

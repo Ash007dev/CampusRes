@@ -43,10 +43,41 @@ api.interceptors.request.use(
 );
 
 /**
- * Response interceptor - Handle errors
+ * Helper to convert snake_case to camelCase
+ */
+function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+/**
+ * Recursively transform object keys from snake_case to camelCase
+ */
+function transformKeys(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(transformKeys);
+  if (typeof obj !== 'object') return obj;
+  
+  const transformed: any = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const camelKey = snakeToCamel(key);
+      transformed[camelKey] = transformKeys(obj[key]);
+    }
+  }
+  return transformed;
+}
+
+/**
+ * Response interceptor - Transform data and handle errors
  */
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Transform snake_case keys to camelCase in response data
+    if (response.data) {
+      response.data = transformKeys(response.data);
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config;
 
@@ -131,6 +162,10 @@ export const bookingsApi = {
 
   getMyBookings: (params?: BookingQueryParams) =>
     api.get<ApiResponse<Booking[]>>('/bookings/my', { params }),
+
+  // Get all bookings for calendar view (shows all users' bookings)
+  getCalendarBookings: (params?: { startDate?: string; endDate?: string }) =>
+    api.get<ApiResponse<Booking[]>>('/bookings/calendar', { params }),
 
   getById: (id: string) =>
     api.get<ApiResponse<Booking>>(`/bookings/${id}`),
@@ -280,6 +315,7 @@ export interface RegisterData {
   firstName: string;
   lastName: string;
   departmentId?: string;
+  departmentCode?: string;
   role?: string;
 }
 

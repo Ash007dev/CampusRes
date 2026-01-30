@@ -312,4 +312,27 @@ export const bookingController = {
       message: 'Booking rescheduled successfully',
     });
   }),
+
+  /**
+   * Get all bookings for calendar view (all users can see room bookings)
+   * GET /api/v1/bookings/calendar
+   */
+  getCalendarBookings: asyncHandler(async (req, res: Response) => {
+    const query = req.query as { startDate?: string; endDate?: string };
+
+    const result = await bookingService.getAllBookings({
+      startDate: query.startDate ? new Date(query.startDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+      page: 1,
+      limit: 500, // Get more bookings for calendar view
+    });
+
+    res.json({
+      success: true,
+      data: result.bookings,
+      meta: {
+        total: result.total,
+      },
+    });
+  }),
 };

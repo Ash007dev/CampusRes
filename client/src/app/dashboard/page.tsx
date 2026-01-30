@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useBookingReminders } from "@/hooks/useBookingReminders";
+import { useBookingUpdates, type BookingUpdate } from "@/hooks/useSocket";
 import {
   Calendar,
   LayoutGrid,
@@ -48,8 +49,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { roomsApi, bookingsApi, authApi } from "@/lib/api";
+import { roomsApi, bookingsApi, authApi, waitlistApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { SlotInfo } from "react-big-calendar";
 
@@ -80,6 +82,8 @@ export default function DashboardPage() {
     startTime: Date;
   } | null>(null);
   const [quotaInfo, setQuotaInfo] = useState<{ usedHours: number; limitHours: number } | null>(null);
+  const [notifyingRoomId, setNotifyingRoomId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const { filters, setFilters } = useRoomFilters();
 
@@ -116,7 +120,7 @@ export default function DashboardPage() {
       setIsLoading(true);
       const [roomsResponse, bookingsResponse, quotaResponse] = await Promise.all([
         roomsApi.search(),
-        bookingsApi.getMyBookings(),
+        bookingsApi.getCalendarBookings(), // Fetch ALL bookings for calendar (not just user's)
         authApi.getQuota().catch(() => null), // Optional - may fail for non-students
       ]);
       const roomsData = roomsResponse.data.data || [];
@@ -145,16 +149,16 @@ export default function DashboardPage() {
       setBookings(
         bookingsData.map((booking: any) => ({
           id: booking.id,
-          title: booking.purpose || "Booking",
+          title: booking.title || booking.description || "Booking",
           start: new Date(booking.startTime),
           end: new Date(booking.endTime),
           roomId: booking.roomId,
-          roomName: booking.room?.name || "Room",
+          roomName: booking.room?.name || booking.rooms?.name || "Room",
           status: booking.status,
           isOwner: booking.userId === userId,
           userId: booking.userId,
-          userName: booking.user?.name,
-          purpose: booking.purpose,
+          userName: booking.user?.firstName ? `${booking.user.firstName} ${booking.user.lastName}` : booking.user?.name,
+          purpose: booking.title || booking.description,
         }))
       );
 
@@ -168,6 +172,15 @@ export default function DashboardPage() {
       setIsLoading(false);
     }
   }, [user?.id]);
+
+  // US 3.3: Live occupancy - listen for real-time booking updates via WebSocket
+  const handleBookingUpdate = useCallback((update: BookingUpdate) => {
+    console.log('📡 Live update received:', update);
+    // Refresh data when any booking changes (create, cancel, check-in, ghost-kill)
+    fetchData();
+  }, [fetchData]);
+  
+  useBookingUpdates(handleBookingUpdate);
 
   useEffect(() => {
     // Only fetch data if we have an access token
@@ -208,6 +221,40 @@ export default function DashboardPage() {
     setIsBookingModalOpen(true);
   };
 
+  // Handle joining waitlist for occupied room (US 3.7)
+  const handleNotifyMe = async (room: Room) => {
+    setNotifyingRoomId(room.id);
+    try {
+      // Join waitlist for the next hour slot
+      const now = new Date();
+      const startTime = new Date(now);
+      startTime.setMinutes(0, 0, 0); // Round to hour
+      startTime.setHours(startTime.getHours() + 1); // Next hour
+      
+      const endTime = new Date(startTime);
+      endTime.setHours(endTime.getHours() + 1); // 1 hour slot
+      
+      const response = await waitlistApi.join(
+        room.id,
+        startTime.toISOString(),
+        endTime.toISOString()
+      );
+      
+      toast({
+        title: "Added to Waitlist \u2713",
+        description: `You're #${response.data.data?.position || 1} in line for ${room.name}. We'll notify you when it's free!`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Waitlist Failed",
+        description: error.message || "Unable to join waitlist. You may already be on it.",
+        variant: "destructive",
+      });
+    } finally {
+      setNotifyingRoomId(null);
+    }
+  };
+
   // Handle booking submission
   const handleBookingSubmit = async (
     data: BookingFormData & { roomId: string }
@@ -220,16 +267,21 @@ export default function DashboardPage() {
     const [endHour, endMin] = data.endTime.split(":").map(Number);
     endDateTime.setHours(endHour, endMin, 0, 0);
 
-    await bookingsApi.create({
-      roomId: data.roomId,
-      startTime: startDateTime.toISOString(),
-      endTime: endDateTime.toISOString(),
-      title: data.purpose, // Map purpose to title for API
-      description: data.purpose,
-    });
+    try {
+      await bookingsApi.create({
+        roomId: data.roomId,
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
+        title: data.purpose, // Map purpose to title for API
+        description: data.purpose,
+      });
 
-    // Refresh data after booking
-    await fetchData();
+      // Refresh data after booking
+      await fetchData();
+    } catch (error) {
+      // Re-throw so BookingModal can handle the error
+      throw error;
+    }
   };
 
   // Handle logout
@@ -618,6 +670,8 @@ export default function DashboardPage() {
                       room={room}
                       onBook={handleBookRoom}
                       onViewDetails={(room) => router.push(`/rooms/${room.id}`)}
+                      onNotify={handleNotifyMe}
+                      isNotifying={notifyingRoomId === room.id}
                     />
                   </motion.div>
                 ))}
@@ -658,13 +712,25 @@ export default function DashboardPage() {
                       >
                         View
                       </Button>
-                      <Button
-                        size="sm"
-                        disabled={!room.isAvailable}
-                        onClick={() => handleBookRoom(room)}
-                      >
-                        Book
-                      </Button>
+                      {room.isAvailable ? (
+                        <Button
+                          size="sm"
+                          onClick={() => handleBookRoom(room)}
+                        >
+                          Book
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="bg-amber-500 hover:bg-amber-600 text-white"
+                          onClick={() => handleNotifyMe(room)}
+                          disabled={notifyingRoomId === room.id}
+                        >
+                          <Bell className="mr-1 h-4 w-4" />
+                          Notify
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
