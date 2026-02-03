@@ -568,3 +568,69 @@ export const feedbackApi = {
   // Delete feedback (admin only)
   delete: (id: string) => api.delete<ApiResponse<void>>(`/feedback/${id}`),
 };
+
+// ============================================================================
+// Configuration API (US 5.9)
+// ============================================================================
+
+export type ConfigDataType = 'string' | 'number' | 'boolean' | 'json' | 'time';
+export type ConfigCategory = 'general' | 'booking' | 'notification' | 'security';
+
+export interface SystemConfig {
+  id: string;
+  key: string;
+  value: string;
+  dataType: ConfigDataType;
+  description?: string;
+  category: ConfigCategory;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+  updatedBy?: string;
+}
+
+export interface BookingConstraints {
+  campusOpenTime: string;
+  campusCloseTime: string;
+  maxDurationHours: number;
+  minDurationMinutes: number;
+  bufferMinutes: number;
+}
+
+// Configuration API (US 5.9)
+export const configApi = {
+  // Get all configuration
+  getAll: (params?: { category?: ConfigCategory }) => 
+    api.get<ApiResponse<SystemConfig[]>>('/config', { params }),
+
+  // Get configuration by key
+  getByKey: (key: string) => 
+    api.get<ApiResponse<{ key: string; value: any; dataType: ConfigDataType; description?: string }>>(`/config/${key}`),
+
+  // Get booking time constraints (public)
+  getBookingConstraints: () => 
+    api.get<ApiResponse<BookingConstraints>>('/config/booking/constraints'),
+
+  // Update configuration (admin only)
+  update: (key: string, data: { value: string | number | boolean; description?: string }) => 
+    api.patch<ApiResponse<SystemConfig>>(`/config/${key}`, data),
+
+  // Create configuration (admin only)
+  create: (data: {
+    key: string;
+    value: string | number | boolean;
+    dataType: ConfigDataType;
+    description?: string;
+    category: ConfigCategory;
+    isPublic?: boolean;
+  }) => api.post<ApiResponse<SystemConfig>>('/config', data),
+
+  // Delete configuration (admin only)
+  delete: (key: string) => 
+    api.delete<ApiResponse<void>>(`/config/${key}`),
+
+  // Clear cache (admin only)
+  clearCache: () => 
+    api.post<ApiResponse<void>>('/config/cache/clear'),
+};
+

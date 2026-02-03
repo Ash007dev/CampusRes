@@ -9,6 +9,7 @@
 
 import { supabase } from '../lib/supabase.js';
 import { logger } from '../config/logger.js';
+import { configService } from './configService.js';
 import { config } from '../config/index.js';
 import { emitBookingUpdate, emitRoomUpdate } from '../lib/socket.js';
 import { waitlistService } from './waitlistService.js';
@@ -959,19 +960,39 @@ export class BookingService {
 
   // ========= HELPER METHODS =========
 
-  private validateTimeRange(startTime: Date, endTime: Date): void {
+  private async validateTimeRange(startTime: Date, endTime: Date): Promise<void> {
     if (startTime >= endTime) {
       throw new InvalidTimeRangeError('End time must be after start time');
     }
     if (startTime < new Date()) {
       throw new InvalidTimeRangeError('Cannot book in the past');
     }
-    const durationMs = endTime.getTime() - startTime.getTime();
-    if (durationMs / TIME.HOUR > 4) {
-      throw new InvalidTimeRangeError('Maximum booking duration is 4 hours');
+
+    // US 5.9: Get dynamic config from system_config table
+    const constraints = await configService.getBookingTimeConstraints();
+
+    // Check campus hours
+    const isWithinHours = await configService.isWithinCampusHours(startTime, endTime);
+    if (!isWithinHours) {
+      throw new InvalidTimeRangeError(
+        `Bookings must be between ${constraints.campusOpenTime} and ${constraints.campusCloseTime}`
+      );
     }
-    if (durationMs < 30 * TIME.MINUTE) {
-      throw new InvalidTimeRangeError('Minimum booking duration is 30 minutes');
+
+    // Check duration limits from config
+    const durationMs = endTime.getTime() - startTime.getTime();
+    const durationHours = durationMs / TIME.HOUR;
+    const durationMinutes = durationMs / TIME.MINUTE;
+
+    if (durationHours > constraints.maxDurationHours) {
+      throw new InvalidTimeRangeError(
+        `Maximum booking duration is ${constraints.maxDurationHours} hours`
+      );
+    }
+    if (durationMinutes < constraints.minDurationMinutes) {
+      throw new InvalidTimeRangeError(
+        `Minimum booking duration is ${constraints.minDurationMinutes} minutes`
+      );
     }
   }
 

@@ -71,6 +71,7 @@ import { HolidayCalendarModal } from "@/components/admin/HolidayCalendarModal";
 import { ExportBookingsModal } from "@/components/admin/ExportBookingsModal";
 import { MaintenanceModeModal } from "@/components/admin/MaintenanceModeModal";
 import { FeedbackReviewModal } from "@/components/admin/FeedbackReviewModal";
+import { SystemConfigModal } from "@/components/admin/SystemConfigModal";
 
 // Types
 interface Stats {
@@ -153,6 +154,7 @@ export default function AdminPage() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedRoomForMaintenance, setSelectedRoomForMaintenance] = useState<any>(null);
   const [isFeedbackReviewOpen, setIsFeedbackReviewOpen] = useState(false);
+  const [isSystemConfigOpen, setIsSystemConfigOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>('');
   const { toast } = useToast();
 
@@ -1105,8 +1107,8 @@ export default function AdminPage() {
                   </CardContent>
                 </Card>
 
-                {/* System Configuration Card (Placeholder) */}
-                <Card className="hover:shadow-md transition-all opacity-60">
+                {/* System Configuration Card */}
+                <Card className="hover:shadow-md transition-all cursor-pointer" onClick={() => setIsSystemConfigOpen(true)}>
                   <CardHeader>
                     <div className="flex items-center gap-3">
                       <div className="p-3 rounded-xl bg-violet-500/10">
@@ -1120,11 +1122,11 @@ export default function AdminPage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
-                      Configure booking limits, time slots, and campus-wide settings.
+                      Configure booking limits, campus hours, and system-wide settings.
                     </p>
-                    <Button variant="outline" className="w-full mt-4" disabled>
+                    <Button variant="outline" className="w-full mt-4">
                       <Settings className="mr-2 h-4 w-4" />
-                      Coming Soon
+                      Open Settings
                     </Button>
                   </CardContent>
                 </Card>
@@ -1168,6 +1170,10 @@ export default function AdminPage() {
       <FeedbackReviewModal
         isOpen={isFeedbackReviewOpen}
         onClose={() => setIsFeedbackReviewOpen(false)}
+      />
+      <SystemConfigModal
+        isOpen={isSystemConfigOpen}
+        onClose={() => setIsSystemConfigOpen(false)}
       />
     </div>
   );

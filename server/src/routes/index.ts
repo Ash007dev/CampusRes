@@ -13,6 +13,7 @@ import roomRoutes from './roomRoutes.js';
 import waitlistRoutes from './waitlistRoutes.js';
 import holidayRoutes from './holidayRoutes.js';
 import feedbackRoutes from './feedbackRoutes.js';
+import configRoutes from './configRoutes.js';
 
 const router: IRouter = Router();
 
@@ -23,6 +24,7 @@ router.use('/rooms', roomRoutes);
 router.use('/waitlist', waitlistRoutes);
 router.use('/holidays', holidayRoutes);
 router.use('/feedback', feedbackRoutes);
+router.use('/config', configRoutes);
 
 // Health check endpoint
 router.get('/health', (_req, res) => {
