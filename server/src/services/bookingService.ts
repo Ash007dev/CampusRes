@@ -70,6 +70,40 @@ export class BookingService {
     this.validateTimeRange(startTime, endTime);
 
     try {
+      // US 4.5: Check if user is blocked (blacklisted)
+      const { data: userStatus } = await supabase
+        .from('users')
+        .select('is_active, blocked_until, no_show_count')
+        .eq('id', userId)
+        .single();
+
+      if (userStatus?.blocked_until && new Date(userStatus.blocked_until) > new Date()) {
+        const blockedUntilDate = new Date(userStatus.blocked_until).toLocaleDateString();
+        throw new AppError(
+          `Your account is suspended until ${blockedUntilDate} due to repeated no-shows. Please contact admin.`,
+          403
+        );
+      }
+
+      if (!userStatus?.is_active) {
+        throw new AppError('Your account is deactivated. Please contact admin.', 403);
+      }
+
+      // US 5.5: Check if booking date is a holiday
+      const bookingDate = startTime.toISOString().split('T')[0];
+      const { data: holiday } = await supabase
+        .from('holidays')
+        .select('name, type')
+        .eq('date', bookingDate)
+        .single();
+
+      if (holiday) {
+        throw new AppError(
+          `Cannot book on ${bookingDate}: ${holiday.name} (${holiday.type})`,
+          400
+        );
+      }
+
       // Check room
       const { data: room, error: roomError } = await supabase
         .from('rooms')
@@ -122,7 +156,12 @@ export class BookingService {
         .gt('end_time', startTime.toISOString());
 
       if (conflicts && conflicts.length > 0) {
-        throw new BookingConflictError('This time slot is already booked');
+        // US 2.3: Find alternative slots
+        const alternatives = await this.findAlternativeSlots(input.roomId, startTime, endTime);
+        throw new BookingConflictError(
+          'This time slot is already booked',
+          { alternatives }
+        );
       }
 
       // Determine status
@@ -1013,6 +1052,164 @@ export class BookingService {
   private async invalidateAvailabilityCache(roomId: string, date: Date): Promise<void> {
     const dateStr = date.toISOString().split('T')[0];
     await deleteCache(`${CACHE.KEYS.ROOM_AVAILABILITY}${roomId}:${dateStr}`);
+  }
+
+  /**
+   * Find alternative available slots near the requested time (US 2.3)
+   */
+  async findAlternativeSlots(
+    roomId: string,
+    desiredStartTime: Date,
+    desiredEndTime: Date,
+    rangeHours: number = 2
+  ): Promise<Array<{ start: string; end: string; isPeakHours: boolean }>> {
+    const duration = desiredEndTime.getTime() - desiredStartTime.getTime();
+    const alternatives: Array<{ start: string; end: string; isPeakHours: boolean }> = [];
+
+    // Operating hours
+    const operatingStart = 8; // 8 AM
+    const operatingEnd = 22; // 10 PM
+
+    // Check slots before and after the desired time
+    for (let offset = -rangeHours; offset <= rangeHours; offset++) {
+      if (offset === 0) continue; // Skip the original slot
+
+      const candidateStart = new Date(desiredStartTime.getTime() + offset * TIME.HOUR);
+      const candidateEnd = new Date(candidateStart.getTime() + duration);
+
+      // Skip if outside operating hours
+      const startHour = candidateStart.getHours();
+      const endHour = candidateEnd.getHours();
+      if (startHour < operatingStart || endHour > operatingEnd) continue;
+
+      // Skip if in the past
+      if (candidateStart < new Date()) continue;
+
+      // Check if slot is available
+      const { data: conflicts } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('room_id', roomId)
+        .not('status', 'in', '("CANCELLED","NO_SHOW")')
+        .lt('start_time', candidateEnd.toISOString())
+        .gt('end_time', candidateStart.toISOString());
+
+      if (!conflicts || conflicts.length === 0) {
+        const hour = candidateStart.getUTCHours();
+        const isPeakHours = hour >= config.booking.peakHoursStart && hour < config.booking.peakHoursEnd;
+        alternatives.push({
+          start: candidateStart.toISOString(),
+          end: candidateEnd.toISOString(),
+          isPeakHours,
+        });
+      }
+
+      // Limit to 3 alternatives
+      if (alternatives.length >= 3) break;
+    }
+
+    return alternatives;
+  }
+
+  /**
+   * Bulk import timetable from CSV data (US 5.3)
+   * Creates recurring bookings for a semester based on class schedule
+   */
+  async bulkImportTimetable(
+    entries: Array<{
+      roomCode: string;
+      dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
+      startTime: string; // "09:00"
+      endTime: string; // "10:00"
+      title: string;
+      description?: string;
+      weeks: number; // Number of weeks to create bookings for
+    }>,
+    adminUserId: string
+  ): Promise<{ created: number; errors: Array<{ entry: number; error: string }> }> {
+    const results = { created: 0, errors: [] as Array<{ entry: number; error: string }> };
+
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      try {
+        // Find room by code
+        const { data: room } = await supabase
+          .from('rooms')
+          .select('id')
+          .eq('code', entry.roomCode)
+          .single();
+
+        if (!room) {
+          results.errors.push({ entry: i, error: `Room ${entry.roomCode} not found` });
+          continue;
+        }
+
+        // Find next occurrence of the day of week
+        const today = new Date();
+        let nextDate = new Date(today);
+        while (nextDate.getDay() !== entry.dayOfWeek) {
+          nextDate.setDate(nextDate.getDate() + 1);
+        }
+
+        // Parse time
+        const [startHour, startMin] = entry.startTime.split(':').map(Number);
+        const [endHour, endMin] = entry.endTime.split(':').map(Number);
+
+        const recurringGroupId = crypto.randomUUID();
+
+        // Create booking for each week
+        for (let week = 0; week < entry.weeks; week++) {
+          const bookingDate = new Date(nextDate);
+          bookingDate.setDate(bookingDate.getDate() + (week * 7));
+
+          const startDateTime = new Date(bookingDate);
+          startDateTime.setHours(startHour, startMin, 0, 0);
+
+          const endDateTime = new Date(bookingDate);
+          endDateTime.setHours(endHour, endMin, 0, 0);
+
+          // Check for conflicts
+          const { data: conflicts } = await supabase
+            .from('bookings')
+            .select('id')
+            .eq('room_id', room.id)
+            .not('status', 'in', '("CANCELLED","NO_SHOW")')
+            .lt('start_time', endDateTime.toISOString())
+            .gt('end_time', startDateTime.toISOString());
+
+          if (conflicts && conflicts.length > 0) {
+            continue; // Skip this slot if conflict
+          }
+
+          // Create booking
+          await supabase.from('bookings').insert({
+            user_id: adminUserId,
+            room_id: room.id,
+            start_time: startDateTime.toISOString(),
+            end_time: endDateTime.toISOString(),
+            title: entry.title,
+            description: entry.description || `Timetable import: ${entry.title}`,
+            status: 'CONFIRMED',
+            check_in_status: 'NOT_REQUIRED', // Class bookings don't need check-in
+            is_recurring: true,
+            recurring_group_id: recurringGroupId,
+          });
+
+          results.created++;
+        }
+      } catch (error: any) {
+        results.errors.push({ entry: i, error: error.message });
+      }
+    }
+
+    logger.info({ 
+      adminUserId, 
+      entriesProcessed: entries.length,
+      created: results.created, 
+      errors: results.errors.length 
+    }, 'Bulk timetable import completed');
+
+    return results;
   }
 }
 

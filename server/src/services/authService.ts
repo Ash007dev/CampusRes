@@ -440,6 +440,108 @@ export class AuthService {
       departmentId: profile.department_id,
     };
   }
+
+  /**
+   * Get all users (Admin only) - US 5.4
+   */
+  async getAllUsers(options: {
+    page?: number;
+    limit?: number;
+    role?: string;
+    search?: string;
+    departmentId?: string;
+  } = {}): Promise<{
+    users: Array<{
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      role: string;
+      departmentId: string | null;
+      departmentName: string | null;
+      reputationScore: number;
+      creditsBalance: number;
+      isActive: boolean;
+      ghostCount: number;
+      createdAt: string;
+    }>;
+    total: number;
+  }> {
+    const { page = 1, limit = 20, role, search, departmentId } = options;
+    const skip = (page - 1) * limit;
+
+    console.log('=== SUPABASE QUERY START ===');
+
+    // Simple query first - no joins
+    const { data, count, error } = await supabase
+      .from('users')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(skip, skip + limit - 1);
+
+    console.log('Supabase raw result:', { data: data?.length, count, error });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return { users: [], total: 0 };
+    }
+
+    if (!data || data.length === 0) {
+      console.log('No data returned from Supabase');
+      return { users: [], total: 0 };
+    }
+
+    return {
+      users: data.map((u: any) => ({
+        id: u.id,
+        email: u.email,
+        firstName: u.first_name,
+        lastName: u.last_name,
+        role: u.role,
+        departmentId: u.department_id,
+        departmentName: null,
+        reputationScore: u.reputation_score || 100,
+        creditsBalance: u.credits_balance || 0,
+        isActive: u.is_active,
+        ghostCount: u.ghost_count || 0,
+        createdAt: u.created_at,
+      })),
+      total: count || 0,
+    };
+  }
+
+  /**
+   * Update user role (Admin only) - US 5.4
+   */
+  async updateUserRole(userId: string, newRole: string, adminUserId: string): Promise<void> {
+    const validRoles = ['STUDENT', 'FACULTY', 'LAB_ADMIN', 'ADMIN'];
+    if (!validRoles.includes(newRole)) {
+      throw new AppError(`Invalid role: ${newRole}`, 400);
+    }
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .update({ role: newRole })
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error || !user) {
+      throw new AppError('Failed to update user role', 500);
+    }
+
+    // Audit log
+    await supabase.from('audit_logs').insert({
+      action: 'UPDATE',
+      entity_type: 'user',
+      entity_id: userId,
+      performed_by_id: adminUserId,
+      metadata: { action: 'role_change', new_role: newRole },
+    });
+
+    logger.info({ userId, newRole, adminUserId }, 'User role updated');
+  }
 }
 
+// Export singleton instance
 export const authService = new AuthService();

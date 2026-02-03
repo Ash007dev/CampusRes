@@ -163,4 +163,61 @@ export const authController = {
       message: 'Preferences updated successfully',
     });
   }),
+
+  /**
+   * Get all users (Admin only) - US 5.4
+   * GET /api/v1/auth/users
+   */
+  getAllUsers: asyncHandler(async (req: Request, res: Response) => {
+    const { page = 1, limit = 20, role, search, departmentId } = req.query;
+    
+    console.log('=== GET ALL USERS CONTROLLER HIT ===');
+    console.log('Query params:', { page, limit, role, search, departmentId });
+
+    const result = await authService.getAllUsers({
+      page: Number(page),
+      limit: Number(limit),
+      role: role as string,
+      search: search as string,
+      departmentId: departmentId as string,
+    });
+
+    console.log('Result from service:', { usersCount: result.users.length, total: result.total });
+
+    res.json({
+      success: true,
+      data: result.users,
+      meta: {
+        total: result.total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(result.total / Number(limit)),
+      },
+    });
+  }),
+
+  /**
+   * Update user role (Admin only) - US 5.4
+   * PATCH /api/v1/auth/users/:id/role
+   */
+  updateUserRole: asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!role) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'Role is required', code: 'AUTH_4003' },
+      });
+      return;
+    }
+
+    await authService.updateUserRole(id, role, authReq.user.userId);
+
+    res.json({
+      success: true,
+      message: 'User role updated successfully',
+    });
+  }),
 };

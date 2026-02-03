@@ -335,4 +335,98 @@ export const bookingController = {
       },
     });
   }),
+
+  /**
+   * Export bookings as CSV (Admin only) - US 5.6
+   * GET /api/v1/bookings/export
+   */
+  exportBookings: asyncHandler(async (req, res: Response) => {
+    const query = req.query as { startDate?: string; endDate?: string; format?: string };
+
+    const result = await bookingService.getAllBookings({
+      startDate: query.startDate ? new Date(query.startDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+      page: 1,
+      limit: 10000, // Get all bookings for export
+    });
+
+    // Generate CSV
+    const headers = [
+      'Booking ID',
+      'Room Name',
+      'Room Code',
+      'User Email',
+      'User Name',
+      'Start Time',
+      'End Time',
+      'Duration (hours)',
+      'Status',
+      'Check-in Status',
+      'Credits Charged',
+      'Created At',
+    ];
+
+    const rows = result.bookings.map((b: any) => [
+      b.id,
+      b.rooms?.name || '',
+      b.rooms?.code || '',
+      b.users?.email || '',
+      `${b.users?.first_name || ''} ${b.users?.last_name || ''}`.trim(),
+      b.start_time,
+      b.end_time,
+      ((new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / (1000 * 60 * 60)).toFixed(2),
+      b.status,
+      b.check_in_status,
+      b.credits_charged,
+      b.created_at,
+    ]);
+
+    const csv = [
+      headers.join(','),
+      ...rows.map((row: string[]) => row.map((cell: string) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+    ].join('\n');
+
+    // Set headers for file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=bookings-export-${new Date().toISOString().split('T')[0]}.csv`);
+    res.send(csv);
+  }),
+
+  /**
+   * Bulk import timetable (Admin only) - US 5.3
+   * POST /api/v1/bookings/import-timetable
+   */
+  importTimetable: asyncHandler(async (req, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { entries } = req.body as {
+      entries: Array<{
+        roomCode: string;
+        dayOfWeek: number;
+        startTime: string;
+        endTime: string;
+        title: string;
+        description?: string;
+        weeks: number;
+      }>;
+    };
+
+    if (!entries || !Array.isArray(entries) || entries.length === 0) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Please provide a valid array of timetable entries',
+      });
+      return;
+    }
+
+    const result = await bookingService.bulkImportTimetable(entries, authReq.user.userId);
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: {
+        created: result.created,
+        errors: result.errors,
+      },
+      message: `Successfully created ${result.created} bookings${result.errors.length > 0 ? ` with ${result.errors.length} errors` : ''}`,
+    });
+  }),
 };

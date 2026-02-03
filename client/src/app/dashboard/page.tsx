@@ -39,6 +39,7 @@ import {
   type BookingEvent,
 } from "@/components/booking/BookingCalendar";
 import { BookingModal, type BookingFormData } from "@/components/booking/BookingModal";
+import { BookingDetailsModal } from "@/components/booking/BookingDetailsModal";
 import { RoomFilter, useRoomFilters, type RoomFilters } from "@/components/room/RoomFilter";
 import { RoomCard, type Room } from "@/components/room/RoomCard";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -76,6 +77,8 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("calendar");
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<BookingEvent | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<{
     date: Date;
@@ -93,26 +96,67 @@ export default function DashboardPage() {
   // Get user with localStorage fallback for immediate display
   // Use useState + useEffect to avoid hydration mismatch (SSR vs client)
   const [displayUser, setDisplayUser] = React.useState<typeof user>(null);
+  const [userLoadError, setUserLoadError] = React.useState<string | null>(null);
 
+  // Load from localStorage immediately on mount (client-side only)
   React.useEffect(() => {
-    // If user is available from context, use it
-    if (user) {
-      setDisplayUser(user);
-      return;
-    }
-    // Otherwise try to load from localStorage (only on client)
-    try {
-      const stored = localStorage.getItem('user');
-      if (stored) {
-        setDisplayUser(JSON.parse(stored));
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('user');
+        console.log("[Dashboard] Raw localStorage 'user':", stored);
+        
+        if (stored) {
+          const parsedUser = JSON.parse(stored);
+          console.log("[Dashboard] Parsed user from localStorage:", parsedUser);
+          
+          // Validate that user object has required fields
+          if (parsedUser && parsedUser.id && parsedUser.email) {
+            // Ensure name field exists, construct from firstName/lastName if needed
+            if (!parsedUser.name && parsedUser.firstName && parsedUser.lastName) {
+              parsedUser.name = `${parsedUser.firstName} ${parsedUser.lastName}`;
+              console.log("[Dashboard] Constructed name:", parsedUser.name);
+            }
+            setDisplayUser(parsedUser);
+          } else {
+            console.warn("[Dashboard] Invalid user object in localStorage");
+            setUserLoadError("Invalid user data");
+          }
+        } else {
+          console.log("[Dashboard] No user in localStorage");
+        }
+      } catch (error) {
+        console.error("[Dashboard] Failed to parse stored user:", error);
+        setUserLoadError("Failed to load user data");
       }
-    } catch {
-      // Ignore parse errors
+    }
+  }, []); // Run once on mount
+
+  // Update when auth context provides user
+  React.useEffect(() => {
+    if (user) {
+      console.log("[Dashboard] Auth context user loaded:", user);
+      setDisplayUser(user);
+      setUserLoadError(null);
     }
   }, [user]);
 
-  // Debug log
-  console.log("[Dashboard] User from auth context:", user, "displayUser:", displayUser);
+  // Get the current user to display (prefer auth context, fallback to displayUser)
+  const currentUser = user || displayUser;
+  
+  // Debug logging
+  React.useEffect(() => {
+    console.log("[Dashboard] ===================");
+    console.log("[Dashboard] User state:", {
+      hasUser: !!user,
+      userName: user?.name,
+      hasDisplayUser: !!displayUser,
+      displayUserName: displayUser?.name,
+      currentUserName: currentUser?.name,
+      currentUserEmail: currentUser?.email,
+      error: userLoadError,
+    });
+    console.log("[Dashboard] ===================");
+  }, [user, displayUser, currentUser, userLoadError]);
 
   // Fetch rooms and bookings
   const fetchData = useCallback(async () => {
@@ -211,8 +255,42 @@ export default function DashboardPage() {
 
   // Handle event selection
   const handleSelectEvent = (event: BookingEvent) => {
-    // Show booking details or edit modal
-    console.log("Selected event:", event);
+    // Show booking details modal
+    setSelectedBooking(event);
+    setIsDetailsModalOpen(true);
+  };
+
+  // Handle edit from details modal
+  const handleEditBooking = (booking: BookingEvent) => {
+    setIsDetailsModalOpen(false);
+    // Navigate to bookings page to reschedule
+    router.push(`/bookings`);
+  };
+
+  // Handle cancel from details modal
+  const handleCancelBooking = async (booking: BookingEvent) => {
+    try {
+      await bookingsApi.cancel(booking.id);
+      toast({
+        title: "Booking Cancelled",
+        description: "Your booking has been cancelled successfully.",
+      });
+      setIsDetailsModalOpen(false);
+      await fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Cancellation Failed",
+        description: error.message || "Failed to cancel booking.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle check-in from details modal
+  const handleCheckInFromDetails = (booking: BookingEvent) => {
+    setIsDetailsModalOpen(false);
+    // Navigate to bookings page for check-in
+    router.push(`/bookings`);
   };
 
   // Handle booking a room
@@ -368,22 +446,22 @@ export default function DashboardPage() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.avatarUrl} />
+                    <AvatarImage src={currentUser?.avatarUrl} />
                     <AvatarFallback>
-                      {user?.name?.charAt(0) || "U"}
+                      {currentUser?.name?.charAt(0) || "U"}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden md:inline">{user?.name}</span>
+                  <span className="hidden md:inline">{currentUser?.name || "User"}</span>
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>
                   <div className="flex flex-col">
-                    <span>My Account</span>
-                    {user?.role && (
+                    <span>{currentUser?.name || "My Account"}</span>
+                    {currentUser?.role && (
                       <span className="text-xs font-normal text-muted-foreground capitalize">
-                        {user.role.toLowerCase().replace("_", " ")}
+                        {currentUser.role.toLowerCase().replace("_", " ")}
                       </span>
                     )}
                   </div>
@@ -402,7 +480,7 @@ export default function DashboardPage() {
                   Settings
                 </DropdownMenuItem>
                 {/* Admin Panel - Only visible for ADMIN users */}
-                {user?.role === "ADMIN" && (
+                {currentUser?.role === "ADMIN" && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => router.push("/admin")}>
@@ -423,45 +501,45 @@ export default function DashboardPage() {
       </header>
 
       <div className="container mx-auto px-4 py-6">
-        {/* Role-based Welcome Banner */}
+        {/* Role-based Welcome Banner - Clean Design */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <div className="rounded-2xl bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 border border-violet-500/20 p-6">
+          <div className="rounded-lg border border-border bg-card p-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold">
-                  Welcome back, {displayUser?.name?.split(" ")[0] || "User"}! 👋
+                  Welcome back, {currentUser?.name?.split(" ")[0] || "User"}!
                 </h2>
                 <p className="text-muted-foreground mt-1">
-                  {displayUser?.role === "ADMIN" && "You have full admin access to manage the campus resources."}
-                  {displayUser?.role === "FACULTY" && "You have unlimited booking access for your classes and meetings."}
-                  {displayUser?.role === "STUDENT" && "Book rooms for study sessions, group projects, and club meetings."}
-                  {displayUser?.role === "LAB_ADMIN" && "Manage bookings and approve requests for your assigned labs."}
-                  {!displayUser?.role && "Ready to book a room for your next session?"}
+                  {currentUser?.role === "ADMIN" && "You have full admin access to manage the campus resources."}
+                  {currentUser?.role === "FACULTY" && "You have unlimited booking access for your classes and meetings."}
+                  {currentUser?.role === "STUDENT" && "Book rooms for study sessions, group projects, and club meetings."}
+                  {currentUser?.role === "LAB_ADMIN" && "Manage bookings and approve requests for your assigned labs."}
+                  {!currentUser?.role && "Ready to book a room for your next session?"}
                 </p>
               </div>
 
               {/* Quick Stats based on role */}
               <div className="flex flex-wrap gap-3">
                 {/* Student Quota */}
-                {user?.role === "STUDENT" && quotaInfo && (
-                  <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-background border">
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground">Weekly Quota</p>
-                      <p className="text-lg font-bold">{quotaInfo.usedHours}/{quotaInfo.limitHours} hrs</p>
+                {currentUser?.role === "STUDENT" && quotaInfo && (
+                  <div className="flex items-center gap-4 px-5 py-3 rounded-xl bg-secondary border-2 border-border shadow-sm">
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Weekly Quota</p>
+                      <p className="text-2xl font-bold tracking-tight">{quotaInfo.usedHours}<span className="text-muted-foreground">/{quotaInfo.limitHours}</span> <span className="text-base font-normal text-muted-foreground">hrs</span></p>
                     </div>
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">{Math.round((quotaInfo.usedHours / quotaInfo.limitHours) * 100)}%</span>
+                    <div className="h-12 w-12 rounded-full bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center border-2 border-neutral-700 dark:border-neutral-300 shadow-md">
+                      <span className="text-white dark:text-black text-sm font-bold">{Math.round((quotaInfo.usedHours / quotaInfo.limitHours) * 100)}%</span>
                     </div>
                   </div>
                 )}
 
                 {/* Faculty Unlimited Badge */}
                 {user?.role === "FACULTY" && (
-                  <Badge className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white border-0 text-sm">
+                  <Badge className="px-4 py-2 bg-neutral-800 dark:bg-neutral-200 dark:text-black text-white border-0 text-sm">
                     ✨ Unlimited Access
                   </Badge>
                 )}
@@ -470,7 +548,7 @@ export default function DashboardPage() {
                 {user?.role === "ADMIN" && (
                   <Button
                     onClick={() => router.push("/admin")}
-                    className="bg-gradient-to-r from-violet-500 to-purple-600 text-white"
+                    className="bg-neutral-900 dark:bg-neutral-100 dark:text-black text-white hover:bg-neutral-800 dark:hover:bg-neutral-300"
                   >
                     Open Admin Panel →
                   </Button>
@@ -482,7 +560,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted-foreground">Upcoming</p>
                     <p className="text-lg font-bold">{bookings.filter(b => new Date(b.start) > new Date()).length}</p>
                   </div>
-                  <Calendar className="h-5 w-5 text-violet-500" />
+                  <Calendar className="h-5 w-5 text-foreground" />
                 </div>
               </div>
             </div>
@@ -495,8 +573,8 @@ export default function DashboardPage() {
             <SheetContent side="left" className="w-80 p-0">
               <SheetHeader className="p-6 pb-4 border-b">
                 <SheetTitle className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                    <Calendar className="h-4 w-4 text-white" />
+                  <div className="h-8 w-8 rounded-lg bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center">
+                    <Calendar className="h-4 w-4 text-white dark:text-black" />
                   </div>
                   Room Filters
                 </SheetTitle>
@@ -532,11 +610,11 @@ export default function DashboardPage() {
           >
             <div className="sticky top-24 rounded-2xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl overflow-hidden">
               {/* Sidebar Header */}
-              <div className="p-4 border-b border-border/50 bg-gradient-to-r from-violet-500/10 to-purple-500/10">
+              <div className="p-4 border-b border-border/50 bg-secondary">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg">
-                      <Calendar className="h-5 w-5 text-white" />
+                    <div className="h-10 w-10 rounded-xl bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center shadow-lg">
+                      <Calendar className="h-5 w-5 text-white dark:text-black" />
                     </div>
                     <div>
                       <h3 className="font-semibold">Filters</h3>
@@ -753,6 +831,19 @@ export default function DashboardPage() {
         onSubmit={handleBookingSubmit}
         selectedDate={selectedSlot?.date}
         selectedStartTime={selectedSlot?.startTime}
+      />
+
+      {/* Booking Details Modal - Teams/Meet Style */}
+      <BookingDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false);
+          setSelectedBooking(null);
+        }}
+        booking={selectedBooking}
+        onEdit={handleEditBooking}
+        onCancel={handleCancelBooking}
+        onCheckIn={handleCheckInFromDetails}
       />
     </div>
   );

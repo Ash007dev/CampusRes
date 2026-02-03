@@ -124,20 +124,25 @@ export const roomController = {
   }),
 
   /**
-   * Set room maintenance status (Admin only)
+   * Set room maintenance status (Admin only) - US 5.7
    * PATCH /api/v1/rooms/:id/maintenance
+   * Auto-cancels future bookings when enabling maintenance
    */
   setMaintenance: asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { isMaintenance } = req.body as { isMaintenance: boolean };
+    const { isMaintenance, reason } = req.body as { isMaintenance: boolean; reason?: string };
     
-    const room = await roomService.setMaintenanceStatus(id, isMaintenance);
+    const result = await roomService.setMaintenanceStatus(id, isMaintenance, reason);
     
     res.json({
       success: true,
-      data: room,
+      data: {
+        room: result.room,
+        cancelledBookings: result.cancelledBookings,
+        affectedUsers: result.affectedUsers,
+      },
       message: isMaintenance 
-        ? 'Room set to maintenance mode' 
+        ? `Room set to maintenance mode. ${result.cancelledBookings} booking(s) cancelled.` 
         : 'Room maintenance mode disabled',
     });
   }),

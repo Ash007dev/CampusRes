@@ -116,6 +116,130 @@ router.get(
 );
 
 /**
+ * =============================================================================
+ * ADMIN ROUTES - Must be before /:id to avoid matching as ID
+ * =============================================================================
+ */
+
+/**
+ * @openapi
+ * /api/v1/bookings/pending-approvals:
+ *   get:
+ *     summary: Get bookings pending approval (Admin only)
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get(
+  '/pending-approvals',
+  authenticate,
+  authorize(['ADMIN', 'LAB_ADMIN']),
+  bookingController.getPendingApprovals
+);
+
+/**
+ * @openapi
+ * /api/v1/bookings/all:
+ *   get:
+ *     summary: Get all bookings (Admin only)
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get(
+  '/all',
+  authenticate,
+  authorize(['ADMIN']),
+  validate(bookingQuerySchema, 'query'),
+  bookingController.getAllBookings
+);
+
+/**
+ * @openapi
+ * /api/v1/bookings/export:
+ *   get:
+ *     summary: Export bookings as CSV (Admin only) - US 5.6
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: CSV file download
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ */
+router.get(
+  '/export',
+  authenticate,
+  authorize(['ADMIN']),
+  bookingController.exportBookings
+);
+
+/**
+ * @openapi
+ * /api/v1/bookings/import-timetable:
+ *   post:
+ *     summary: Bulk import timetable (Admin only) - US 5.3
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               entries:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     roomCode:
+ *                       type: string
+ *                       description: Room code (e.g., "LAB-001")
+ *                     dayOfWeek:
+ *                       type: number
+ *                       description: 0=Sunday, 1=Monday, etc.
+ *                     startTime:
+ *                       type: string
+ *                       description: Start time in HH:mm format
+ *                     endTime:
+ *                       type: string
+ *                       description: End time in HH:mm format
+ *                     title:
+ *                       type: string
+ *                       description: Class/event title
+ *                     description:
+ *                       type: string
+ *                     weeks:
+ *                       type: number
+ *                       description: Number of weeks to create bookings for
+ *     responses:
+ *       200:
+ *         description: Import results with created count and errors
+ */
+router.post(
+  '/import-timetable',
+  authenticate,
+  authorize(['ADMIN']),
+  bookingController.importTimetable
+);
+
+/**
  * @openapi
  * /api/v1/bookings/{id}:
  *   get:
@@ -160,45 +284,6 @@ router.post(
   authenticate,
   validate(checkInSchema, 'body'),
   bookingController.checkIn
-);
-
-/**
- * =============================================================================
- * ADMIN ROUTES
- * =============================================================================
- */
-
-/**
- * @openapi
- * /api/v1/bookings/pending-approvals:
- *   get:
- *     summary: Get bookings pending approval (Admin only)
- *     tags: [Bookings]
- *     security:
- *       - bearerAuth: []
- */
-router.get(
-  '/pending-approvals',
-  authenticate,
-  authorize(['ADMIN', 'LAB_ADMIN']),
-  bookingController.getPendingApprovals
-);
-
-/**
- * @openapi
- * /api/v1/bookings/all:
- *   get:
- *     summary: Get all bookings (Admin only)
- *     tags: [Bookings]
- *     security:
- *       - bearerAuth: []
- */
-router.get(
-  '/all',
-  authenticate,
-  authorize(['ADMIN']),
-  validate(bookingQuerySchema, 'query'),
-  bookingController.getAllBookings
 );
 
 /**

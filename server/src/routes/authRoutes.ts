@@ -10,6 +10,7 @@ import { Router, type IRouter } from 'express';
 import { authController } from '../controllers/authController.js';
 import {
   authenticate,
+  authorize,
   validate,
   authRateLimiter,
 } from '../middleware/index.js';
@@ -158,5 +159,53 @@ router.post('/change-password', authenticate, authController.changePassword);
  *         description: Preferences updated successfully
  */
 router.put('/preferences', authenticate, authController.updatePreferences);
+
+/**
+ * =============================================================================
+ * ADMIN ROUTES - User Management (US 5.4)
+ * =============================================================================
+ */
+
+/**
+ * @openapi
+ * /api/v1/auth/users:
+ *   get:
+ *     summary: Get all users (Admin only)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of users
+ */
+router.get('/users', authenticate, authorize(['ADMIN']), authController.getAllUsers);
+
+/**
+ * @openapi
+ * /api/v1/auth/users/{id}/role:
+ *   patch:
+ *     summary: Update user role (Admin only)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.patch('/users/:id/role', authenticate, authorize(['ADMIN']), authController.updateUserRole);
 
 export default router;

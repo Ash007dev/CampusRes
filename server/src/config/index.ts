@@ -55,7 +55,7 @@ const configSchema = z.object({
 
   // CORS Configuration
   cors: z.object({
-    origin: z.string().default('http://localhost:3000'),
+    origin: z.string().transform(val => val.includes(',') ? val.split(',').map(s => s.trim()) : val).default('http://localhost:3000'),
     credentials: z.coerce.boolean().default(true),
   }),
 

@@ -15,7 +15,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1
  */
 export const api: AxiosInstance = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 30000, // Increased to 30 seconds for slower operations
   headers: {
     'Content-Type': 'application/json',
   },
@@ -190,10 +190,24 @@ export const bookingsApi = {
 
   // Admin endpoints
   getAllBookings: (params?: BookingQueryParams) =>
-    api.get<ApiResponse<Booking[]>>('/bookings', { params }),
+    api.get<ApiResponse<Booking[]>>('/bookings/all', { params }),
 
   getPendingApprovals: () =>
-    api.get<ApiResponse<Booking[]>>('/bookings/pending'),
+    api.get<ApiResponse<Booking[]>>('/bookings/pending-approvals'),
+
+  importTimetable: (entries: Array<{
+    roomCode: string;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    title: string;
+    description?: string;
+    weeks: number;
+  }>) =>
+    api.post<ApiResponse<{ created: number; errors: any[] }>>('/bookings/import-timetable', { entries }),
+
+  exportBookings: (params?: { startDate?: string; endDate?: string }) =>
+    api.get('/bookings/export', { params, responseType: 'blob' }),
 };
 
 // Rooms
@@ -217,7 +231,15 @@ export const roomsApi = {
     api.post<ApiResponse<Room>>('/rooms', data),
 
   update: (id: string, data: Partial<Room>) =>
-    api.put<ApiResponse<Room>>(`/rooms/${id}`, data),
+    api.patch<ApiResponse<Room>>(`/rooms/${id}`, data),
+
+  // US 5.7: Room Maintenance Mode
+  setMaintenance: (id: string, isMaintenance: boolean, reason?: string) =>
+    api.patch<ApiResponse<{
+      room: Room;
+      cancelledBookings: number;
+      affectedUsers: string[];
+    }>>(`/rooms/${id}/maintenance`, { isMaintenance, reason }),
 };
 
 // Waitlist (US 3.7)
@@ -275,7 +297,54 @@ export const adminApi = {
   // Reject a booking
   rejectBooking: (id: string, reason?: string) =>
     api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, { approved: false, reason }),
+
+  // Update user role (Admin only) - US 5.4
+  updateUserRole: (userId: string, role: string) =>
+    api.patch<ApiResponse<void>>(`/auth/users/${userId}/role`, { role }),
 };
+
+// Holiday API (US 5.5)
+export const holidayApi = {
+  // Get all holidays
+  getHolidays: (params?: { startDate?: string; endDate?: string; type?: string; page?: number; limit?: number }) =>
+    api.get<ApiResponse<Holiday[]>>('/holidays', { params }),
+
+  // Get holidays in a date range
+  getHolidaysInRange: (startDate: string, endDate: string) =>
+    api.get<ApiResponse<Holiday[]>>('/holidays/range', { params: { startDate, endDate } }),
+
+  // Check if a date is a holiday
+  checkHoliday: (date: string) =>
+    api.get<ApiResponse<{ isHoliday: boolean; holiday?: Holiday }>>(`/holidays/check/${date}`),
+
+  // Add a new holiday (Admin only)
+  addHoliday: (data: { date: string; name: string; type?: string; description?: string; isRecurring?: boolean }) =>
+    api.post<ApiResponse<Holiday>>('/holidays', data),
+
+  // Update a holiday (Admin only)
+  updateHoliday: (id: string, data: { date?: string; name?: string; type?: string; description?: string; isRecurring?: boolean }) =>
+    api.patch<ApiResponse<Holiday>>(`/holidays/${id}`, data),
+
+  // Delete a holiday (Admin only)
+  deleteHoliday: (id: string) =>
+    api.delete<ApiResponse<void>>(`/holidays/${id}`),
+
+  // Bulk delete holidays (Admin only)
+  bulkDeleteHolidays: (ids: string[]) =>
+    api.post<ApiResponse<void>>('/holidays/bulk-delete', { ids }),
+};
+
+// Holiday type
+export interface Holiday {
+  id: string;
+  date: string;
+  name: string;
+  type: 'HOLIDAY' | 'WEEKEND' | 'MAINTENANCE' | 'CUSTOM';
+  description?: string;
+  isRecurring: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 /**
  * =============================================================================

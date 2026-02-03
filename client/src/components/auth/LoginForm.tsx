@@ -60,13 +60,27 @@ export function LoginForm({ onSuccess, redirectTo = "/dashboard" }: LoginFormPro
     try {
       const response = await authApi.login(data.email, data.password);
       const token = response.data.data.tokens.accessToken;
+      const apiUser = response.data.data.user;
+
+      // Map the user data properly (API returns firstName/lastName separately)
+      const userData = {
+        id: apiUser.id,
+        name: `${apiUser.firstName} ${apiUser.lastName}`,
+        email: apiUser.email,
+        role: apiUser.role,
+        departmentId: apiUser.departmentId || undefined,
+        departmentName: (apiUser as any).departmentName || undefined,
+        reputationScore: apiUser.reputationScore || 0,
+      };
 
       // Store token in localStorage (for API calls)
       localStorage.setItem("accessToken", token);
-      localStorage.setItem("user", JSON.stringify(response.data.data.user));
+      localStorage.setItem("user", JSON.stringify(userData));
 
       // Also set cookie for middleware SSR checks
       document.cookie = `accessToken=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+
+      console.log("[Login] User data stored:", userData);
 
       onSuccess?.();
       router.push(redirectTo);

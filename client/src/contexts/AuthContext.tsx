@@ -86,9 +86,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(userData);
           localStorage.setItem("user", JSON.stringify(userData));
           console.log("[Auth] Updated user to:", userData.name);
-        } catch (error) {
-          // Token invalid, clear storage
-          console.error("[Auth] Failed to fetch /auth/me:", error);
+        } catch {
+          // Token invalid or expired, clear storage silently
+          console.log("[Auth] Token expired or invalid, clearing session");
           localStorage.removeItem("accessToken");
           localStorage.removeItem("user");
           document.cookie = 'accessToken=; path=/; max-age=0';

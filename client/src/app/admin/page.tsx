@@ -10,11 +10,13 @@ import {
   BarChart3,
   Settings,
   Shield,
+  ShieldCheck,
   Plus,
   Pencil,
   Trash2,
   Search,
   Download,
+  Upload,
   Filter,
   MoreVertical,
   LogOut,
@@ -30,7 +32,9 @@ import {
   Eye,
   UserCheck,
   CalendarCheck,
+  CalendarDays,
   Home,
+  Wrench,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -44,6 +48,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   Select,
@@ -53,8 +60,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-import { roomsApi, bookingsApi } from "@/lib/api";
+import { roomsApi, bookingsApi, adminApi } from "@/lib/api";
+import { AddRoomModal } from "@/components/admin/AddRoomModal";
+import { EditRoomAmenitiesModal } from "@/components/admin/EditRoomAmenitiesModal";
+import { BulkImportTimetableModal } from "@/components/admin/BulkImportTimetableModal";
+import { HolidayCalendarModal } from "@/components/admin/HolidayCalendarModal";
+import { ExportBookingsModal } from "@/components/admin/ExportBookingsModal";
+import { MaintenanceModeModal } from "@/components/admin/MaintenanceModeModal";
 
 // Types
 interface Stats {
@@ -130,6 +144,14 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
+  const [isAddRoomModalOpen, setIsAddRoomModalOpen] = useState(false);
+  const [selectedRoomForAmenities, setSelectedRoomForAmenities] = useState<any>(null);
+  const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
+  const [isHolidayCalendarOpen, setIsHolidayCalendarOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [selectedRoomForMaintenance, setSelectedRoomForMaintenance] = useState<any>(null);
+  const [currentTime, setCurrentTime] = useState<string>('');
+  const { toast } = useToast();
 
   // Load user from localStorage
   useEffect(() => {
@@ -139,22 +161,47 @@ export default function AdminPage() {
     }
   }, []);
 
+  // Update current time (client-side only to avoid hydration mismatch)
+  useEffect(() => {
+    setCurrentTime(new Date().toLocaleTimeString());
+    const interval = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Fetch data from API
   const fetchData = useCallback(async (showRefresh = false) => {
     if (showRefresh) setIsRefreshing(true);
     else setIsLoading(true);
 
     try {
-      const [roomsRes, bookingsRes] = await Promise.all([
+      const [roomsRes, bookingsRes, usersRes] = await Promise.all([
         roomsApi.search(),
-        bookingsApi.getAllBookings(), // Use admin endpoint to get ALL bookings
+        bookingsApi.getAllBookings(),
+        adminApi.getUsers({ limit: 100 }),
       ]);
 
       const roomsData = roomsRes.data.data || [];
       const bookingsData = bookingsRes.data.data || [];
+      const usersData = usersRes.data.data || [];
 
       setRooms(roomsData);
       setBookings(bookingsData);
+      
+      // Map users data to AdminUser format
+      const mappedUsers: AdminUser[] = usersData.map((u: any) => ({
+        id: u.id,
+        name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email?.split('@')[0] || 'Unknown',
+        email: u.email || '',
+        role: u.role || 'STUDENT',
+        department: u.departmentName || 'Not assigned', // Fixed: departmentName instead of department.name
+        reputationScore: u.reputationScore ?? 100,
+        createdAt: u.createdAt || new Date().toISOString(),
+        status: u.blockedUntil && new Date(u.blockedUntil) > new Date() ? 'SUSPENDED' : 'ACTIVE',
+      }));
+      
+      setUsers(mappedUsers);
 
       // Calculate stats
       const activeBookings = bookingsData.filter(
@@ -169,7 +216,7 @@ export default function AdminPage() {
       ).length;
 
       setStats({
-        totalUsers: 156, // Would need admin API
+        totalUsers: usersData.length || mappedUsers.length,
         totalRooms: roomsData.length,
         totalBookings: bookingsData.length,
         activeBookings,
@@ -178,8 +225,9 @@ export default function AdminPage() {
         pendingApprovals,
         todayBookings,
       });
-
-      // Mock users for demo (would need admin API)
+    } catch (error) {
+      console.error("Failed to fetch admin data:", error);
+      // Fallback to mock user if API fails
       setUsers([
         {
           id: "1",
@@ -192,13 +240,45 @@ export default function AdminPage() {
           status: "ACTIVE",
         },
       ]);
-    } catch (error) {
-      console.error("Failed to fetch admin data:", error);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
   }, [user]);
+
+  // Handle room creation
+  const handleCreateRoom = async (data: any) => {
+    try {
+      await roomsApi.create(data);
+      await fetchData(true); // Refresh data
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : "Failed to create room");
+    }
+  };
+
+  // Handle user role update
+  const handleUpdateUserRole = async (userId: string, userName: string, currentRole: string, newRole: string) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to change ${userName}'s role from ${currentRole} to ${newRole}?`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      await adminApi.updateUserRole(userId, newRole);
+      toast({
+        title: 'Role Updated',
+        description: `${userName}'s role has been changed to ${newRole}`,
+      });
+      await fetchData(true); // Refresh data
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error?.response?.data?.error?.message || 'Failed to update user role',
+        variant: 'destructive',
+      });
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -503,7 +583,7 @@ export default function AdminPage() {
                         <span className="font-medium">All Systems Operational</span>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Last checked: {new Date().toLocaleTimeString()}
+                        Last checked: {currentTime || 'Loading...'}
                       </p>
                     </div>
                   </CardContent>
@@ -658,6 +738,47 @@ export default function AdminPage() {
                                       Edit
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
+                                    <DropdownMenuSub>
+                                      <DropdownMenuSubTrigger>
+                                        <ShieldCheck className="mr-2 h-4 w-4" />
+                                        Change Role
+                                      </DropdownMenuSubTrigger>
+                                      <DropdownMenuSubContent>
+                                        <DropdownMenuItem
+                                          onClick={() => handleUpdateUserRole(u.id, u.name, u.role, 'STUDENT')}
+                                          disabled={u.role === 'STUDENT'}
+                                        >
+                                          <Users className="mr-2 h-3 w-3" />
+                                          Student
+                                          {u.role === 'STUDENT' && ' (Current)'}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleUpdateUserRole(u.id, u.name, u.role, 'LAB_ADMIN')}
+                                          disabled={u.role === 'LAB_ADMIN'}
+                                        >
+                                          <Building2 className="mr-2 h-3 w-3" />
+                                          Lab Admin
+                                          {u.role === 'LAB_ADMIN' && ' (Current)'}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleUpdateUserRole(u.id, u.name, u.role, 'FACULTY')}
+                                          disabled={u.role === 'FACULTY'}
+                                        >
+                                          <UserCheck className="mr-2 h-3 w-3" />
+                                          Faculty
+                                          {u.role === 'FACULTY' && ' (Current)'}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleUpdateUserRole(u.id, u.name, u.role, 'ADMIN')}
+                                          disabled={u.role === 'ADMIN'}
+                                        >
+                                          <Shield className="mr-2 h-3 w-3" />
+                                          Admin
+                                          {u.role === 'ADMIN' && ' (Current)'}
+                                        </DropdownMenuItem>
+                                      </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
+                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem className="text-destructive">
                                       <Trash2 className="mr-2 h-4 w-4" />
                                       Delete
@@ -697,7 +818,10 @@ export default function AdminPage() {
                         <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
                         Refresh
                       </Button>
-                      <Button className="rounded-xl bg-gradient-to-r from-violet-500 to-purple-600">
+                      <Button 
+                        className="rounded-xl bg-neutral-900 dark:bg-neutral-100 dark:text-black text-white hover:bg-neutral-800 dark:hover:bg-neutral-300"
+                        onClick={() => setIsAddRoomModalOpen(true)}
+                      >
                         <Plus className="mr-2 h-4 w-4" />
                         Add Room
                       </Button>
@@ -719,8 +843,8 @@ export default function AdminPage() {
                               <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/10">
                                 <Building2 className="h-5 w-5 text-violet-500" />
                               </div>
-                              <Badge variant={room.isAvailable !== false ? "success" : "destructive"}>
-                                {room.isAvailable !== false ? "Available" : "Maintenance"}
+                              <Badge variant={room.isMaintenance ? "destructive" : "success"}>
+                                {room.isMaintenance ? "Maintenance" : "Available"}
                               </Badge>
                             </div>
                             <h3 className="font-semibold mb-1">{room.name}</h3>
@@ -735,9 +859,32 @@ export default function AdminPage() {
                                 <Eye className="mr-1 h-3 w-3" />
                                 View
                               </Button>
-                              <Button variant="outline" size="sm" className="rounded-lg">
-                                <Pencil className="h-3 w-3" />
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="outline" size="sm" className="rounded-lg">
+                                    <MoreVertical className="h-3 w-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setSelectedRoomForAmenities(room)}>
+                                    <Settings className="mr-2 h-3 w-3" />
+                                    Manage Amenities
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setSelectedRoomForMaintenance(room)}>
+                                    <Wrench className="mr-2 h-3 w-3" />
+                                    {room.isMaintenance ? "Disable Maintenance" : "Enable Maintenance"}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <Pencil className="mr-2 h-3 w-3" />
+                                    Edit Room
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-destructive">
+                                    <Trash2 className="mr-2 h-3 w-3" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </CardContent>
                         </Card>
@@ -771,10 +918,31 @@ export default function AdminPage() {
                       <CardTitle>All Bookings ({bookings.length})</CardTitle>
                       <CardDescription>View and manage all booking requests</CardDescription>
                     </div>
-                    <Button variant="outline" className="rounded-xl">
-                      <Download className="mr-2 h-4 w-4" />
-                      Export CSV
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        className="rounded-xl"
+                        onClick={() => setIsExportModalOpen(true)}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Export CSV
+                      </Button>
+                      <Button 
+                        className="rounded-xl bg-neutral-900 dark:bg-neutral-100 dark:text-black text-white hover:bg-neutral-800 dark:hover:bg-neutral-300"
+                        onClick={() => setIsBulkImportModalOpen(true)}
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Import Timetable
+                      </Button>
+                      <Button 
+                        className="rounded-xl"
+                        variant="outline"
+                        onClick={() => setIsHolidayCalendarOpen(true)}
+                      >
+                        <CalendarDays className="mr-2 h-4 w-4" />
+                        Holiday Calendar
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -889,6 +1057,38 @@ export default function AdminPage() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Modals */}
+      <AddRoomModal 
+        isOpen={isAddRoomModalOpen}
+        onClose={() => setIsAddRoomModalOpen(false)}
+        onSubmit={handleCreateRoom}
+      />
+      <EditRoomAmenitiesModal
+        room={selectedRoomForAmenities}
+        isOpen={!!selectedRoomForAmenities}
+        onClose={() => setSelectedRoomForAmenities(null)}
+        onSuccess={() => fetchData(true)}
+      />
+      <BulkImportTimetableModal
+        isOpen={isBulkImportModalOpen}
+        onClose={() => setIsBulkImportModalOpen(false)}
+        onSuccess={() => fetchData(true)}
+      />
+      <HolidayCalendarModal
+        isOpen={isHolidayCalendarOpen}
+        onClose={() => setIsHolidayCalendarOpen(false)}
+      />
+      <ExportBookingsModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+      />
+      <MaintenanceModeModal
+        room={selectedRoomForMaintenance}
+        isOpen={!!selectedRoomForMaintenance}
+        onClose={() => setSelectedRoomForMaintenance(null)}
+        onSuccess={() => fetchData(true)}
+      />
     </div>
   );
 }
