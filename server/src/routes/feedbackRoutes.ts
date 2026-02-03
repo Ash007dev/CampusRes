@@ -55,7 +55,7 @@ const router: IRouter = Router();
 router.get(
   '/',
   authenticate,
-  authorize('ADMIN', 'SUPER_ADMIN'),
+  authorize(['ADMIN']),
   feedbackController.getAllFeedback
 );
 
@@ -74,7 +74,7 @@ router.get(
 router.get(
   '/stats',
   authenticate,
-  authorize('ADMIN', 'SUPER_ADMIN'),
+  authorize(['ADMIN']),
   feedbackController.getFeedbackStats
 );
 
@@ -200,7 +200,7 @@ router.post(
 router.patch(
   '/:id',
   authenticate,
-  authorize('ADMIN', 'SUPER_ADMIN'),
+  authorize(['ADMIN']),
   feedbackController.updateFeedback
 );
 
@@ -225,7 +225,7 @@ router.patch(
 router.delete(
   '/:id',
   authenticate,
-  authorize('ADMIN', 'SUPER_ADMIN'),
+  authorize(['ADMIN']),
   feedbackController.deleteFeedback
 );
 
