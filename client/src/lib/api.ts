@@ -81,15 +81,21 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config;
 
-    // Handle 401 Unauthorized - just clear the token, don't redirect
-    // The middleware and components will handle redirects appropriately
+    // Handle 401 Unauthorized - clear token and redirect to login
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
         document.cookie = 'accessToken=; path=/; max-age=0';
-        // Don't redirect here - let the components/middleware handle it
-        // This prevents infinite redirect loops
+        
+        // Only redirect if not already on auth pages
+        const currentPath = window.location.pathname;
+        if (!currentPath.startsWith('/auth/') && currentPath !== '/') {
+          console.log('[API] Token expired, redirecting to login...');
+          window.location.href = '/auth/login?expired=true';
+          // Return a rejected promise that won't show error in console
+          return new Promise(() => {});
+        }
       }
     }
 
@@ -477,3 +483,88 @@ export interface Availability {
   available: Array<{ start: string; end: string }>;
   booked: Array<{ start: string; end: string; status: string }>;
 }
+
+// Feedback types (US 5.8)
+export type FeedbackCategory = 'AC_ISSUE' | 'CLEANLINESS' | 'EQUIPMENT' | 'NOISE' | 'LIGHTING' | 'OTHER';
+export type FeedbackStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+export type FeedbackPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+export interface Feedback {
+  id: string;
+  roomId: string;
+  userId: string;
+  bookingId?: string;
+  category: FeedbackCategory;
+  title: string;
+  description: string;
+  status: FeedbackStatus;
+  priority: FeedbackPriority;
+  adminNotes?: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  room?: {
+    id: string;
+    name: string;
+    code: string;
+    building: string;
+  };
+  user?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
+export interface FeedbackStats {
+  total: number;
+  open: number;
+  inProgress: number;
+  resolved: number;
+  byCategory: Record<string, number>;
+  byPriority: Record<string, number>;
+}
+
+// Feedback API (US 5.8)
+export const feedbackApi = {
+  // Get all feedback (admin only)
+  getAll: (params?: { 
+    status?: FeedbackStatus; 
+    category?: FeedbackCategory; 
+    roomId?: string;
+    priority?: FeedbackPriority;
+    page?: number; 
+    limit?: number;
+  }) => api.get<ApiResponse<Feedback[]>>('/feedback', { params }),
+
+  // Get feedback stats (admin only)
+  getStats: () => api.get<ApiResponse<FeedbackStats>>('/feedback/stats'),
+
+  // Get my feedback (current user)
+  getMy: () => api.get<ApiResponse<Feedback[]>>('/feedback/my'),
+
+  // Get feedback by ID
+  getById: (id: string) => api.get<ApiResponse<Feedback>>(`/feedback/${id}`),
+
+  // Submit feedback
+  create: (data: {
+    roomId: string;
+    bookingId?: string;
+    category: FeedbackCategory;
+    title: string;
+    description: string;
+    priority?: FeedbackPriority;
+  }) => api.post<ApiResponse<Feedback>>('/feedback', data),
+
+  // Update feedback (admin only)
+  update: (id: string, data: {
+    status?: FeedbackStatus;
+    priority?: FeedbackPriority;
+    adminNotes?: string;
+  }) => api.patch<ApiResponse<Feedback>>(`/feedback/${id}`, data),
+
+  // Delete feedback (admin only)
+  delete: (id: string) => api.delete<ApiResponse<void>>(`/feedback/${id}`),
+};

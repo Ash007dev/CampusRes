@@ -21,6 +21,7 @@ import {
     CheckCircle,
     AlertTriangle,
     Wrench,
+    MessageSquarePlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,7 @@ import { roomsApi, bookingsApi, type Room } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 import { BookingModal, type BookingFormData } from "@/components/booking/BookingModal";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { SubmitFeedbackModal } from "@/components/feedback/SubmitFeedbackModal";
 
 const AMENITY_ICONS: Record<string, React.ElementType> = {
     wifi: Wifi,
@@ -254,14 +256,26 @@ export default function RoomDetailsPage() {
                                         </Badge>
                                     </div>
                                 </div>
-                                <Button 
-                                    size="lg" 
-                                    onClick={() => setIsBookingModalOpen(true)}
-                                    disabled={room.isMaintenance}
-                                >
-                                    <Calendar className="mr-2 h-4 w-4" />
-                                    {room.isMaintenance ? "Unavailable" : "Book This Room"}
-                                </Button>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <Button 
+                                        size="lg" 
+                                        onClick={() => setIsBookingModalOpen(true)}
+                                        disabled={room.isMaintenance}
+                                    >
+                                        <Calendar className="mr-2 h-4 w-4" />
+                                        {room.isMaintenance ? "Unavailable" : "Book This Room"}
+                                    </Button>
+                                    <SubmitFeedbackModal
+                                        roomId={room.id}
+                                        roomName={room.name}
+                                        trigger={
+                                            <Button variant="outline" size="lg">
+                                                <MessageSquarePlus className="mr-2 h-4 w-4" />
+                                                Report Issue
+                                            </Button>
+                                        }
+                                    />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

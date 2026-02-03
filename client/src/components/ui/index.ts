@@ -82,3 +82,7 @@ export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "./tool
 // Data Display
 export { Avatar, AvatarImage, AvatarFallback } from "./avatar";
 export { Calendar, type CalendarProps } from "./calendar";
+
+// Text Components
+export { Textarea } from "./textarea";
+export { ScrollArea, ScrollBar } from "./scroll-area";

@@ -35,6 +35,7 @@ import {
   CalendarDays,
   Home,
   Wrench,
+  MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,7 @@ import { BulkImportTimetableModal } from "@/components/admin/BulkImportTimetable
 import { HolidayCalendarModal } from "@/components/admin/HolidayCalendarModal";
 import { ExportBookingsModal } from "@/components/admin/ExportBookingsModal";
 import { MaintenanceModeModal } from "@/components/admin/MaintenanceModeModal";
+import { FeedbackReviewModal } from "@/components/admin/FeedbackReviewModal";
 
 // Types
 interface Stats {
@@ -150,6 +152,7 @@ export default function AdminPage() {
   const [isHolidayCalendarOpen, setIsHolidayCalendarOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedRoomForMaintenance, setSelectedRoomForMaintenance] = useState<any>(null);
+  const [isFeedbackReviewOpen, setIsFeedbackReviewOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>('');
   const { toast } = useToast();
 
@@ -1044,15 +1047,88 @@ export default function AdminPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="text-center py-20"
+              className="space-y-6"
             >
-              <div className="p-6 rounded-full bg-gradient-to-br from-violet-500/10 to-purple-500/10 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-                <Settings className="h-12 w-12 text-violet-500" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Settings & Management</h2>
+                  <p className="text-muted-foreground">System configuration and feedback management</p>
+                </div>
               </div>
-              <h2 className="text-2xl font-bold mb-2">Settings</h2>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                System configuration, booking rules, and campus settings management will be available here.
-              </p>
+
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {/* Feedback Review Card */}
+                <Card className="hover:shadow-md transition-all cursor-pointer" onClick={() => setIsFeedbackReviewOpen(true)}>
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-xl bg-orange-500/10">
+                        <MessageSquare className="h-6 w-6 text-orange-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">Feedback Review</CardTitle>
+                        <CardDescription>Review and manage user feedback</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      View user-reported issues about rooms, manage status updates, and track resolutions.
+                    </p>
+                    <Button variant="outline" className="w-full mt-4">
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Open Feedback
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Holiday Calendar Card */}
+                <Card className="hover:shadow-md transition-all cursor-pointer" onClick={() => setIsHolidayCalendarOpen(true)}>
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-xl bg-blue-500/10">
+                        <CalendarDays className="h-6 w-6 text-blue-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">Holiday Calendar</CardTitle>
+                        <CardDescription>Manage campus holidays</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Configure public holidays and campus closures to prevent bookings.
+                    </p>
+                    <Button variant="outline" className="w-full mt-4">
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      Open Calendar
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* System Configuration Card (Placeholder) */}
+                <Card className="hover:shadow-md transition-all opacity-60">
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-xl bg-violet-500/10">
+                        <Settings className="h-6 w-6 text-violet-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">System Config</CardTitle>
+                        <CardDescription>Booking rules & settings</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Configure booking limits, time slots, and campus-wide settings.
+                    </p>
+                    <Button variant="outline" className="w-full mt-4" disabled>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Coming Soon
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -1088,6 +1164,10 @@ export default function AdminPage() {
         isOpen={!!selectedRoomForMaintenance}
         onClose={() => setSelectedRoomForMaintenance(null)}
         onSuccess={() => fetchData(true)}
+      />
+      <FeedbackReviewModal
+        isOpen={isFeedbackReviewOpen}
+        onClose={() => setIsFeedbackReviewOpen(false)}
       />
     </div>
   );
