@@ -30,6 +30,7 @@ import {
   Activity,
   Zap,
   Eye,
+  User,
   UserCheck,
   CalendarCheck,
   CalendarDays,
@@ -285,6 +286,50 @@ export default function AdminPage() {
     }
   };
 
+  // Handle users export
+  const handleExportUsers = () => {
+    try {
+      // Create CSV content
+      const headers = ['Name', 'Email', 'Role', 'Department', 'Reputation Score', 'Status', 'Created At'];
+      const rows = filteredUsers.map(u => [
+        u.name || '',
+        u.email || '',
+        u.role || '',
+        u.department || '',
+        u.reputationScore?.toString() || '0',
+        u.status || 'ACTIVE',
+        u.createdAt ? new Date(u.createdAt).toLocaleDateString() : ''
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+
+      // Create and download blob
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `users-export-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Export successful',
+        description: `Exported ${filteredUsers.length} users to CSV`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Export failed',
+        description: 'Failed to export users data',
+        variant: 'destructive',
+      });
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -346,12 +391,12 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
-      {/* Premium Sidebar */}
-      <aside className="fixed left-0 top-0 z-40 h-screen w-72 border-r bg-card/50 backdrop-blur-xl">
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar */}
+      <aside className="fixed left-0 top-0 z-40 h-screen w-72 border-r bg-card">
         <div className="flex h-16 items-center gap-3 border-b px-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600">
-            <Shield className="h-5 w-5 text-white" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-background">
+            <Shield className="h-5 w-5 text-foreground" />
           </div>
           <div>
             <span className="text-lg font-bold">Admin Panel</span>
@@ -371,9 +416,9 @@ export default function AdminPage() {
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveTab(item.id)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
+                  "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200",
                   isActive
-                    ? "bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/25"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
@@ -406,7 +451,7 @@ export default function AdminPage() {
             <motion.h1
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text"
+              className="text-3xl font-bold"
             >
               {navItems.find((item) => item.id === activeTab)?.label}
             </motion.h1>
@@ -420,15 +465,14 @@ export default function AdminPage() {
               size="icon"
               onClick={() => fetchData(true)}
               disabled={isRefreshing}
-              className="rounded-xl"
             >
               <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
             </Button>
             <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2 rounded-xl">
-                  <div className="h-6 w-6 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                <Button variant="outline" className="gap-2">
+                  <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
                     {user?.name?.charAt(0) || "A"}
                   </div>
                   {user?.name || "Admin"}
@@ -464,7 +508,7 @@ export default function AdminPage() {
                 {statsCards.map((stat, index) => {
                   const Icon = stat.icon;
                   return isLoading ? (
-                    <Skeleton key={index} className="h-36 rounded-2xl" />
+                    <Skeleton key={index} className="h-36" />
                   ) : (
                     <motion.div
                       key={index}
@@ -472,12 +516,11 @@ export default function AdminPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
                     >
-                      <Card className="relative overflow-hidden border-0 bg-gradient-to-br p-[1px] rounded-2xl">
-                        <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-10`} />
-                        <CardContent className="relative bg-card rounded-2xl p-6">
+                      <Card>
+                        <CardContent className="p-6">
                           <div className="flex items-center justify-between mb-4">
-                            <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient}`}>
-                              <Icon className="h-5 w-5 text-white" />
+                            <div className="p-3 rounded-lg bg-primary/10">
+                              <Icon className="h-5 w-5 text-primary" />
                             </div>
                             <div className="flex items-center gap-1 text-sm text-emerald-500">
                               <TrendingUp className="h-4 w-4" />
@@ -497,10 +540,10 @@ export default function AdminPage() {
               {/* Quick Actions & Activity */}
               <div className="grid gap-6 lg:grid-cols-3">
                 {/* Recent Activity */}
-                <Card className="lg:col-span-2 rounded-2xl border-0 shadow-lg">
+                <Card className="lg:col-span-2">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Activity className="h-5 w-5 text-violet-500" />
+                      <Activity className="h-5 w-5 text-primary" />
                       Recent Activity
                     </CardTitle>
                     <CardDescription>Latest booking activities</CardDescription>
@@ -513,10 +556,10 @@ export default function AdminPage() {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: i * 0.1 }}
-                          className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                          className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                         >
                           <div className={cn(
-                            "h-10 w-10 rounded-xl flex items-center justify-center",
+                            "h-10 w-10 rounded-lg flex items-center justify-center",
                             booking.status === "CONFIRMED" ? "bg-emerald-500/10 text-emerald-500" :
                               booking.status === "PENDING" ? "bg-amber-500/10 text-amber-500" :
                                 "bg-muted-foreground/10 text-muted-foreground"
@@ -550,7 +593,7 @@ export default function AdminPage() {
                 </Card>
 
                 {/* System Status */}
-                <Card className="rounded-2xl border-0 shadow-lg">
+                <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Zap className="h-5 w-5 text-amber-500" />
@@ -571,7 +614,7 @@ export default function AdminPage() {
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: i * 0.1 }}
-                          className="flex items-center justify-between p-3 rounded-xl bg-muted/50"
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
                         >
                           <span className="text-sm font-medium">{item.name}</span>
                           <div className="flex items-center gap-2">
@@ -582,9 +625,9 @@ export default function AdminPage() {
                       ))}
                     </div>
 
-                    <div className="mt-6 p-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 border border-violet-500/20">
+                    <div className="mt-6 p-4 rounded-lg bg-muted/30 border">
                       <div className="flex items-center gap-2 mb-2">
-                        <CheckCircle2 className="h-5 w-5 text-violet-500" />
+                        <CheckCircle2 className="h-5 w-5 text-primary" />
                         <span className="font-medium">All Systems Operational</span>
                       </div>
                       <p className="text-sm text-muted-foreground">
@@ -606,7 +649,7 @@ export default function AdminPage() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <Card className="rounded-2xl border-0 shadow-lg">
+              <Card className="rounded-lg ">
                 <CardHeader>
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-1 gap-4">
@@ -616,11 +659,11 @@ export default function AdminPage() {
                           placeholder="Search users..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-10 rounded-xl"
+                          className="pl-10"
                         />
                       </div>
                       <Select value={roleFilter} onValueChange={setRoleFilter}>
-                        <SelectTrigger className="w-40 rounded-xl">
+                        <SelectTrigger className="w-40">
                           <Filter className="mr-2 h-4 w-4" />
                           <SelectValue placeholder="Filter role" />
                         </SelectTrigger>
@@ -634,11 +677,11 @@ export default function AdminPage() {
                       </Select>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" className="rounded-xl">
+                      <Button variant="outline" onClick={handleExportUsers}>
                         <Download className="mr-2 h-4 w-4" />
                         Export
                       </Button>
-                      <Button className="rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700">
+                      <Button>
                         <Plus className="mr-2 h-4 w-4" />
                         Add User
                       </Button>
@@ -663,7 +706,7 @@ export default function AdminPage() {
                           Array.from({ length: 5 }).map((_, i) => (
                             <tr key={i}>
                               <td className="px-4 py-4" colSpan={6}>
-                                <Skeleton className="h-12 rounded-xl" />
+                                <Skeleton className="h-12 rounded-lg" />
                               </td>
                             </tr>
                           ))
@@ -684,8 +727,8 @@ export default function AdminPage() {
                             >
                               <td className="px-4 py-4">
                                 <div className="flex items-center gap-3">
-                                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                                    {u.name?.charAt(0) || "?"}
+                                  <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
+                                    <User className="h-5 w-5" />
                                   </div>
                                   <div>
                                     <p className="font-medium">{u.name}</p>
@@ -729,7 +772,7 @@ export default function AdminPage() {
                               <td className="px-4 py-4 text-right">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="rounded-xl">
+                                    <Button variant="ghost" size="icon" className="rounded-lg">
                                       <MoreVertical className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
@@ -811,7 +854,7 @@ export default function AdminPage() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <Card className="rounded-2xl border-0 shadow-lg">
+              <Card className="rounded-lg ">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
@@ -819,12 +862,12 @@ export default function AdminPage() {
                       <CardDescription>Manage campus rooms and facilities</CardDescription>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" className="rounded-xl" onClick={() => fetchData(true)}>
+                      <Button variant="outline" className="rounded-lg" onClick={() => fetchData(true)}>
                         <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
                         Refresh
                       </Button>
                       <Button 
-                        className="rounded-xl bg-neutral-900 dark:bg-neutral-100 dark:text-black text-white hover:bg-neutral-800 dark:hover:bg-neutral-300"
+                        className="rounded-lg bg-neutral-900 dark:bg-neutral-100 dark:text-black text-white hover:bg-neutral-800 dark:hover:bg-neutral-300"
                         onClick={() => setIsAddRoomModalOpen(true)}
                       >
                         <Plus className="mr-2 h-4 w-4" />
@@ -842,11 +885,11 @@ export default function AdminPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
                       >
-                        <Card className="rounded-xl hover:shadow-md transition-shadow">
+                        <Card className="rounded-lg hover:shadow-md transition-shadow">
                           <CardContent className="p-4">
                             <div className="flex items-start justify-between mb-3">
-                              <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/10">
-                                <Building2 className="h-5 w-5 text-violet-500" />
+                              <div className="p-2 rounded-lg bg-primary/10">
+                                <Building2 className="h-5 w-5 text-primary" />
                               </div>
                               <Badge variant={room.isMaintenance ? "destructive" : "success"}>
                                 {room.isMaintenance ? "Maintenance" : "Available"}
@@ -916,7 +959,7 @@ export default function AdminPage() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <Card className="rounded-2xl border-0 shadow-lg">
+              <Card className="rounded-lg ">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
@@ -926,21 +969,21 @@ export default function AdminPage() {
                     <div className="flex gap-2">
                       <Button 
                         variant="outline" 
-                        className="rounded-xl"
+                        className="rounded-lg"
                         onClick={() => setIsExportModalOpen(true)}
                       >
                         <Download className="mr-2 h-4 w-4" />
                         Export CSV
                       </Button>
                       <Button 
-                        className="rounded-xl bg-neutral-900 dark:bg-neutral-100 dark:text-black text-white hover:bg-neutral-800 dark:hover:bg-neutral-300"
+                        className="rounded-lg bg-neutral-900 dark:bg-neutral-100 dark:text-black text-white hover:bg-neutral-800 dark:hover:bg-neutral-300"
                         onClick={() => setIsBulkImportModalOpen(true)}
                       >
                         <Upload className="mr-2 h-4 w-4" />
                         Import Timetable
                       </Button>
                       <Button 
-                        className="rounded-xl"
+                        className="rounded-lg"
                         variant="outline"
                         onClick={() => setIsHolidayCalendarOpen(true)}
                       >
@@ -958,10 +1001,10 @@ export default function AdminPage() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className="flex items-center gap-4 p-4 rounded-xl border hover:shadow-md transition-all"
+                        className="flex items-center gap-4 p-4 rounded-lg border hover:shadow-md transition-all"
                       >
                         <div className={cn(
-                          "h-12 w-12 rounded-xl flex items-center justify-center",
+                          "h-12 w-12 rounded-lg flex items-center justify-center",
                           booking.status === "CONFIRMED" ? "bg-emerald-500/10" :
                             booking.status === "PENDING" ? "bg-amber-500/10" :
                               booking.status === "CANCELLED" ? "bg-red-500/10" :
@@ -988,7 +1031,7 @@ export default function AdminPage() {
                         </Badge>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="rounded-xl">
+                            <Button variant="ghost" size="icon" className="rounded-lg">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -1031,8 +1074,8 @@ export default function AdminPage() {
               transition={{ duration: 0.3 }}
               className="text-center py-20"
             >
-              <div className="p-6 rounded-full bg-gradient-to-br from-violet-500/10 to-purple-500/10 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-                <BarChart3 className="h-12 w-12 text-violet-500" />
+              <div className="p-6 rounded-full bg-primary/10 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <BarChart3 className="h-12 w-12 text-primary" />
               </div>
               <h2 className="text-2xl font-bold mb-2">Analytics Coming Soon</h2>
               <p className="text-muted-foreground max-w-md mx-auto">
@@ -1063,7 +1106,7 @@ export default function AdminPage() {
                 <Card className="hover:shadow-md transition-all cursor-pointer" onClick={() => setIsFeedbackReviewOpen(true)}>
                   <CardHeader>
                     <div className="flex items-center gap-3">
-                      <div className="p-3 rounded-xl bg-orange-500/10">
+                      <div className="p-3 rounded-lg bg-orange-500/10">
                         <MessageSquare className="h-6 w-6 text-orange-500" />
                       </div>
                       <div>
@@ -1087,7 +1130,7 @@ export default function AdminPage() {
                 <Card className="hover:shadow-md transition-all cursor-pointer" onClick={() => setIsHolidayCalendarOpen(true)}>
                   <CardHeader>
                     <div className="flex items-center gap-3">
-                      <div className="p-3 rounded-xl bg-blue-500/10">
+                      <div className="p-3 rounded-lg bg-blue-500/10">
                         <CalendarDays className="h-6 w-6 text-blue-500" />
                       </div>
                       <div>
@@ -1111,8 +1154,8 @@ export default function AdminPage() {
                 <Card className="hover:shadow-md transition-all cursor-pointer" onClick={() => setIsSystemConfigOpen(true)}>
                   <CardHeader>
                     <div className="flex items-center gap-3">
-                      <div className="p-3 rounded-xl bg-violet-500/10">
-                        <Settings className="h-6 w-6 text-violet-500" />
+                      <div className="p-3 rounded-lg bg-primary/10">
+                        <Settings className="h-6 w-6 text-primary" />
                       </div>
                       <div>
                         <CardTitle className="text-lg">System Config</CardTitle>
@@ -1178,3 +1221,4 @@ export default function AdminPage() {
     </div>
   );
 }
+

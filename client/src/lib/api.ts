@@ -72,6 +72,11 @@ function transformKeys(obj: any): any {
  */
 api.interceptors.response.use(
   (response) => {
+    // Don't transform blob responses (like CSV exports)
+    if (response.data instanceof Blob) {
+      return response;
+    }
+    
     // Transform snake_case keys to camelCase in response data
     if (response.data) {
       response.data = transformKeys(response.data);

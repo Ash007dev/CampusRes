@@ -18,6 +18,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Prevent MetaMask auto-injection errors */}
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            if (typeof window !== 'undefined') {
+              window.ethereum = window.ethereum || { isMetaMask: false };
+            }
+          `
+        }} />
+      </head>
       <body className={inter.className}>
         <Providers>
           {children}

@@ -99,12 +99,15 @@ export function ExportBookingsModal({ isOpen, onClose }: ExportBookingsModalProp
         endDate: format(endDate, "yyyy-MM-dd"),
       });
       
-      const blob = new Blob([response.data], { type: "text/csv" });
+      // response.data is already a Blob from axios
+      const blob = response.data instanceof Blob ? response.data : new Blob([response.data], { type: "text/csv" });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       link.download = `bookings-${format(startDate, "yyyy-MM-dd")}-to-${format(endDate, "yyyy-MM-dd")}.csv`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
       toast({
