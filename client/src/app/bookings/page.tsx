@@ -40,6 +40,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { bookingsApi, type Booking } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 import { QRScanner } from "@/components/booking/QRScanner";
+import { RescheduleModal } from "@/components/booking/RescheduleModal";
 
 const STATUS_COLORS: Record<string, string> = {
     CONFIRMED: "bg-green-500",
@@ -76,6 +77,8 @@ export default function BookingsPage() {
     const [extendingId, setExtendingId] = useState<string | null>(null);
     const [qrScannerOpen, setQrScannerOpen] = useState(false);
     const [selectedBookingForCheckIn, setSelectedBookingForCheckIn] = useState<{id: string, roomCode?: string} | null>(null);
+    const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+    const [selectedBookingForReschedule, setSelectedBookingForReschedule] = useState<Booking | null>(null);
 
     // Fetch bookings from API
     const fetchBookings = useCallback(async () => {
@@ -161,7 +164,7 @@ export default function BookingsPage() {
         setEarlyCheckoutId(id);
         try {
             const response = await bookingsApi.earlyCheckout(id);
-            const refundedCredits = response.data?.data?.refundedCredits || 0;
+            const refundedCredits = (response.data?.data as any)?.refundedCredits || 0;
             toast({
                 title: "Early Checkout Successful ✓",
                 description: refundedCredits > 0 
@@ -199,6 +202,31 @@ export default function BookingsPage() {
         } finally {
             setExtendingId(null);
         }
+    };
+
+    // Handle reschedule booking (US 1.7)
+    const handleReschedule = async (bookingId: string, newStartTime: string, newEndTime: string) => {
+        try {
+            await bookingsApi.reschedule(bookingId, newStartTime, newEndTime);
+            toast({
+                title: "Booking Rescheduled ✓",
+                description: "Your booking has been rescheduled successfully.",
+            });
+            await fetchBookings();
+        } catch (error: any) {
+            toast({
+                title: "Reschedule Failed",
+                description: error.message || "Unable to reschedule booking. Please try again.",
+                variant: "destructive",
+            });
+            throw error;
+        }
+    };
+
+    // Open reschedule modal
+    const openRescheduleModal = (booking: Booking) => {
+        setSelectedBookingForReschedule(booking);
+        setRescheduleModalOpen(true);
     };
 
     if (authLoading || isLoading) {
@@ -424,6 +452,17 @@ export default function BookingsPage() {
                                                 </div>
                                                 {(canCancel || canCheckIn || canEarlyCheckout || canExtend) && (
                                                     <div className="mt-4 flex flex-wrap gap-2">
+                                                        {canCancel && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => openRescheduleModal(booking)}
+                                                                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                                                            >
+                                                                <Clock className="mr-2 h-4 w-4" />
+                                                                Reschedule
+                                                            </Button>
+                                                        )}
                                                         {canCheckIn && (
                                                             <Button
                                                                 variant="outline"
@@ -505,6 +544,17 @@ export default function BookingsPage() {
                     }}
                 />
             )}
+
+            {/* Reschedule Modal */}
+            <RescheduleModal
+                isOpen={rescheduleModalOpen}
+                onClose={() => {
+                    setRescheduleModalOpen(false);
+                    setSelectedBookingForReschedule(null);
+                }}
+                booking={selectedBookingForReschedule}
+                onReschedule={handleReschedule}
+            />
         </div>
     );
 }

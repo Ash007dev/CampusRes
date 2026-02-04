@@ -40,6 +40,7 @@ import {
 } from "@/components/booking/BookingCalendar";
 import { BookingModal, type BookingFormData } from "@/components/booking/BookingModal";
 import { BookingDetailsModal } from "@/components/booking/BookingDetailsModal";
+import { RescheduleModal } from "@/components/booking/RescheduleModal";
 import { RoomFilter, useRoomFilters, type RoomFilters } from "@/components/room/RoomFilter";
 import { RoomCard, type Room } from "@/components/room/RoomCard";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -79,6 +80,8 @@ export default function DashboardPage() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<BookingEvent | null>(null);
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+  const [bookingToReschedule, setBookingToReschedule] = useState<BookingEvent | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<{
     date: Date;
@@ -255,8 +258,28 @@ export default function DashboardPage() {
   // Handle edit from details modal
   const handleEditBooking = (booking: BookingEvent) => {
     setIsDetailsModalOpen(false);
-    // Navigate to bookings page to reschedule
-    router.push(`/bookings`);
+    // Open reschedule modal
+    setBookingToReschedule(booking);
+    setIsRescheduleModalOpen(true);
+  };
+
+  // Handle reschedule
+  const handleReschedule = async (bookingId: string, newStartTime: string, newEndTime: string) => {
+    try {
+      await bookingsApi.reschedule(bookingId, newStartTime, newEndTime);
+      toast({
+        title: "Booking Rescheduled ✓",
+        description: "Your booking has been rescheduled successfully.",
+      });
+      await fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Reschedule Failed",
+        description: error.message || "Unable to reschedule booking. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
   };
 
   // Handle cancel from details modal
@@ -852,6 +875,17 @@ export default function DashboardPage() {
         onEdit={handleEditBooking}
         onCancel={handleCancelBooking}
         onCheckIn={handleCheckInFromDetails}
+      />
+
+      {/* Reschedule Modal */}
+      <RescheduleModal
+        isOpen={isRescheduleModalOpen}
+        onClose={() => {
+          setIsRescheduleModalOpen(false);
+          setBookingToReschedule(null);
+        }}
+        booking={bookingToReschedule}
+        onReschedule={handleReschedule}
       />
     </div>
   );
