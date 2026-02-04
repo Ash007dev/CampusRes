@@ -79,12 +79,15 @@ export default function ProfilePage() {
         // Wait for auth to be initialized before redirecting
         if (!isInitialized) return;
 
+        // Don't redirect while auth is still loading
+        if (isLoading) return;
+
         if (!user) {
             router.push("/auth/login");
             return;
         }
         fetchStats();
-    }, [user, isInitialized, router, fetchStats]);
+    }, [user, isInitialized, isLoading, router, fetchStats]);
 
     const handleLogout = async () => {
         try {

@@ -39,6 +39,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { bookingsApi, type Booking } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
+import { QRScanner } from "@/components/booking/QRScanner";
 
 const STATUS_COLORS: Record<string, string> = {
     CONFIRMED: "bg-green-500",
@@ -73,6 +74,8 @@ export default function BookingsPage() {
     const [checkingInId, setCheckingInId] = useState<string | null>(null);
     const [earlyCheckoutId, setEarlyCheckoutId] = useState<string | null>(null);
     const [extendingId, setExtendingId] = useState<string | null>(null);
+    const [qrScannerOpen, setQrScannerOpen] = useState(false);
+    const [selectedBookingForCheckIn, setSelectedBookingForCheckIn] = useState<{id: string, roomCode?: string} | null>(null);
 
     // Fetch bookings from API
     const fetchBookings = useCallback(async () => {
@@ -96,12 +99,15 @@ export default function BookingsPage() {
         // Wait for auth to be initialized before redirecting
         if (!isInitialized) return;
 
+        // Don't redirect while auth is still loading
+        if (authLoading) return;
+
         if (!user) {
             router.push("/auth/login");
             return;
         }
         fetchBookings();
-    }, [user, isInitialized, router, fetchBookings]);
+    }, [user, isInitialized, authLoading, router, fetchBookings]);
 
     // Handle refresh
     const handleRefresh = async () => {
@@ -130,46 +136,24 @@ export default function BookingsPage() {
         }
     };
 
-    // Handle check-in using the bookings API
-    const handleCheckIn = async (id: string, roomCode?: string) => {
-        setCheckingInId(id);
-        try {
-            // Get user's location for proximity check (optional)
-            let latitude: number | undefined;
-            let longitude: number | undefined;
+    // Handle check-in - open QR scanner modal
+    const handleCheckIn = (id: string, roomCode?: string) => {
+        const booking = bookings.find(b => b.id === id);
+        if (!booking) return;
+        
+        // Extract room code from room name (e.g., "LB-101" from "Library Room 101")
+        const roomName = booking.room?.name || '';
+        const extractedCode = roomName.match(/([A-Z]+-\d+)/)?.[0] || roomCode;
+        
+        setSelectedBookingForCheckIn({ id, roomCode: extractedCode });
+        setQrScannerOpen(true);
+    };
 
-            if (navigator.geolocation) {
-                try {
-                    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-                    });
-                    latitude = position.coords.latitude;
-                    longitude = position.coords.longitude;
-                } catch (geoError) {
-                    // Geolocation failed or denied - continue without it
-                    console.log('Geolocation not available, continuing without proximity check');
-                }
-            }
-
-            // Use room code as QR code (in a real app, user would scan a QR)
-            const qrCode = roomCode || 'manual-checkin';
-
-            await bookingsApi.checkIn(id, qrCode, latitude, longitude);
-
-            toast({
-                title: "Check-in Successful ✓",
-                description: "You have checked in to your booking.",
-            });
-            await fetchBookings();
-        } catch (error: any) {
-            toast({
-                title: "Check-in Failed",
-                description: error.message || "Unable to check in. Please try again.",
-                variant: "destructive",
-            });
-        } finally {
-            setCheckingInId(null);
-        }
+    // Handle successful check-in from QR scanner
+    const handleCheckInSuccess = async () => {
+        setQrScannerOpen(false);
+        setSelectedBookingForCheckIn(null);
+        await fetchBookings();
     };
 
     // Handle early checkout (US 3.4) - End booking early and get credit refund
@@ -507,6 +491,20 @@ export default function BookingsPage() {
                     </Tabs>
                 </motion.div>
             </main>
+
+            {/* QR Scanner Modal for Check-in */}
+            {selectedBookingForCheckIn && (
+                <QRScanner
+                    isOpen={qrScannerOpen}
+                    bookingId={selectedBookingForCheckIn.id}
+                    roomCode={selectedBookingForCheckIn.roomCode}
+                    onSuccess={handleCheckInSuccess}
+                    onClose={() => {
+                        setQrScannerOpen(false);
+                        setSelectedBookingForCheckIn(null);
+                    }}
+                />
+            )}
         </div>
     );
 }

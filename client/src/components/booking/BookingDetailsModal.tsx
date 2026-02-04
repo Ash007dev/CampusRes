@@ -69,6 +69,20 @@ const STATUS_CONFIG = {
     textColor: "text-muted-foreground",
     bgColor: "bg-muted",
   },
+  CHECKED_IN: {
+    label: "Checked In",
+    icon: CheckCircle,
+    color: "bg-foreground",
+    textColor: "text-foreground",
+    bgColor: "bg-secondary",
+  },
+  NO_SHOW: {
+    label: "No Show",
+    icon: XCircle,
+    color: "bg-muted-foreground",
+    textColor: "text-muted-foreground",
+    bgColor: "bg-muted",
+  },
 };
 
 export function BookingDetailsModal({

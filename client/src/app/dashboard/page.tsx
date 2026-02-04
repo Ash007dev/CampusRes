@@ -103,26 +103,26 @@ export default function DashboardPage() {
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('user');
-        console.log("[Dashboard] Raw localStorage 'user':", stored);
+        // Debug log removed
         
         if (stored) {
           const parsedUser = JSON.parse(stored);
-          console.log("[Dashboard] Parsed user from localStorage:", parsedUser);
+          // Debug log removed
           
           // Validate that user object has required fields
           if (parsedUser && parsedUser.id && parsedUser.email) {
             // Ensure name field exists, construct from firstName/lastName if needed
             if (!parsedUser.name && parsedUser.firstName && parsedUser.lastName) {
               parsedUser.name = `${parsedUser.firstName} ${parsedUser.lastName}`;
-              console.log("[Dashboard] Constructed name:", parsedUser.name);
+              // Debug log removed
             }
             setDisplayUser(parsedUser);
           } else {
-            console.warn("[Dashboard] Invalid user object in localStorage");
+            // Warning removed
             setUserLoadError("Invalid user data");
           }
         } else {
-          console.log("[Dashboard] No user in localStorage");
+          // Debug log removed
         }
       } catch (error) {
         console.error("[Dashboard] Failed to parse stored user:", error);
@@ -134,7 +134,7 @@ export default function DashboardPage() {
   // Update when auth context provides user
   React.useEffect(() => {
     if (user) {
-      console.log("[Dashboard] Auth context user loaded:", user);
+      // Debug log removed
       setDisplayUser(user);
       setUserLoadError(null);
     }
@@ -145,17 +145,9 @@ export default function DashboardPage() {
   
   // Debug logging
   React.useEffect(() => {
-    console.log("[Dashboard] ===================");
-    console.log("[Dashboard] User state:", {
-      hasUser: !!user,
-      userName: user?.name,
-      hasDisplayUser: !!displayUser,
-      displayUserName: displayUser?.name,
-      currentUserName: currentUser?.name,
-      currentUserEmail: currentUser?.email,
-      error: userLoadError,
-    });
-    console.log("[Dashboard] ===================");
+    // Debug log removed
+    // Debug log removed
+    // Debug log removed
   }, [user, displayUser, currentUser, userLoadError]);
 
   // Fetch rooms and bookings
@@ -219,7 +211,7 @@ export default function DashboardPage() {
 
   // US 3.3: Live occupancy - listen for real-time booking updates via WebSocket
   const handleBookingUpdate = useCallback((update: BookingUpdate) => {
-    console.log('📡 Live update received:', update);
+    // Live update received
     // Refresh data when any booking changes (create, cancel, check-in, ghost-kill)
     fetchData();
   }, [fetchData]);
@@ -337,19 +329,35 @@ export default function DashboardPage() {
   const handleBookingSubmit = async (
     data: BookingFormData & { roomId: string }
   ) => {
-    const startDateTime = new Date(data.date);
+    // Parse the date and time components
+    const dateObj = new Date(data.date);
     const [startHour, startMin] = data.startTime.split(":").map(Number);
-    startDateTime.setHours(startHour, startMin, 0, 0);
-
-    const endDateTime = new Date(data.date);
     const [endHour, endMin] = data.endTime.split(":").map(Number);
+    
+    // Create date-time by setting hours on the date object
+    const startDateTime = new Date(dateObj);
+    startDateTime.setHours(startHour, startMin, 0, 0);
+    
+    const endDateTime = new Date(dateObj);
     endDateTime.setHours(endHour, endMin, 0, 0);
+
+    // Format as ISO string but remove the timezone offset to store as local time
+    // This ensures the time displayed matches the time selected
+    const formatLocalAsISO = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
+    };
 
     try {
       await bookingsApi.create({
         roomId: data.roomId,
-        startTime: startDateTime.toISOString(),
-        endTime: endDateTime.toISOString(),
+        startTime: formatLocalAsISO(startDateTime),
+        endTime: formatLocalAsISO(endDateTime),
         title: data.purpose, // Map purpose to title for API
         description: data.purpose,
       });
