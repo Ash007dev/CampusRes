@@ -51,6 +51,13 @@ const STATUS_CONFIG = {
     textColor: "text-foreground",
     bgColor: "bg-secondary",
   },
+  APPROVED: {
+    label: "Approved",
+    icon: CheckCircle,
+    color: "bg-foreground",
+    textColor: "text-foreground",
+    bgColor: "bg-secondary",
+  },
   PENDING: {
     label: "Pending Approval",
     icon: AlertCircle,
@@ -86,6 +93,14 @@ const STATUS_CONFIG = {
     textColor: "text-muted-foreground",
     bgColor: "bg-muted",
   },
+} as const;
+
+const DEFAULT_STATUS_CONFIG = {
+  label: "Unknown",
+  icon: Info,
+  color: "bg-muted-foreground",
+  textColor: "text-muted-foreground",
+  bgColor: "bg-muted",
 };
 
 export function BookingDetailsModal({
@@ -99,7 +114,7 @@ export function BookingDetailsModal({
 }: BookingDetailsModalProps) {
   if (!booking) return null;
 
-  const statusConfig = STATUS_CONFIG[booking.status];
+  const statusConfig = STATUS_CONFIG[booking.status as keyof typeof STATUS_CONFIG] || DEFAULT_STATUS_CONFIG;
   const StatusIcon = statusConfig.icon;
 
   const startTime = booking.start as Date;

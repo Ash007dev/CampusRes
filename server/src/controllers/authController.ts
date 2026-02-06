@@ -38,13 +38,38 @@ export const authController = {
   }),
 
   /**
-   * Login user
+   * Initiate login (Step 1 of MFA)
    * POST /api/v1/auth/login
+   * Returns userId for OTP verification step
    */
   login: asyncHandler(async (req: Request, res: Response) => {
     const input = req.body as LoginInput;
 
-    const { user, tokens } = await authService.login(input);
+    const result = await authService.initiateLogin(input);
+
+    res.json({
+      success: true,
+      data: result,
+      message: result.message,
+    });
+  }),
+
+  /**
+   * Verify OTP and complete login (Step 2 of MFA)
+   * POST /api/v1/auth/verify-otp
+   */
+  verifyOtp: asyncHandler(async (req: Request, res: Response) => {
+    const { userId, otp } = req.body;
+
+    if (!userId || !otp) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'userId and otp are required', code: 'AUTH_4004' },
+      });
+      return;
+    }
+
+    const { user, tokens } = await authService.verifyLoginOtp({ userId, otp });
 
     res.json({
       success: true,
@@ -170,7 +195,7 @@ export const authController = {
    */
   getAllUsers: asyncHandler(async (req: Request, res: Response) => {
     const { page = 1, limit = 20, role, search, departmentId } = req.query;
-    
+
     console.log('=== GET ALL USERS CONTROLLER HIT ===');
     console.log('Query params:', { page, limit, role, search, departmentId });
 
