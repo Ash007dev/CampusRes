@@ -19,6 +19,7 @@ import {
   PG_ERROR_CODES,
   TIME,
   CACHE,
+  USER_ROLES,
 } from '../config/constants.js';
 import {
   BookingConflictError,
@@ -68,7 +69,7 @@ export class BookingService {
       endTime: endTime.toISOString(),
     }, 'Creating booking');
 
-    this.validateTimeRange(startTime, endTime);
+    await this.validateTimeRange(startTime, endTime);
 
     try {
       // US 4.5: Check if user is blocked (blacklisted)
@@ -132,7 +133,7 @@ export class BookingService {
       // Check user credits
       const { data: user } = await supabase
         .from('users')
-        .select('credits_balance')
+        .select('credits_balance, role')
         .eq('id', userId)
         .single();
 
@@ -165,8 +166,9 @@ export class BookingService {
         );
       }
 
-      // Determine status
-      const requiresApproval = APPROVAL_REQUIRED_ROOM_TYPES.includes(
+      // Determine status (US 4.2 & 4.3)
+      // Admins bypass approval. Students and Faculty need approval for specific rooms.
+      const requiresApproval = (user.role === USER_ROLES.STUDENT || user.role === USER_ROLES.FACULTY) && APPROVAL_REQUIRED_ROOM_TYPES.includes(
         room.room_type as typeof APPROVAL_REQUIRED_ROOM_TYPES[number]
       );
       const initialStatus = requiresApproval ? BOOKING_STATUS.PENDING_APPROVAL : BOOKING_STATUS.CONFIRMED;
@@ -191,6 +193,11 @@ export class BookingService {
           is_peak_hours: isPeakHours,
           created_at: now,
           updated_at: now,
+          metadata: (input.guestName || input.guestPhone) ? {
+            guestName: input.guestName,
+            guestPhone: input.guestPhone,
+            bookedBy: userId
+          } : undefined
         })
         .select()
         .single();
@@ -431,7 +438,7 @@ export class BookingService {
       throw new AppError('Cannot reschedule past bookings', 400);
     }
 
-    this.validateTimeRange(newStartTime, newEndTime);
+    await this.validateTimeRange(newStartTime, newEndTime);
 
     const { data: conflicts } = await supabase
       .from('bookings')
@@ -1223,11 +1230,11 @@ export class BookingService {
       }
     }
 
-    logger.info({ 
-      adminUserId, 
+    logger.info({
+      adminUserId,
       entriesProcessed: entries.length,
-      created: results.created, 
-      errors: results.errors.length 
+      created: results.created,
+      errors: results.errors.length
     }, 'Bulk timetable import completed');
 
     return results;

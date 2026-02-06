@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useState, useCallback } from "react";
 import { format, addHours, setHours, setMinutes } from "date-fns";
-import { CalendarIcon, Clock, Repeat, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { CalendarIcon, Clock, Repeat, AlertCircle, CheckCircle, Loader2, User } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -72,6 +72,8 @@ const baseBookingSchema = z.object({
   isRecurring: z.boolean().default(false),
   recurringPattern: z.enum(["DAILY", "WEEKLY", "BIWEEKLY"]).optional(),
   recurringEndDate: z.date().optional(),
+  guestName: z.string().optional(),
+  guestPhone: z.string().optional(),
 });
 
 // Final schema with refinements
@@ -99,14 +101,13 @@ type BookingFormData = z.infer<typeof bookingSchema>;
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  room?: Room | null; // Made optional
-  rooms?: Room[]; // List of available rooms
-  onSubmit: (data: BookingFormData & { roomId: string }) => Promise<void>;
+  room?: Room | null;
+  rooms?: Room[];
+  onSubmit: (data: BookingFormData & { roomId: string }) => Promise<any>;
   selectedDate?: Date;
   selectedStartTime?: Date;
+  isAdmin?: boolean;
 }
-
-// ... (time slots generation remains same)
 
 export function BookingModal({
   isOpen,
@@ -116,9 +117,11 @@ export function BookingModal({
   onSubmit,
   selectedDate,
   selectedStartTime,
+  isAdmin = false,
 }: BookingModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [successStatus, setSuccessStatus] = useState<string>("CONFIRMED");
   const [error, setError] = useState<string | null>(null);
 
   // Get default future time
@@ -169,6 +172,8 @@ export function BookingModal({
       startTime: defaultStartHour,
       endTime: defaultEndHour,
       isRecurring: false,
+      guestName: "",
+      guestPhone: "",
     },
   });
 
@@ -192,14 +197,15 @@ export function BookingModal({
       setIsSuccess(false);
 
       try {
-        await onSubmit(data); // data already includes roomId
+        const result = await onSubmit(data); // data already includes roomId
+        setSuccessStatus(result?.data?.status || "CONFIRMED");
         setIsSuccess(true);
         // Show success animation then close
         setTimeout(() => {
           reset();
           setIsSuccess(false);
           onClose();
-        }, 1500);
+        }, 3000); // 3 seconds to read the approval message
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to create booking"
@@ -239,10 +245,20 @@ export function BookingModal({
           {isSuccess && (
             <div className="absolute inset-0 bg-background/95 backdrop-blur-sm flex flex-col items-center justify-center z-50 rounded-lg">
               <div className="animate-bounce">
-                <CheckCircle className="w-20 h-20 text-green-500" />
+                {successStatus === "PENDING_APPROVAL" ? (
+                  <Clock className="w-20 h-20 text-blue-500" />
+                ) : (
+                  <CheckCircle className="w-20 h-20 text-green-500" />
+                )}
               </div>
-              <h3 className="text-xl font-bold mt-4 text-green-600">Booking Confirmed!</h3>
-              <p className="text-muted-foreground mt-2">Your booking has been successfully created.</p>
+              <h3 className={`text-xl font-bold mt-4 ${successStatus === "PENDING_APPROVAL" ? "text-blue-600" : "text-green-600"}`}>
+                {successStatus === "PENDING_APPROVAL" ? "Request Submitted!" : "Booking Confirmed!"}
+              </h3>
+              <p className="text-muted-foreground mt-2 text-center px-6">
+                {successStatus === "PENDING_APPROVAL"
+                  ? "This room requires admin approval. You will be notified once it is reviewed."
+                  : "Your booking has been successfully created."}
+              </p>
             </div>
           )}
 
@@ -300,6 +316,34 @@ export function BookingModal({
               <p className="text-sm text-destructive">{errors.purpose.message}</p>
             )}
           </div>
+
+          {/* Admin: Guest Booking Details */}
+          {isAdmin && (
+            <div className="space-y-4 rounded-md border border-orange-200 bg-orange-50/50 p-4 dark:bg-orange-950/20 dark:border-orange-900/50">
+              <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+                <User className="h-4 w-4" />
+                <Label className="text-orange-600 dark:text-orange-400 font-semibold">Guest Booking (Optional)</Label>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="guestName">Guest Name</Label>
+                  <Input
+                    id="guestName"
+                    placeholder="External Guest Name"
+                    {...register("guestName")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="guestPhone">Guest Phone</Label>
+                  <Input
+                    id="guestPhone"
+                    placeholder="+91 99999 99999"
+                    {...register("guestPhone")}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Date Picker */}
           <div className="space-y-2">

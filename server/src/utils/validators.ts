@@ -145,6 +145,9 @@ const bookingBaseFields = {
   title: z.string().max(100).optional(),
   description: z.string().max(500).optional(),
   attendeeCount: z.number().int().min(1).optional().default(1),
+  // Guest booking fields (for booking on behalf of guests)
+  guestName: z.string().max(100).optional(),
+  guestPhone: z.string().max(20).optional(),
 };
 
 // Refinement functions

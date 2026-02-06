@@ -41,6 +41,7 @@ import {
 import { BookingModal, type BookingFormData } from "@/components/booking/BookingModal";
 import { BookingDetailsModal } from "@/components/booking/BookingDetailsModal";
 import { RescheduleModal } from "@/components/booking/RescheduleModal";
+import { FairnessPolicyModal } from "@/components/ui/fairness-policy-modal";
 import { RoomFilter, useRoomFilters, type RoomFilters } from "@/components/room/RoomFilter";
 import { RoomCard, type Room } from "@/components/room/RoomCard";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -107,11 +108,11 @@ export default function DashboardPage() {
       try {
         const stored = localStorage.getItem('user');
         // Debug log removed
-        
+
         if (stored) {
           const parsedUser = JSON.parse(stored);
           // Debug log removed
-          
+
           // Validate that user object has required fields
           if (parsedUser && parsedUser.id && parsedUser.email) {
             // Ensure name field exists, construct from firstName/lastName if needed
@@ -145,7 +146,7 @@ export default function DashboardPage() {
 
   // Get the current user to display (prefer auth context, fallback to displayUser)
   const currentUser = user || displayUser;
-  
+
   // Debug logging
   React.useEffect(() => {
     // Debug log removed
@@ -157,29 +158,32 @@ export default function DashboardPage() {
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [roomsResponse, bookingsResponse, quotaResponse] = await Promise.all([
-        roomsApi.search(),
+      const [availableNowResponse, bookingsResponse, quotaResponse] = await Promise.all([
+        roomsApi.getAvailableNow(), // US 3.3: Fetch rooms with real-time availability
         bookingsApi.getCalendarBookings(), // Fetch ALL bookings for calendar (not just user's)
         authApi.getQuota().catch(() => null), // Optional - may fail for non-students
       ]);
-      const roomsData = roomsResponse.data.data || [];
+      const roomsData = availableNowResponse.data.data || [];
       const bookingsData = bookingsResponse.data.data || [];
 
-      // Transform rooms data
+      // Transform rooms data with real-time availability status
       setRooms(
         roomsData.map((room: any) => ({
           id: room.id,
           name: room.name,
-          type: room.type,
+          type: room.roomType || room.type,
           capacity: room.capacity,
           location: room.location,
-          floor: room.floor || "1",
+          floor: room.floor?.toString() || "1",
           building: room.building || "Main Building",
           amenities: room.amenities || [],
           imageUrl: room.imageUrl,
-          isAvailable: room.isAvailable ?? true,
+          // US 3.3: Use server-computed availability status
+          isAvailable: room.availabilityStatus === 'AVAILABLE',
+          availabilityStatus: room.availabilityStatus,
+          nextBookingInHours: room.nextBookingInHours,
           departmentId: room.departmentId,
-          departmentName: room.department?.name,
+          departmentName: room.departments?.name,
         }))
       );
 
@@ -194,6 +198,7 @@ export default function DashboardPage() {
           roomId: booking.roomId,
           roomName: booking.room?.name || booking.rooms?.name || "Room",
           status: booking.status,
+          checkInStatus: booking.checkInStatus,
           isOwner: booking.userId === userId,
           userId: booking.userId,
           userName: booking.user?.firstName ? `${booking.user.firstName} ${booking.user.lastName}` : booking.user?.name,
@@ -218,7 +223,7 @@ export default function DashboardPage() {
     // Refresh data when any booking changes (create, cancel, check-in, ghost-kill)
     fetchData();
   }, [fetchData]);
-  
+
   useBookingUpdates(handleBookingUpdate);
 
   useEffect(() => {
@@ -308,6 +313,29 @@ export default function DashboardPage() {
     router.push(`/bookings`);
   };
 
+  // Handle early checkout / end meeting (US 3.4)
+  const handleEarlyCheckout = async (booking: BookingEvent) => {
+    try {
+      const response = await bookingsApi.earlyCheckout(booking.id);
+      const refundedCredits = (response.data.data as any)?.refundedCredits || 0;
+
+      toast({
+        title: "Meeting Ended ✓",
+        description: refundedCredits > 0
+          ? `Successfully ended. ${refundedCredits} credits refunded to your account.`
+          : "Successfully ended your meeting. Room is now available.",
+      });
+      setIsDetailsModalOpen(false);
+      await fetchData();
+    } catch (error: any) {
+      toast({
+        title: "End Meeting Failed",
+        description: error.message || "Unable to end meeting. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Handle booking a room
   const handleBookRoom = (room: Room) => {
     setSelectedRoom(room);
@@ -323,16 +351,16 @@ export default function DashboardPage() {
       const startTime = new Date(now);
       startTime.setMinutes(0, 0, 0); // Round to hour
       startTime.setHours(startTime.getHours() + 1); // Next hour
-      
+
       const endTime = new Date(startTime);
       endTime.setHours(endTime.getHours() + 1); // 1 hour slot
-      
+
       const response = await waitlistApi.join(
         room.id,
         startTime.toISOString(),
         endTime.toISOString()
       );
-      
+
       toast({
         title: "Added to Waitlist \u2713",
         description: `You're #${response.data.data?.position || 1} in line for ${room.name}. We'll notify you when it's free!`,
@@ -356,11 +384,11 @@ export default function DashboardPage() {
     const dateObj = new Date(data.date);
     const [startHour, startMin] = data.startTime.split(":").map(Number);
     const [endHour, endMin] = data.endTime.split(":").map(Number);
-    
+
     // Create date-time by setting hours on the date object
     const startDateTime = new Date(dateObj);
     startDateTime.setHours(startHour, startMin, 0, 0);
-    
+
     const endDateTime = new Date(dateObj);
     endDateTime.setHours(endHour, endMin, 0, 0);
 
@@ -377,7 +405,7 @@ export default function DashboardPage() {
     };
 
     try {
-      await bookingsApi.create({
+      const response = await bookingsApi.create({
         roomId: data.roomId,
         startTime: formatLocalAsISO(startDateTime),
         endTime: formatLocalAsISO(endDateTime),
@@ -387,6 +415,7 @@ export default function DashboardPage() {
 
       // Refresh data after booking
       await fetchData();
+      return response.data; // Return the data
     } catch (error) {
       // Re-throw so BookingModal can handle the error
       throw error;
@@ -734,6 +763,12 @@ export default function DashboardPage() {
                   </Button>
                 </div>
 
+                {/* Fairness Policy (US 4.10) */}
+                <FairnessPolicyModal
+                  quotaUsed={quotaInfo?.usedHours || 0}
+                  quotaLimit={quotaInfo?.limitHours || 4}
+                />
+
                 {/* New Booking Button */}
                 <Button onClick={() => setIsBookingModalOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
@@ -862,6 +897,7 @@ export default function DashboardPage() {
         onSubmit={handleBookingSubmit}
         selectedDate={selectedSlot?.date}
         selectedStartTime={selectedSlot?.startTime}
+        isAdmin={currentUser?.role === "ADMIN"}
       />
 
       {/* Booking Details Modal - Teams/Meet Style */}
@@ -875,6 +911,7 @@ export default function DashboardPage() {
         onEdit={handleEditBooking}
         onCancel={handleCancelBooking}
         onCheckIn={handleCheckInFromDetails}
+        onEarlyCheckout={handleEarlyCheckout}
       />
 
       {/* Reschedule Modal */}

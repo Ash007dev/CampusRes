@@ -17,6 +17,7 @@ import {
   Video,
   FileText,
   CreditCard,
+  LogOut,
 } from "lucide-react";
 import {
   Dialog,
@@ -38,7 +39,9 @@ interface BookingDetailsModalProps {
   onEdit?: (booking: BookingEvent) => void;
   onCancel?: (booking: BookingEvent) => void;
   onCheckIn?: (booking: BookingEvent) => void;
+  onEarlyCheckout?: (booking: BookingEvent) => void;
 }
+
 
 const STATUS_CONFIG = {
   CONFIRMED: {
@@ -107,6 +110,7 @@ export function BookingDetailsModal({
   onEdit,
   onCancel,
   onCheckIn,
+  onEarlyCheckout,
 }: BookingDetailsModalProps) {
   if (!booking) return null;
 
@@ -118,6 +122,7 @@ export function BookingDetailsModal({
   const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60) * 10) / 10;
   const isUpcoming = startTime > new Date();
   const isNow = startTime <= new Date() && endTime >= new Date();
+  const isCheckedIn = booking.checkInStatus === "CHECKED_IN";
 
   const userInitials = booking.userName
     ? booking.userName
@@ -294,7 +299,7 @@ export function BookingDetailsModal({
           <>
             <Separator />
             <div className="flex flex-wrap gap-2">
-              {isNow && onCheckIn && booking.status === "CONFIRMED" && (
+              {isNow && onCheckIn && booking.status === "CONFIRMED" && !isCheckedIn && (
                 <Button
                   onClick={() => onCheckIn(booking)}
                   className="flex-1 sm:flex-none"
@@ -302,6 +307,17 @@ export function BookingDetailsModal({
                 >
                   <Video className="mr-2 h-4 w-4" />
                   Check In Now
+                </Button>
+              )}
+              {isNow && onEarlyCheckout && booking.status === "CONFIRMED" && isCheckedIn && (
+                <Button
+                  onClick={() => onEarlyCheckout(booking)}
+                  variant="secondary"
+                  className="flex-1 sm:flex-none bg-orange-500 hover:bg-orange-600 text-white"
+                  size="lg"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  End Meeting
                 </Button>
               )}
               {isUpcoming && onEdit && booking.status === "CONFIRMED" && (

@@ -28,6 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import type { AvailabilityStatus } from "@/lib/api";
 
 // Types
 export interface Room {
@@ -41,7 +42,9 @@ export interface Room {
   amenities: string[];
   imageUrl?: string;
   isAvailable: boolean;
+  availabilityStatus?: AvailabilityStatus;
   nextAvailable?: Date;
+  nextBookingInHours?: number;
   departmentId?: string;
   departmentName?: string;
 }
@@ -93,12 +96,12 @@ export function RoomCard({
   const amenitiesData = Array.isArray(room.amenities)
     ? room.amenities.map(name => ({ name, available: true }))
     : room.amenities && typeof room.amenities === 'object'
-      ? Object.entries(room.amenities).map(([name, enabled]) => ({ 
-          name, 
-          available: enabled as boolean 
-        }))
+      ? Object.entries(room.amenities).map(([name, enabled]) => ({
+        name,
+        available: enabled as boolean
+      }))
       : [];
-  
+
   // Only show available amenities in the card
   const availableAmenities = amenitiesData.filter(a => a.available);
   const visibleAmenities = availableAmenities.slice(0, 4);
@@ -144,10 +147,24 @@ export function RoomCard({
 
             {/* Availability Badge with Pulse Animation for Live Occupancy (US 3.3) */}
             <div className="absolute right-3 top-3">
-              {room.isAvailable ? (
+              {room.availabilityStatus === 'OCCUPIED' ? (
+                <Badge variant="destructive" className="animate-pulse">
+                  <span className="mr-1.5 h-2 w-2 rounded-full bg-white animate-ping inline-block" />
+                  <XCircle className="mr-1 h-3 w-3" />
+                  Occupied
+                </Badge>
+              ) : room.availabilityStatus === 'PENDING_CHECKIN' ? (
+                <Badge className="bg-amber-500 hover:bg-amber-600 text-white animate-pulse">
+                  <Clock className="mr-1 h-3 w-3" />
+                  Pending Check-in
+                </Badge>
+              ) : room.isAvailable ? (
                 <Badge className="bg-green-500 hover:bg-green-600">
                   <CheckCircle2 className="mr-1 h-3 w-3" />
                   Available
+                  {room.nextBookingInHours && room.nextBookingInHours < 2 && (
+                    <span className="ml-1 text-xs opacity-80">({room.nextBookingInHours}h)</span>
+                  )}
                 </Badge>
               ) : (
                 <Badge variant="destructive" className="animate-pulse">

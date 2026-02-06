@@ -292,10 +292,11 @@ export const configService = {
   async isWithinCampusHours(startTime: Date, endTime: Date): Promise<boolean> {
     const constraints = await this.getBookingTimeConstraints();
 
-    const startHour = startTime.getHours();
-    const startMinute = startTime.getMinutes();
-    const endHour = endTime.getHours();
-    const endMinute = endTime.getMinutes();
+    // Use UTC hours since client sends times as UTC (with Z suffix)
+    const startHour = startTime.getUTCHours();
+    const startMinute = startTime.getUTCMinutes();
+    const endHour = endTime.getUTCHours();
+    const endMinute = endTime.getUTCMinutes();
 
     const [openHour, openMinute] = constraints.campusOpenTime.split(':').map(Number);
     const [closeHour, closeMinute] = constraints.campusCloseTime.split(':').map(Number);
