@@ -182,9 +182,9 @@ export function AuditLogTable() {
                             logs.map((log) => (
                                 <TableRow key={log.id}>
                                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                                        {log.created_at ? (() => {
+                                        {log.createdAt ? (() => {
                                             try {
-                                                return format(new Date(log.created_at), "MMM d, HH:mm:ss");
+                                                return format(new Date(log.createdAt), "MMM d, HH:mm:ss");
                                             } catch (e) {
                                                 return "Invalid Date";
                                             }
@@ -196,7 +196,7 @@ export function AuditLogTable() {
                                                 <User className="h-3.5 w-3.5 text-primary" />
                                             </div>
                                             <div className="text-xs">
-                                                <p className="font-medium">{log.performed_by?.email || "System"}</p>
+                                                <p className="font-medium">{log.performedBy?.email || "System"}</p>
                                             </div>
                                         </div>
                                     </TableCell>
@@ -206,10 +206,10 @@ export function AuditLogTable() {
                                         </span>
                                     </TableCell>
                                     <TableCell className="capitalize text-xs font-medium">
-                                        {log.entity_type}
+                                        {log.entityType}
                                     </TableCell>
                                     <TableCell className="text-[10px] font-mono text-muted-foreground truncate max-w-[80px]">
-                                        {log.entity_id}
+                                        {log.entityId}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <Dialog>
@@ -228,8 +228,8 @@ export function AuditLogTable() {
                                                 <div className="bg-muted p-4 rounded-lg overflow-auto max-h-[400px]">
                                                     <pre className="text-[10px] font-mono whitespace-pre-wrap">
                                                         {JSON.stringify({
-                                                            old_state: log.old_state,
-                                                            new_state: log.new_state,
+                                                            oldState: log.oldState,
+                                                            newState: log.newState,
                                                             metadata: log.metadata
                                                         }, null, 2)}
                                                     </pre>

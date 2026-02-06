@@ -137,7 +137,7 @@ export function BookingApprovals() {
                             <TableRow key={booking.id}>
                                 <TableCell>
                                     <div>
-                                        <p className="font-medium">{booking.users?.first_name} {booking.users?.last_name}</p>
+                                        <p className="font-medium">{booking.users?.firstName} {booking.users?.lastName}</p>
                                         <p className="text-xs text-muted-foreground">{booking.users?.email}</p>
                                     </div>
                                 </TableCell>
@@ -145,29 +145,29 @@ export function BookingApprovals() {
                                     <div className="flex flex-col">
                                         <span className="font-medium">{booking.rooms?.name}</span>
                                         <span className="text-xs bg-secondary px-2 py-0.5 rounded w-fit capitalize">
-                                            {booking.rooms?.room_type}
+                                            {booking.rooms?.roomType}
                                         </span>
                                     </div>
                                 </TableCell>
                                 <TableCell>
                                     <div className="text-sm">
-                                        <p>{booking.start_time ? (() => {
+                                        <p>{booking.startTime ? (() => {
                                             try {
-                                                return format(new Date(booking.start_time), "MMM d, yyyy");
+                                                return format(new Date(booking.startTime), "MMM d, yyyy");
                                             } catch (e) {
                                                 return "Invalid Date";
                                             }
                                         })() : "N/A"}</p>
                                         <p className="text-muted-foreground">
-                                            {booking.start_time ? (() => {
+                                            {booking.startTime ? (() => {
                                                 try {
-                                                    return format(new Date(booking.start_time), "HH:mm");
+                                                    return format(new Date(booking.startTime), "HH:mm");
                                                 } catch (e) {
                                                     return "--:--";
                                                 }
-                                            })() : "--:--"} - {booking.end_time ? (() => {
+                                            })() : "--:--"} - {booking.endTime ? (() => {
                                                 try {
-                                                    return format(new Date(booking.end_time), "HH:mm");
+                                                    return format(new Date(booking.endTime), "HH:mm");
                                                 } catch (e) {
                                                     return "--:--";
                                                 }

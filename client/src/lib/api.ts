@@ -303,11 +303,11 @@ export const adminApi = {
 
   // Approve a booking
   approveBooking: (id: string) =>
-    api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, { approved: true }),
+    api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, { bookingId: id, approved: true }),
 
   // Reject a booking
   rejectBooking: (id: string, reason?: string) =>
-    api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, { approved: false, reason }),
+    api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, { bookingId: id, approved: false, reason }),
 
   // Update user role (Admin only) - US 5.4
   updateUserRole: (userId: string, role: string) =>
