@@ -151,9 +151,27 @@ export function BookingApprovals() {
                                 </TableCell>
                                 <TableCell>
                                     <div className="text-sm">
-                                        <p>{format(new Date(booking.start_time), "MMM d, yyyy")}</p>
+                                        <p>{booking.start_time ? (() => {
+                                            try {
+                                                return format(new Date(booking.start_time), "MMM d, yyyy");
+                                            } catch (e) {
+                                                return "Invalid Date";
+                                            }
+                                        })() : "N/A"}</p>
                                         <p className="text-muted-foreground">
-                                            {format(new Date(booking.start_time), "HH:mm")} - {format(new Date(booking.end_time), "HH:mm")}
+                                            {booking.start_time ? (() => {
+                                                try {
+                                                    return format(new Date(booking.start_time), "HH:mm");
+                                                } catch (e) {
+                                                    return "--:--";
+                                                }
+                                            })() : "--:--"} - {booking.end_time ? (() => {
+                                                try {
+                                                    return format(new Date(booking.end_time), "HH:mm");
+                                                } catch (e) {
+                                                    return "--:--";
+                                                }
+                                            })() : "--:--"}
                                         </p>
                                     </div>
                                 </TableCell>

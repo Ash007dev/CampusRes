@@ -182,7 +182,13 @@ export function AuditLogTable() {
                             logs.map((log) => (
                                 <TableRow key={log.id}>
                                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                                        {format(new Date(log.created_at), "MMM d, HH:mm:ss")}
+                                        {log.created_at ? (() => {
+                                            try {
+                                                return format(new Date(log.created_at), "MMM d, HH:mm:ss");
+                                            } catch (e) {
+                                                return "Invalid Date";
+                                            }
+                                        })() : "N/A"}
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-2">
