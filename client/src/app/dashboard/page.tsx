@@ -158,29 +158,32 @@ export default function DashboardPage() {
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [roomsResponse, bookingsResponse, quotaResponse] = await Promise.all([
-        roomsApi.search(),
+      const [availableNowResponse, bookingsResponse, quotaResponse] = await Promise.all([
+        roomsApi.getAvailableNow(), // US 3.3: Fetch rooms with real-time availability
         bookingsApi.getCalendarBookings(), // Fetch ALL bookings for calendar (not just user's)
         authApi.getQuota().catch(() => null), // Optional - may fail for non-students
       ]);
-      const roomsData = roomsResponse.data.data || [];
+      const roomsData = availableNowResponse.data.data || [];
       const bookingsData = bookingsResponse.data.data || [];
 
-      // Transform rooms data
+      // Transform rooms data with real-time availability status
       setRooms(
         roomsData.map((room: any) => ({
           id: room.id,
           name: room.name,
-          type: room.type,
+          type: room.roomType || room.type,
           capacity: room.capacity,
           location: room.location,
-          floor: room.floor || "1",
+          floor: room.floor?.toString() || "1",
           building: room.building || "Main Building",
           amenities: room.amenities || [],
           imageUrl: room.imageUrl,
-          isAvailable: room.isAvailable ?? true,
+          // US 3.3: Use server-computed availability status
+          isAvailable: room.availabilityStatus === 'AVAILABLE',
+          availabilityStatus: room.availabilityStatus,
+          nextBookingInHours: room.nextBookingInHours,
           departmentId: room.departmentId,
-          departmentName: room.department?.name,
+          departmentName: room.departments?.name,
         }))
       );
 

@@ -50,12 +50,32 @@ function snakeToCamel(str: string): string {
 }
 
 /**
+ * Check if a string looks like a timestamp (ISO 8601 format)
+ * and ensure it has UTC timezone indicator
+ */
+function ensureUTCTimestamp(value: any): any {
+  if (typeof value !== 'string') return value;
+
+  // Match ISO 8601 date-time format without timezone: YYYY-MM-DDTHH:MM:SS or YYYY-MM-DDTHH:MM:SS.sss
+  // But NOT if it already has a timezone (Z, +00:00, etc.)
+  const isoDateTimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/;
+
+  if (isoDateTimeRegex.test(value)) {
+    // Append 'Z' to indicate UTC timezone
+    return value + 'Z';
+  }
+
+  return value;
+}
+
+/**
  * Recursively transform object keys from snake_case to camelCase
+ * Also ensures timestamps are properly formatted as UTC
  */
 function transformKeys(obj: any): any {
   if (obj === null || obj === undefined) return obj;
   if (Array.isArray(obj)) return obj.map(transformKeys);
-  if (typeof obj !== 'object') return obj;
+  if (typeof obj !== 'object') return ensureUTCTimestamp(obj);
 
   const transformed: any = {};
   for (const key in obj) {
@@ -265,7 +285,24 @@ export const roomsApi = {
       cancelledBookings: number;
       affectedUsers: string[];
     }>>(`/rooms/${id}/maintenance`, { isMaintenance, reason }),
+
+  // US 3.3: Get real-time availability status
+  getAvailableNow: () =>
+    api.get<ApiResponse<RoomWithAvailability[]>>('/rooms/available-now'),
 };
+
+// US 3.3: Room with real-time availability status
+export type AvailabilityStatus = 'AVAILABLE' | 'PENDING_CHECKIN' | 'OCCUPIED';
+
+export interface RoomWithAvailability extends Room {
+  availabilityStatus: AvailabilityStatus;
+  currentBooking?: {
+    id: string;
+    endTime: string;
+    checkInStatus: string;
+  };
+  nextBookingInHours?: number;
+}
 
 // Waitlist (US 3.7)
 export const waitlistApi = {

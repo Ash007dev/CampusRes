@@ -19,6 +19,7 @@ import {
   PG_ERROR_CODES,
   TIME,
   CACHE,
+  USER_ROLES,
 } from '../config/constants.js';
 import {
   BookingConflictError,
@@ -132,7 +133,7 @@ export class BookingService {
       // Check user credits
       const { data: user } = await supabase
         .from('users')
-        .select('credits_balance')
+        .select('credits_balance, role')
         .eq('id', userId)
         .single();
 
@@ -167,7 +168,7 @@ export class BookingService {
 
       // Determine status (US 4.2 & 4.3)
       // Admins bypass approval. Students and Faculty need approval for specific rooms.
-      const requiresApproval = (userRole === USER_ROLES.STUDENT || userRole === USER_ROLES.FACULTY) && APPROVAL_REQUIRED_ROOM_TYPES.includes(
+      const requiresApproval = (user.role === USER_ROLES.STUDENT || user.role === USER_ROLES.FACULTY) && APPROVAL_REQUIRED_ROOM_TYPES.includes(
         room.room_type as typeof APPROVAL_REQUIRED_ROOM_TYPES[number]
       );
       const initialStatus = requiresApproval ? BOOKING_STATUS.PENDING_APPROVAL : BOOKING_STATUS.CONFIRMED;

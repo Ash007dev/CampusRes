@@ -220,7 +220,7 @@ export class RoomService {
    * When enabling maintenance, auto-cancels all future bookings
    */
   async setMaintenanceStatus(
-    roomId: string, 
+    roomId: string,
     isMaintenance: boolean,
     maintenanceReason?: string
   ): Promise<{ room: Room; cancelledBookings: number; affectedUsers: string[] }> {
@@ -238,7 +238,7 @@ export class RoomService {
     // Update maintenance status
     const { data: room, error } = await supabase
       .from('rooms')
-      .update({ 
+      .update({
         is_maintenance: isMaintenance,
         maintenance_reason: maintenanceReason || null
       })
@@ -256,7 +256,7 @@ export class RoomService {
     // If enabling maintenance, cancel all future bookings
     if (isMaintenance) {
       const now = new Date().toISOString();
-      
+
       // Get future bookings for this room
       const { data: futureBookings } = await supabase
         .from('bookings')
@@ -268,10 +268,10 @@ export class RoomService {
       if (futureBookings && futureBookings.length > 0) {
         // Cancel all future bookings
         const bookingIds = futureBookings.map(b => b.id);
-        
+
         const { error: cancelError } = await supabase
           .from('bookings')
-          .update({ 
+          .update({
             status: 'CANCELLED',
             cancellation_reason: `Room under maintenance${maintenanceReason ? `: ${maintenanceReason}` : ''}`
           })
@@ -279,7 +279,7 @@ export class RoomService {
 
         if (!cancelError) {
           cancelledBookings = futureBookings.length;
-          
+
           // Collect affected user emails (unique)
           const userEmails = new Set<string>();
           futureBookings.forEach((b: any) => {
@@ -290,16 +290,16 @@ export class RoomService {
           affectedUsers.push(...userEmails);
         }
 
-        logger.info({ 
-          roomId, 
-          cancelledBookings, 
-          affectedUsers 
+        logger.info({
+          roomId,
+          cancelledBookings,
+          affectedUsers
         }, 'Future bookings cancelled due to maintenance');
       }
     }
 
     logger.info({ roomId, isMaintenance, maintenanceReason }, 'Room maintenance status updated');
-    
+
     return { room, cancelledBookings, affectedUsers };
   }
 
@@ -316,6 +316,106 @@ export class RoomService {
     }
 
     return rooms || [];
+  }
+
+  /**
+   * Get rooms with real-time availability status (US 3.3)
+   * Returns availability state: AVAILABLE, PENDING_CHECKIN, or OCCUPIED
+   */
+  async getAvailableNowRooms(): Promise<Array<RoomWithDepartment & {
+    availabilityStatus: 'AVAILABLE' | 'PENDING_CHECKIN' | 'OCCUPIED';
+    currentBooking?: {
+      id: string;
+      endTime: string;
+      checkInStatus: string;
+    };
+    nextBookingInHours?: number;
+  }>> {
+    const now = new Date();
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+
+    // Get all active rooms
+    const { data: rooms, error: roomError } = await supabase
+      .from('rooms')
+      .select(`*, departments(id, name, code)`)
+      .eq('is_active', true)
+      .eq('is_maintenance', false);
+
+    if (roomError || !rooms) {
+      logger.error({ error: roomError }, 'Failed to fetch rooms');
+      return [];
+    }
+
+    // Get all current and upcoming bookings (within next hour)
+    const { data: bookings, error: bookingError } = await supabase
+      .from('bookings')
+      .select('id, room_id, start_time, end_time, status, check_in_status')
+      .in('status', ['CONFIRMED', 'PENDING_APPROVAL'])
+      .lt('start_time', oneHourFromNow.toISOString())
+      .gt('end_time', now.toISOString());
+
+    if (bookingError) {
+      logger.error({ error: bookingError }, 'Failed to fetch bookings');
+    }
+
+    const bookingsByRoom = new Map<string, any[]>();
+    (bookings || []).forEach((b: any) => {
+      const list = bookingsByRoom.get(b.room_id) || [];
+      list.push(b);
+      bookingsByRoom.set(b.room_id, list);
+    });
+
+    // Compute availability for each room
+    const result = rooms.map((room: RoomWithDepartment) => {
+      const roomBookings = bookingsByRoom.get(room.id) || [];
+
+      // Find active booking (started and not ended)
+      const activeBooking = roomBookings.find((b: any) => {
+        const startTime = new Date(b.start_time);
+        const endTime = new Date(b.end_time);
+        return startTime <= now && endTime > now;
+      });
+
+      let availabilityStatus: 'AVAILABLE' | 'PENDING_CHECKIN' | 'OCCUPIED' = 'AVAILABLE';
+      let currentBooking: any = undefined;
+
+      if (activeBooking) {
+        // Room has an active booking
+        if (activeBooking.check_in_status === 'CHECKED_IN') {
+          availabilityStatus = 'OCCUPIED';
+        } else {
+          // Booked but not checked in yet
+          availabilityStatus = 'PENDING_CHECKIN';
+        }
+        currentBooking = {
+          id: activeBooking.id,
+          endTime: activeBooking.end_time,
+          checkInStatus: activeBooking.check_in_status,
+        };
+      }
+
+      // Calculate next booking time (for rooms that are currently available)
+      let nextBookingInHours: number | undefined = undefined;
+      if (availabilityStatus === 'AVAILABLE') {
+        const futureBooking = roomBookings
+          .filter((b: any) => new Date(b.start_time) > now)
+          .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0];
+
+        if (futureBooking) {
+          const hoursUntilNext = (new Date(futureBooking.start_time).getTime() - now.getTime()) / (1000 * 60 * 60);
+          nextBookingInHours = Math.round(hoursUntilNext * 10) / 10;
+        }
+      }
+
+      return {
+        ...room,
+        availabilityStatus,
+        currentBooking,
+        nextBookingInHours,
+      };
+    });
+
+    return result;
   }
 
   async getRoomsByBuilding(): Promise<Record<string, Room[]>> {

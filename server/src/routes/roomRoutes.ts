@@ -8,8 +8,8 @@
 
 import { Router, type IRouter } from 'express';
 import { roomController } from '../controllers/roomController.js';
-import { 
-  authenticate, 
+import {
+  authenticate,
   authorize,
   validate,
 } from '../middleware/index.js';
@@ -51,6 +51,16 @@ router.get(
   validate(roomQuerySchema, 'query'),
   roomController.search
 );
+
+/**
+ * @openapi
+ * /api/v1/rooms/available-now:
+ *   get:
+ *     summary: Get rooms with real-time availability status (US 3.3)
+ *     tags: [Rooms]
+ *     description: Returns rooms with availability state (AVAILABLE, PENDING_CHECKIN, or OCCUPIED)
+ */
+router.get('/available-now', roomController.getAvailableNow);
 
 /**
  * @openapi
