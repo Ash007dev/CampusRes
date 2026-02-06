@@ -22,11 +22,13 @@ export interface BookingEvent extends Event {
   roomId: string;
   roomName: string;
   status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
+  checkInStatus?: "PENDING" | "CHECKED_IN" | "MISSED" | "NOT_REQUIRED";
   isOwner: boolean;
   userId: string;
   userName?: string;
   purpose?: string;
 }
+
 
 interface BookingCalendarProps {
   events: BookingEvent[];
@@ -254,7 +256,7 @@ export function BookingCalendar({
     (slotDate: Date) => {
       const now = new Date();
       const holiday = isHoliday(slotDate);
-      
+
       if (holiday) {
         // Holiday styling - red tint
         return {
@@ -263,7 +265,7 @@ export function BookingCalendar({
           },
         };
       }
-      
+
       if (slotDate < now) {
         return {
           style: {
@@ -280,7 +282,7 @@ export function BookingCalendar({
   const dayPropGetter = useCallback(
     (dayDate: Date) => {
       const holiday = isHoliday(dayDate);
-      
+
       if (holiday) {
         return {
           className: 'holiday-day',

@@ -68,7 +68,7 @@ export class BookingService {
       endTime: endTime.toISOString(),
     }, 'Creating booking');
 
-    this.validateTimeRange(startTime, endTime);
+    await this.validateTimeRange(startTime, endTime);
 
     try {
       // US 4.5: Check if user is blocked (blacklisted)
@@ -431,7 +431,7 @@ export class BookingService {
       throw new AppError('Cannot reschedule past bookings', 400);
     }
 
-    this.validateTimeRange(newStartTime, newEndTime);
+    await this.validateTimeRange(newStartTime, newEndTime);
 
     const { data: conflicts } = await supabase
       .from('bookings')
@@ -1223,11 +1223,11 @@ export class BookingService {
       }
     }
 
-    logger.info({ 
-      adminUserId, 
+    logger.info({
+      adminUserId,
       entriesProcessed: entries.length,
-      created: results.created, 
-      errors: results.errors.length 
+      created: results.created,
+      errors: results.errors.length
     }, 'Bulk timetable import completed');
 
     return results;
