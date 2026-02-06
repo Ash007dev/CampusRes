@@ -73,6 +73,8 @@ import { ExportBookingsModal } from "@/components/admin/ExportBookingsModal";
 import { MaintenanceModeModal } from "@/components/admin/MaintenanceModeModal";
 import { FeedbackReviewModal } from "@/components/admin/FeedbackReviewModal";
 import { SystemConfigModal } from "@/components/admin/SystemConfigModal";
+import { BookingApprovals } from "@/components/admin/BookingApprovals";
+import { AuditLogTable } from "@/components/admin/AuditLogTable";
 
 // Types
 interface Stats {
@@ -117,7 +119,7 @@ interface Booking {
   user?: { name: string; email: string };
 }
 
-type AdminTab = "overview" | "users" | "rooms" | "bookings" | "analytics" | "settings";
+type AdminTab = "overview" | "users" | "rooms" | "bookings" | "approvals" | "audit_logs" | "analytics" | "settings";
 
 // Sidebar navigation
 const navItems: { id: AdminTab; label: string; icon: React.ElementType }[] = [
@@ -125,6 +127,8 @@ const navItems: { id: AdminTab; label: string; icon: React.ElementType }[] = [
   { id: "users", label: "Users", icon: Users },
   { id: "rooms", label: "Rooms", icon: Building2 },
   { id: "bookings", label: "Bookings", icon: Calendar },
+  { id: "approvals", label: "Approvals", icon: CheckCircle },
+  { id: "audit_logs", label: "Audit Logs", icon: Activity },
   { id: "analytics", label: "Analytics", icon: Activity },
   { id: "settings", label: "Settings", icon: Settings },
 ];
@@ -194,7 +198,7 @@ export default function AdminPage() {
 
       setRooms(roomsData);
       setBookings(bookingsData);
-      
+
       // Map users data to AdminUser format
       const mappedUsers: AdminUser[] = usersData.map((u: any) => ({
         id: u.id,
@@ -206,7 +210,7 @@ export default function AdminPage() {
         createdAt: u.createdAt || new Date().toISOString(),
         status: u.blockedUntil && new Date(u.blockedUntil) > new Date() ? 'SUSPENDED' : 'ACTIVE',
       }));
-      
+
       setUsers(mappedUsers);
 
       // Calculate stats
@@ -267,7 +271,7 @@ export default function AdminPage() {
     const confirmed = window.confirm(
       `Are you sure you want to change ${userName}'s role from ${currentRole} to ${newRole}?`
     );
-    
+
     if (!confirmed) return;
 
     try {
@@ -866,7 +870,7 @@ export default function AdminPage() {
                         <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
                         Refresh
                       </Button>
-                      <Button 
+                      <Button
                         className="rounded-lg bg-neutral-900 dark:bg-neutral-100 dark:text-black text-white hover:bg-neutral-800 dark:hover:bg-neutral-300"
                         onClick={() => setIsAddRoomModalOpen(true)}
                       >
@@ -967,22 +971,22 @@ export default function AdminPage() {
                       <CardDescription>View and manage all booking requests</CardDescription>
                     </div>
                     <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="rounded-lg"
                         onClick={() => setIsExportModalOpen(true)}
                       >
                         <Download className="mr-2 h-4 w-4" />
                         Export CSV
                       </Button>
-                      <Button 
+                      <Button
                         className="rounded-lg bg-neutral-900 dark:bg-neutral-100 dark:text-black text-white hover:bg-neutral-800 dark:hover:bg-neutral-300"
                         onClick={() => setIsBulkImportModalOpen(true)}
                       >
                         <Upload className="mr-2 h-4 w-4" />
                         Import Timetable
                       </Button>
-                      <Button 
+                      <Button
                         className="rounded-lg"
                         variant="outline"
                         onClick={() => setIsHolidayCalendarOpen(true)}
@@ -1061,6 +1065,34 @@ export default function AdminPage() {
                   </div>
                 </CardContent>
               </Card>
+            </motion.div>
+          )}
+
+          {/* Approvals Tab */}
+          {activeTab === "approvals" && (
+            <motion.div
+              key="approvals"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <h2 className="text-2xl font-bold mb-4">Pending Approvals</h2>
+              <BookingApprovals />
+            </motion.div>
+          )}
+
+          {/* Audit Logs Tab */}
+          {activeTab === "audit_logs" && (
+            <motion.div
+              key="audit_logs"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <h2 className="text-2xl font-bold mb-4">System Audit Logs</h2>
+              <AuditLogTable />
             </motion.div>
           )}
 
@@ -1180,7 +1212,7 @@ export default function AdminPage() {
       </main>
 
       {/* Modals */}
-      <AddRoomModal 
+      <AddRoomModal
         isOpen={isAddRoomModalOpen}
         onClose={() => setIsAddRoomModalOpen(false)}
         onSubmit={handleCreateRoom}
