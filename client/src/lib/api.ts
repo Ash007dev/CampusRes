@@ -56,7 +56,7 @@ function transformKeys(obj: any): any {
   if (obj === null || obj === undefined) return obj;
   if (Array.isArray(obj)) return obj.map(transformKeys);
   if (typeof obj !== 'object') return obj;
-  
+
   const transformed: any = {};
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
@@ -76,7 +76,7 @@ api.interceptors.response.use(
     if (response.data instanceof Blob) {
       return response;
     }
-    
+
     // Transform snake_case keys to camelCase in response data
     if (response.data) {
       response.data = transformKeys(response.data);
@@ -92,14 +92,14 @@ api.interceptors.response.use(
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
         document.cookie = 'accessToken=; path=/; max-age=0';
-        
+
         // Only redirect if not already on auth pages
         const currentPath = window.location.pathname;
         if (!currentPath.startsWith('/auth/') && currentPath !== '/') {
           console.log('[API] Token expired, redirecting to login...');
           window.location.href = '/auth/login?expired=true';
           // Return a rejected promise that won't show error in console
-          return new Promise(() => {});
+          return new Promise(() => { });
         }
       }
     }
@@ -312,6 +312,10 @@ export const adminApi = {
   // Update user role (Admin only) - US 5.4
   updateUserRole: (userId: string, role: string) =>
     api.patch<ApiResponse<void>>(`/auth/users/${userId}/role`, { role }),
+
+  // Get audit logs (US 4.9)
+  getAuditLogs: (params?: { page?: number; limit?: number; userId?: string; action?: string }) =>
+    api.get<ApiResponse<any[]>>('/admin/audit-logs', { params }),
 };
 
 // Holiday API (US 5.5)
@@ -535,12 +539,12 @@ export interface FeedbackStats {
 // Feedback API (US 5.8)
 export const feedbackApi = {
   // Get all feedback (admin only)
-  getAll: (params?: { 
-    status?: FeedbackStatus; 
-    category?: FeedbackCategory; 
+  getAll: (params?: {
+    status?: FeedbackStatus;
+    category?: FeedbackCategory;
     roomId?: string;
     priority?: FeedbackPriority;
-    page?: number; 
+    page?: number;
     limit?: number;
   }) => api.get<ApiResponse<Feedback[]>>('/feedback', { params }),
 
@@ -605,19 +609,19 @@ export interface BookingConstraints {
 // Configuration API (US 5.9)
 export const configApi = {
   // Get all configuration
-  getAll: (params?: { category?: ConfigCategory }) => 
+  getAll: (params?: { category?: ConfigCategory }) =>
     api.get<ApiResponse<SystemConfig[]>>('/config', { params }),
 
   // Get configuration by key
-  getByKey: (key: string) => 
+  getByKey: (key: string) =>
     api.get<ApiResponse<{ key: string; value: any; dataType: ConfigDataType; description?: string }>>(`/config/${key}`),
 
   // Get booking time constraints (public)
-  getBookingConstraints: () => 
+  getBookingConstraints: () =>
     api.get<ApiResponse<BookingConstraints>>('/config/booking/constraints'),
 
   // Update configuration (admin only)
-  update: (key: string, data: { value: string | number | boolean; description?: string }) => 
+  update: (key: string, data: { value: string | number | boolean; description?: string }) =>
     api.patch<ApiResponse<SystemConfig>>(`/config/${key}`, data),
 
   // Create configuration (admin only)
@@ -631,11 +635,11 @@ export const configApi = {
   }) => api.post<ApiResponse<SystemConfig>>('/config', data),
 
   // Delete configuration (admin only)
-  delete: (key: string) => 
+  delete: (key: string) =>
     api.delete<ApiResponse<void>>(`/config/${key}`),
 
   // Clear cache (admin only)
-  clearCache: () => 
+  clearCache: () =>
     api.post<ApiResponse<void>>('/config/cache/clear'),
 };
 

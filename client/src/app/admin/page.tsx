@@ -24,6 +24,7 @@ import {
   TrendingUp,
   TrendingDown,
   Clock,
+  CheckCircle,
   CheckCircle2,
   XCircle,
   AlertTriangle,
