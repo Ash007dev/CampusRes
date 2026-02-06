@@ -79,10 +79,13 @@ export default function SettingsPage() {
         // Wait for auth to be initialized before redirecting
         if (!isInitialized) return;
 
+        // Don't redirect while auth is still loading
+        if (isLoading) return;
+
         if (!user) {
             router.push("/auth/login");
         }
-    }, [user, isInitialized, router]);
+    }, [user, isInitialized, isLoading, router]);
 
     const handleSaveSettings = async () => {
         setIsSaving(true);

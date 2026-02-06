@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import {
   Calendar as BigCalendar,
   dateFnsLocalizer,
@@ -9,10 +9,12 @@ import {
   type SlotInfo,
   type View,
 } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay } from "date-fns";
+import { format, parse, startOfWeek, getDay, startOfMonth, endOfMonth, addMonths, subMonths, isSameDay } from "date-fns";
 import { enUS } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { cn } from "@/lib/utils";
+import { holidayApi, type Holiday } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 
 // Types
 export interface BookingEvent extends Event {
@@ -56,9 +58,9 @@ const localizer = dateFnsLocalizer({
 const EventComponent: React.FC<{ event: BookingEvent }> = ({ event }) => {
   return (
     <div className="flex h-full flex-col overflow-hidden p-1">
-      <div className="truncate text-xs font-medium">{event.roomName}</div>
+      <div className="truncate text-xs font-semibold leading-tight">{event.roomName}</div>
       {event.purpose && (
-        <div className="truncate text-xs opacity-80">{event.purpose}</div>
+        <div className="truncate text-xs leading-tight mt-0.5">{event.purpose}</div>
       )}
     </div>
   );
@@ -67,53 +69,71 @@ const EventComponent: React.FC<{ event: BookingEvent }> = ({ event }) => {
 // Get event style based on status and ownership
 const getEventStyle = (event: BookingEvent) => {
   const baseStyle: React.CSSProperties = {
-    borderRadius: "4px",
+    borderRadius: "6px",
     opacity: 1,
-    border: "none",
     display: "block",
+    fontSize: "0.75rem",
+    padding: "4px 6px",
+    border: "1px solid",
+    fontWeight: "500",
   };
 
-  // Spec: Red for 'Booked' (others), Green for 'My Booking'
+  // Use distinct colors that work with black/white theme
   if (event.isOwner) {
+    // My bookings: Dark with bright white text
     return {
       ...baseStyle,
-      backgroundColor: "#22c55e", // Green for user's own bookings
+      backgroundColor: "#0a0a0a",
       color: "#ffffff",
+      borderColor: "#262626",
+      fontWeight: "600",
     };
   }
 
-  // Status-based colors for other bookings
+  // Status-based styles for other bookings
   switch (event.status) {
     case "CONFIRMED":
+      // Others' bookings: Medium gray with white text
       return {
         ...baseStyle,
-        backgroundColor: "#ef4444", // Red for booked (others)
+        backgroundColor: "#404040",
         color: "#ffffff",
+        borderColor: "#525252",
       };
     case "PENDING":
+      // Pending: Light gray with dark text
       return {
         ...baseStyle,
-        backgroundColor: "#f97316", // Orange for pending
-        color: "#ffffff",
+        backgroundColor: "#d4d4d4",
+        color: "#0a0a0a",
+        borderColor: "#a3a3a3",
+        fontWeight: "600",
       };
     case "CANCELLED":
       return {
         ...baseStyle,
-        backgroundColor: "#94a3b8", // Gray for cancelled
-        color: "#ffffff",
+        backgroundColor: "#f5f5f5",
+        color: "#525252",
+        borderColor: "#d4d4d4",
         textDecoration: "line-through",
+        opacity: 0.7,
       };
     case "COMPLETED":
+      // Completed: Outlined style
       return {
         ...baseStyle,
-        backgroundColor: "#6366f1", // Indigo for completed
-        color: "#ffffff",
+        backgroundColor: "#fafafa",
+        color: "#525252",
+        borderColor: "#a3a3a3",
+        borderStyle: "dashed",
+        borderWidth: "2px",
       };
     default:
       return {
         ...baseStyle,
-        backgroundColor: "#ef4444",
+        backgroundColor: "#404040",
         color: "#ffffff",
+        borderColor: "#525252",
       };
   }
 };
@@ -132,6 +152,37 @@ export function BookingCalendar({
 }: BookingCalendarProps) {
   const [view, setView] = useState<View>(defaultView);
   const [date, setDate] = useState<Date>(defaultDate);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const { toast } = useToast();
+
+  // Helper to format date as YYYY-MM-DD
+  const formatDateString = (d: Date): string => {
+    return d.toISOString().split('T')[0];
+  };
+
+  // Fetch holidays when month changes
+  useEffect(() => {
+    const fetchHolidays = async () => {
+      try {
+        // Fetch holidays for current month plus/minus one month for navigation
+        const start = startOfMonth(subMonths(date, 1));
+        const end = endOfMonth(addMonths(date, 1));
+        const response = await holidayApi.getHolidays({
+          startDate: formatDateString(start),
+          endDate: formatDateString(end)
+        });
+        setHolidays(response.data.data || []);
+      } catch (error) {
+        console.error('Failed to fetch holidays:', error);
+      }
+    };
+    fetchHolidays();
+  }, [date]);
+
+  // Check if a date is a holiday
+  const isHoliday = useCallback((checkDate: Date): Holiday | undefined => {
+    return holidays.find(h => isSameDay(new Date(h.date), checkDate));
+  }, [holidays]);
 
   // Handle navigation
   const handleNavigate = useCallback(
@@ -162,11 +213,22 @@ export function BookingCalendar({
   // Handle slot selection for creating new bookings
   const handleSelectSlot = useCallback(
     (slotInfo: SlotInfo) => {
+      // Check if selected date is a holiday
+      const holiday = isHoliday(slotInfo.start);
+      if (holiday) {
+        const dateStr = slotInfo.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        toast({
+          title: "Cannot book on holiday",
+          description: `${dateStr} is a holiday: ${holiday.name}`,
+          variant: "destructive",
+        });
+        return;
+      }
       if (onSelectSlot) {
         onSelectSlot(slotInfo);
       }
     },
-    [onSelectSlot]
+    [onSelectSlot, isHoliday, toast]
   );
 
   // Event styling based on status
@@ -187,11 +249,22 @@ export function BookingCalendar({
     []
   );
 
-  // Slot styling for past slots
+  // Slot styling for past slots and holidays
   const slotPropGetter = useCallback(
-    (date: Date) => {
+    (slotDate: Date) => {
       const now = new Date();
-      if (date < now) {
+      const holiday = isHoliday(slotDate);
+      
+      if (holiday) {
+        // Holiday styling - red tint
+        return {
+          style: {
+            backgroundColor: holiday.type === 'WEEKEND' ? '#fef3c7' : '#fee2e2',
+          },
+        };
+      }
+      
+      if (slotDate < now) {
         return {
           style: {
             backgroundColor: "#f8fafc",
@@ -200,7 +273,25 @@ export function BookingCalendar({
       }
       return {};
     },
-    []
+    [isHoliday]
+  );
+
+  // Day styling for month view (colors entire day cell)
+  const dayPropGetter = useCallback(
+    (dayDate: Date) => {
+      const holiday = isHoliday(dayDate);
+      
+      if (holiday) {
+        return {
+          className: 'holiday-day',
+          style: {
+            backgroundColor: holiday.type === 'WEEKEND' ? '#fef3c7' : '#fee2e2',
+          },
+        };
+      }
+      return {};
+    },
+    [isHoliday]
   );
 
   if (loading) {
@@ -222,24 +313,32 @@ export function BookingCalendar({
   }
 
   return (
-    <div className={cn("h-[600px] rounded-lg border bg-background p-4", className)}>
-      {/* Legend */}
-      <div className="mb-4 flex flex-wrap gap-4">
+    <div className={cn("h-[600px] rounded-lg border border-border bg-card p-4", className)}>
+      {/* Legend - Black/white with grayscale colors */}
+      <div className="mb-4 flex flex-wrap gap-4 pb-4 border-b border-border">
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded bg-green-500" />
-          <span className="text-xs text-muted-foreground">My Booking</span>
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#1a1a1a" }} />
+          <span className="text-xs font-medium">My Booking</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded bg-red-500" />
-          <span className="text-xs text-muted-foreground">Booked</span>
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#525252" }} />
+          <span className="text-xs font-medium">Booked</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded bg-orange-500" />
-          <span className="text-xs text-muted-foreground">Pending</span>
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#a3a3a3" }} />
+          <span className="text-xs font-medium">Pending</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded bg-indigo-500" />
-          <span className="text-xs text-muted-foreground">Completed</span>
+          <div className="h-3 w-3 rounded border-2 border-dashed" style={{ borderColor: "#d4d4d4" }} />
+          <span className="text-xs font-medium">Completed</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#fee2e2" }} />
+          <span className="text-xs font-medium">Holiday</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#fef3c7" }} />
+          <span className="text-xs font-medium">Weekend</span>
         </div>
       </div>
 
@@ -256,6 +355,7 @@ export function BookingCalendar({
         selectable={selectable}
         eventPropGetter={eventStyleGetter}
         slotPropGetter={slotPropGetter}
+        dayPropGetter={dayPropGetter}
         components={components}
         step={30}
         timeslots={2}
@@ -264,7 +364,7 @@ export function BookingCalendar({
         views={["month", "week", "day", "agenda"]}
         popup
         className="booking-calendar"
-        style={{ height: "calc(100% - 40px)" }}
+        style={{ height: "calc(100% - 60px)" }}
       />
 
       {/* Custom styles */}

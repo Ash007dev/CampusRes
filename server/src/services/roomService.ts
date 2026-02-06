@@ -215,10 +215,33 @@ export class RoomService {
     return updated;
   }
 
-  async setMaintenanceStatus(roomId: string, isMaintenance: boolean): Promise<Room> {
+  /**
+   * Set room maintenance status (US 5.7)
+   * When enabling maintenance, auto-cancels all future bookings
+   */
+  async setMaintenanceStatus(
+    roomId: string, 
+    isMaintenance: boolean,
+    maintenanceReason?: string
+  ): Promise<{ room: Room; cancelledBookings: number; affectedUsers: string[] }> {
+    // First, get room info
+    const { data: existingRoom, error: fetchError } = await supabase
+      .from('rooms')
+      .select('*')
+      .eq('id', roomId)
+      .single();
+
+    if (fetchError || !existingRoom) {
+      throw new Error('Room not found');
+    }
+
+    // Update maintenance status
     const { data: room, error } = await supabase
       .from('rooms')
-      .update({ is_maintenance: isMaintenance })
+      .update({ 
+        is_maintenance: isMaintenance,
+        maintenance_reason: maintenanceReason || null
+      })
       .eq('id', roomId)
       .select()
       .single();
@@ -227,8 +250,57 @@ export class RoomService {
       throw new Error('Failed to update maintenance status');
     }
 
-    logger.info({ roomId, isMaintenance }, 'Room maintenance status updated');
-    return room;
+    let cancelledBookings = 0;
+    const affectedUsers: string[] = [];
+
+    // If enabling maintenance, cancel all future bookings
+    if (isMaintenance) {
+      const now = new Date().toISOString();
+      
+      // Get future bookings for this room
+      const { data: futureBookings } = await supabase
+        .from('bookings')
+        .select('id, user_id, users(email, first_name, last_name)')
+        .eq('room_id', roomId)
+        .gt('start_time', now)
+        .in('status', ['PENDING', 'CONFIRMED']);
+
+      if (futureBookings && futureBookings.length > 0) {
+        // Cancel all future bookings
+        const bookingIds = futureBookings.map(b => b.id);
+        
+        const { error: cancelError } = await supabase
+          .from('bookings')
+          .update({ 
+            status: 'CANCELLED',
+            cancellation_reason: `Room under maintenance${maintenanceReason ? `: ${maintenanceReason}` : ''}`
+          })
+          .in('id', bookingIds);
+
+        if (!cancelError) {
+          cancelledBookings = futureBookings.length;
+          
+          // Collect affected user emails (unique)
+          const userEmails = new Set<string>();
+          futureBookings.forEach((b: any) => {
+            if (b.users?.email) {
+              userEmails.add(b.users.email);
+            }
+          });
+          affectedUsers.push(...userEmails);
+        }
+
+        logger.info({ 
+          roomId, 
+          cancelledBookings, 
+          affectedUsers 
+        }, 'Future bookings cancelled due to maintenance');
+      }
+    }
+
+    logger.info({ roomId, isMaintenance, maintenanceReason }, 'Room maintenance status updated');
+    
+    return { room, cancelledBookings, affectedUsers };
   }
 
   async getDepartmentRooms(departmentId: string): Promise<Room[]> {

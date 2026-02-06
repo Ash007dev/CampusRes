@@ -15,6 +15,8 @@ import {
   LayoutGrid,
   CheckCircle2,
   XCircle,
+  Bell,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +50,9 @@ interface RoomCardProps {
   room: Room;
   onBook?: (room: Room) => void;
   onViewDetails?: (room: Room) => void;
+  onNotify?: (room: Room) => void;
   isSelected?: boolean;
+  isNotifying?: boolean;
   className?: string;
 }
 
@@ -62,20 +66,22 @@ const AMENITY_ICONS: Record<string, React.ElementType> = {
   Whiteboard: LayoutGrid,
 };
 
-// Room type colors
+// Room type colors - Grayscale palette with explicit text colors for visibility
 const ROOM_TYPE_COLORS: Record<string, string> = {
-  LAB: "bg-purple-500",
-  LECTURE_HALL: "bg-blue-500",
-  MEETING_ROOM: "bg-green-500",
-  SEMINAR_ROOM: "bg-orange-500",
-  CONFERENCE_ROOM: "bg-indigo-500",
+  LAB: "bg-neutral-800 text-white dark:bg-neutral-200 dark:text-black",
+  LECTURE_HALL: "bg-neutral-700 text-white dark:bg-neutral-300 dark:text-black",
+  MEETING_ROOM: "bg-neutral-600 text-white dark:bg-neutral-400 dark:text-black",
+  SEMINAR_ROOM: "bg-neutral-500 text-white dark:bg-neutral-500 dark:text-white",
+  CONFERENCE_ROOM: "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-black",
 };
 
 export function RoomCard({
   room,
   onBook,
   onViewDetails,
+  onNotify,
   isSelected = false,
+  isNotifying = false,
   className,
 }: RoomCardProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -83,14 +89,20 @@ export function RoomCard({
   // Format room type for display (with fallback)
   const formattedType = (room.type || 'CLASSROOM').replace(/_/g, " ");
 
-  // Get visible amenities (max 4) - handle both array and object formats
-  const amenitiesArray = Array.isArray(room.amenities)
-    ? room.amenities
+  // Get amenities with their availability status
+  const amenitiesData = Array.isArray(room.amenities)
+    ? room.amenities.map(name => ({ name, available: true }))
     : room.amenities && typeof room.amenities === 'object'
-      ? Object.entries(room.amenities).filter(([_, enabled]) => enabled).map(([name]) => name)
+      ? Object.entries(room.amenities).map(([name, enabled]) => ({ 
+          name, 
+          available: enabled as boolean 
+        }))
       : [];
-  const visibleAmenities = amenitiesArray.slice(0, 4);
-  const hiddenAmenitiesCount = Math.max(0, amenitiesArray.length - 4);
+  
+  // Only show available amenities in the card
+  const availableAmenities = amenitiesData.filter(a => a.available);
+  const visibleAmenities = availableAmenities.slice(0, 4);
+  const hiddenAmenitiesCount = Math.max(0, availableAmenities.length - 4);
 
   return (
     <TooltipProvider>
@@ -130,7 +142,7 @@ export function RoomCard({
               </div>
             )}
 
-            {/* Availability Badge */}
+            {/* Availability Badge with Pulse Animation for Live Occupancy (US 3.3) */}
             <div className="absolute right-3 top-3">
               {room.isAvailable ? (
                 <Badge className="bg-green-500 hover:bg-green-600">
@@ -138,7 +150,8 @@ export function RoomCard({
                   Available
                 </Badge>
               ) : (
-                <Badge variant="destructive">
+                <Badge variant="destructive" className="animate-pulse">
+                  <span className="mr-1.5 h-2 w-2 rounded-full bg-white animate-ping inline-block" />
                   <XCircle className="mr-1 h-3 w-3" />
                   Occupied
                 </Badge>
@@ -147,7 +160,7 @@ export function RoomCard({
 
             {/* Room Type Badge */}
             <div className="absolute left-3 top-3">
-              <Badge className={cn("text-white", ROOM_TYPE_COLORS[room.type])}>
+              <Badge className={cn("font-semibold", ROOM_TYPE_COLORS[room.type])}>
                 {formattedType}
               </Badge>
             </div>
@@ -189,22 +202,22 @@ export function RoomCard({
             {/* Amenities */}
             <div className="flex flex-wrap gap-2">
               {visibleAmenities.map((amenity) => {
-                const IconComponent = AMENITY_ICONS[amenity];
+                const IconComponent = AMENITY_ICONS[amenity.name];
                 return (
-                  <Tooltip key={amenity}>
+                  <Tooltip key={amenity.name}>
                     <TooltipTrigger asChild>
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary">
                         {IconComponent ? (
                           <IconComponent className="h-4 w-4 text-muted-foreground" />
                         ) : (
                           <span className="text-xs font-medium text-muted-foreground">
-                            {amenity.charAt(0)}
+                            {amenity.name.charAt(0)}
                           </span>
                         )}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{amenity}</p>
+                      <p>{amenity.name}</p>
                     </TooltipContent>
                   </Tooltip>
                 );
@@ -219,7 +232,7 @@ export function RoomCard({
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{amenitiesArray.slice(4).join(", ")}</p>
+                    <p>{availableAmenities.slice(4).map(a => a.name).join(", ")}</p>
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -234,13 +247,28 @@ export function RoomCard({
             >
               View Details
             </Button>
-            <Button
-              className="flex-1"
-              disabled={!room.isAvailable}
-              onClick={() => onBook?.(room)}
-            >
-              Book Now
-            </Button>
+            {room.isAvailable ? (
+              <Button
+                className="flex-1"
+                onClick={() => onBook?.(room)}
+              >
+                Book Now
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
+                onClick={() => onNotify?.(room)}
+                disabled={isNotifying}
+              >
+                {isNotifying ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Bell className="mr-2 h-4 w-4" />
+                )}
+                Notify Me
+              </Button>
+            )}
           </CardFooter>
         </Card>
       </motion.div>

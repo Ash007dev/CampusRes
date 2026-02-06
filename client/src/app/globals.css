@@ -4,48 +4,50 @@
 
 @layer base {
   :root {
+    /* Light theme - Clean white with sharp black text */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 0 0% 0%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 0%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 0%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    /* Dark theme - Deep black with bright white text */
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
   }
 }
 
@@ -56,52 +58,110 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
   }
 }
 
 /* React Big Calendar Custom Styles */
 .rbc-calendar {
-  @apply rounded-lg bg-card shadow-sm;
+  @apply rounded-lg bg-card shadow-sm border border-border;
 }
 
 .rbc-header {
-  @apply bg-muted py-2 font-semibold text-sm;
+  @apply bg-muted/50 py-3 font-semibold text-sm border-b border-border;
 }
 
 .rbc-today {
-  @apply bg-primary/5;
+  @apply bg-primary/5 dark:bg-primary/10;
 }
 
-.rbc-event {
-  @apply rounded-md text-xs font-medium;
-}
-
-.rbc-event.event-available {
-  @apply bg-booking-available text-white;
-}
-
-.rbc-event.event-booked {
-  @apply bg-booking-booked text-white;
-}
-
-.rbc-event.event-my-booking {
-  @apply bg-booking-myBooking text-white;
-}
-
-.rbc-event.event-pending {
-  @apply bg-booking-pending text-white;
-}
-
-.rbc-event.event-maintenance {
-  @apply bg-booking-maintenance text-white;
-}
-
-.rbc-time-slot {
-  @apply border-border;
+.rbc-off-range {
+  @apply text-muted-foreground/40;
 }
 
 .rbc-current-time-indicator {
   @apply bg-primary;
+}
+
+.rbc-event {
+  @apply rounded-md text-xs font-medium shadow-sm border;
+}
+
+.rbc-event-label {
+  @apply text-xs font-medium;
+}
+
+/* Make calendar cells scrollable when events overflow */
+.rbc-month-row {
+  overflow: visible !important;
+}
+
+.rbc-row-content {
+  overflow: visible !important;
+}
+
+.rbc-row {
+  overflow: visible !important;
+}
+
+.rbc-date-cell {
+  overflow: visible !important;
+}
+
+.rbc-row-segment {
+  overflow-y: auto !important;
+  max-height: 120px !important;
+}
+
+.rbc-event-content {
+  overflow: hidden !important;
+}
+
+/* Scrollbar for event cells */
+.rbc-row-segment::-webkit-scrollbar {
+  width: 4px;
+}
+
+.rbc-row-segment::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rbc-row-segment::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 2px;
+}
+
+.rbc-row-segment::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+.rbc-event-content {
+  @apply text-xs;
+}
+
+.rbc-toolbar {
+  @apply mb-4 flex flex-wrap items-center justify-between gap-2;
+}
+
+.rbc-toolbar button {
+  @apply px-3 py-1.5 rounded-md border border-border bg-background hover:bg-accent transition-colors text-sm font-medium;
+}
+
+.rbc-toolbar button:active,
+.rbc-toolbar button.rbc-active {
+  @apply bg-primary text-primary-foreground;
+}
+
+.rbc-time-slot {
+  @apply border-border/50;
 }
 
 /* Dark mode calendar overrides */
@@ -200,8 +260,134 @@
   color: hsl(var(--muted-foreground)) !important;
 }
 
+/* Show more link styling */
+.rbc-show-more {
+  color: hsl(var(--foreground)) !important;
+  background-color: hsl(var(--secondary)) !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  text-decoration: none !important;
+  display: inline-block !important;
+  margin-top: 2px !important;
+}
+
+.rbc-show-more:hover {
+  background-color: hsl(var(--accent)) !important;
+  text-decoration: underline !important;
+}
+
 .dark .rbc-show-more {
-  color: hsl(var(--primary)) !important;
+  color: hsl(var(--foreground)) !important;
+  background-color: hsl(var(--secondary)) !important;
+}
+
+.dark .rbc-show-more:hover {
+  background-color: hsl(var(--accent)) !important;
+}
+
+/* Agenda View Styling */
+.rbc-agenda-view {
+  padding: 0 !important;
+  background-color: hsl(var(--card)) !important;
+  display: block !important;
+}
+
+.rbc-agenda-table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  background-color: hsl(var(--card)) !important;
+  display: table !important;
+}
+
+.rbc-agenda-table thead {
+  display: table-header-group !important;
+}
+
+.rbc-agenda-table thead>tr {
+  display: table-row !important;
+}
+
+.rbc-agenda-table thead>tr>th {
+  display: table-cell !important;
+  padding: 16px !important;
+  text-align: left !important;
+  font-weight: 700 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  background-color: hsl(var(--secondary)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+.rbc-agenda-table tbody {
+  display: table-row-group !important;
+}
+
+.rbc-agenda-table tbody>tr {
+  display: table-row !important;
+}
+
+.rbc-agenda-table tbody>tr>td {
+  display: table-cell !important;
+  padding: 16px !important;
+  font-size: 0.875rem !important;
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  vertical-align: middle !important;
+  line-height: 1.6 !important;
+}
+
+/* Date cell - make it prominent when present */
+.rbc-agenda-date-cell {
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  min-width: 140px !important;
+  background-color: hsl(var(--secondary)) !important;
+  border-right: 2px solid hsl(var(--border)) !important;
+}
+
+/* When date cell is empty, style differently */
+.rbc-agenda-table tbody>tr>td.rbc-agenda-date-cell:empty {
+  background-color: hsl(var(--muted) / 0.3) !important;
+  border-right: 2px solid hsl(var(--border)) !important;
+}
+
+/* Time cell */
+.rbc-agenda-time-cell {
+  white-space: nowrap !important;
+  color: hsl(var(--foreground)) !important;
+  font-weight: 600 !important;
+  min-width: 180px !important;
+  font-family: 'SF Mono', 'Monaco', 'Courier New', monospace !important;
+  border-right: 2px solid hsl(var(--border)) !important;
+}
+
+/* Event cell */
+.rbc-agenda-event-cell {
+  font-weight: 500 !important;
+}
+
+/* Add hover effect to rows */
+.rbc-agenda-table tbody>tr:hover>td {
+  background-color: hsl(var(--accent)) !important;
+  transition: background-color 0.15s ease !important;
+}
+
+.rbc-agenda-table tbody>tr:hover>td.rbc-agenda-date-cell {
+  background-color: hsl(var(--secondary)) !important;
+}
+
+/* Empty agenda message */
+.rbc-agenda-empty {
+  padding: 48px 16px !important;
+  text-align: center !important;
+  color: hsl(var(--muted-foreground)) !important;
+  font-size: 0.875rem !important;
+  font-style: italic !important;
 }
 
 .dark .rbc-agenda-table,
@@ -209,6 +395,18 @@
 .dark .rbc-agenda-table tbody>tr>td {
   border-color: hsl(var(--border)) !important;
   color: hsl(var(--foreground)) !important;
+}
+
+.dark .rbc-agenda-table thead>tr>th {
+  background-color: hsl(var(--muted)) !important;
+}
+
+.dark .rbc-agenda-table tbody>tr>td {
+  background-color: hsl(var(--card)) !important;
+}
+
+.dark .rbc-agenda-table tbody>tr:hover>td {
+  background-color: hsl(var(--accent)) !important;
 }
 
 /* Scrollbar Styles */

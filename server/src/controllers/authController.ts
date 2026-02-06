@@ -38,13 +38,38 @@ export const authController = {
   }),
 
   /**
-   * Login user
+   * Initiate login (Step 1 of MFA)
    * POST /api/v1/auth/login
+   * Returns userId for OTP verification step
    */
   login: asyncHandler(async (req: Request, res: Response) => {
     const input = req.body as LoginInput;
 
-    const { user, tokens } = await authService.login(input);
+    const result = await authService.initiateLogin(input);
+
+    res.json({
+      success: true,
+      data: result,
+      message: result.message,
+    });
+  }),
+
+  /**
+   * Verify OTP and complete login (Step 2 of MFA)
+   * POST /api/v1/auth/verify-otp
+   */
+  verifyOtp: asyncHandler(async (req: Request, res: Response) => {
+    const { userId, otp } = req.body;
+
+    if (!userId || !otp) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'userId and otp are required', code: 'AUTH_4004' },
+      });
+      return;
+    }
+
+    const { user, tokens } = await authService.verifyLoginOtp({ userId, otp });
 
     res.json({
       success: true,
@@ -161,6 +186,63 @@ export const authController = {
       success: true,
       data: result,
       message: 'Preferences updated successfully',
+    });
+  }),
+
+  /**
+   * Get all users (Admin only) - US 5.4
+   * GET /api/v1/auth/users
+   */
+  getAllUsers: asyncHandler(async (req: Request, res: Response) => {
+    const { page = 1, limit = 20, role, search, departmentId } = req.query;
+
+    console.log('=== GET ALL USERS CONTROLLER HIT ===');
+    console.log('Query params:', { page, limit, role, search, departmentId });
+
+    const result = await authService.getAllUsers({
+      page: Number(page),
+      limit: Number(limit),
+      role: role as string,
+      search: search as string,
+      departmentId: departmentId as string,
+    });
+
+    console.log('Result from service:', { usersCount: result.users.length, total: result.total });
+
+    res.json({
+      success: true,
+      data: result.users,
+      meta: {
+        total: result.total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(result.total / Number(limit)),
+      },
+    });
+  }),
+
+  /**
+   * Update user role (Admin only) - US 5.4
+   * PATCH /api/v1/auth/users/:id/role
+   */
+  updateUserRole: asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!role) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'Role is required', code: 'AUTH_4003' },
+      });
+      return;
+    }
+
+    await authService.updateUserRole(id, role, authReq.user.userId);
+
+    res.json({
+      success: true,
+      message: 'User role updated successfully',
     });
   }),
 };

@@ -12,6 +12,7 @@ import cron from 'node-cron';
 import { supabase } from '../lib/supabase.js';
 import { config } from '../config/index.js';
 import { logger } from '../config/logger.js';
+import { emitBookingUpdate, emitRoomUpdate } from '../lib/socket.js';
 
 const SYSTEM_USER_ID = 'system-ghost-killer';
 
@@ -88,6 +89,22 @@ export async function executeGhostKiller(): Promise<GhostKillerStats> {
           roomCode: (booking as any).rooms?.code,
           startTime: booking.start_time,
         }, '💀 Ghost Killer: Booking marked as NO_SHOW');
+
+        // Emit real-time updates for live occupancy (US 3.3)
+        emitBookingUpdate({
+          type: 'CANCELLED',
+          bookingId: booking.id,
+          roomId: booking.room_id,
+          roomName: (booking as any).rooms?.name || 'Room',
+          startTime: booking.start_time,
+          endTime: booking.end_time,
+          userId: booking.user_id,
+        });
+        emitRoomUpdate({
+          type: 'AVAILABLE',
+          roomId: booking.room_id,
+          roomName: (booking as any).rooms?.name || 'Room',
+        });
 
       } catch (error) {
         stats.errors++;

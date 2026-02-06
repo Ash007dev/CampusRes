@@ -16,6 +16,7 @@ import {
     ChevronLeft,
     RefreshCw,
     Loader2,
+    PlusCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { bookingsApi, type Booking } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
+import { QRScanner } from "@/components/booking/QRScanner";
+import { RescheduleModal } from "@/components/booking/RescheduleModal";
 
 const STATUS_COLORS: Record<string, string> = {
     CONFIRMED: "bg-green-500",
@@ -70,6 +73,12 @@ export default function BookingsPage() {
     const [activeTab, setActiveTab] = useState("upcoming");
     const [cancellingId, setCancellingId] = useState<string | null>(null);
     const [checkingInId, setCheckingInId] = useState<string | null>(null);
+    const [earlyCheckoutId, setEarlyCheckoutId] = useState<string | null>(null);
+    const [extendingId, setExtendingId] = useState<string | null>(null);
+    const [qrScannerOpen, setQrScannerOpen] = useState(false);
+    const [selectedBookingForCheckIn, setSelectedBookingForCheckIn] = useState<{id: string, roomCode?: string} | null>(null);
+    const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+    const [selectedBookingForReschedule, setSelectedBookingForReschedule] = useState<Booking | null>(null);
 
     // Fetch bookings from API
     const fetchBookings = useCallback(async () => {
@@ -93,12 +102,15 @@ export default function BookingsPage() {
         // Wait for auth to be initialized before redirecting
         if (!isInitialized) return;
 
+        // Don't redirect while auth is still loading
+        if (authLoading) return;
+
         if (!user) {
             router.push("/auth/login");
             return;
         }
         fetchBookings();
-    }, [user, isInitialized, router, fetchBookings]);
+    }, [user, isInitialized, authLoading, router, fetchBookings]);
 
     // Handle refresh
     const handleRefresh = async () => {
@@ -127,46 +139,94 @@ export default function BookingsPage() {
         }
     };
 
-    // Handle check-in using the bookings API
-    const handleCheckIn = async (id: string, roomCode?: string) => {
-        setCheckingInId(id);
+    // Handle check-in - open QR scanner modal
+    const handleCheckIn = (id: string, roomCode?: string) => {
+        const booking = bookings.find(b => b.id === id);
+        if (!booking) return;
+        
+        // Extract room code from room name (e.g., "LB-101" from "Library Room 101")
+        const roomName = booking.room?.name || '';
+        const extractedCode = roomName.match(/([A-Z]+-\d+)/)?.[0] || roomCode;
+        
+        setSelectedBookingForCheckIn({ id, roomCode: extractedCode });
+        setQrScannerOpen(true);
+    };
+
+    // Handle successful check-in from QR scanner
+    const handleCheckInSuccess = async () => {
+        setQrScannerOpen(false);
+        setSelectedBookingForCheckIn(null);
+        await fetchBookings();
+    };
+
+    // Handle early checkout (US 3.4) - End booking early and get credit refund
+    const handleEarlyCheckout = async (id: string) => {
+        setEarlyCheckoutId(id);
         try {
-            // Get user's location for proximity check (optional)
-            let latitude: number | undefined;
-            let longitude: number | undefined;
-
-            if (navigator.geolocation) {
-                try {
-                    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-                    });
-                    latitude = position.coords.latitude;
-                    longitude = position.coords.longitude;
-                } catch (geoError) {
-                    // Geolocation failed or denied - continue without it
-                    console.log('Geolocation not available, continuing without proximity check');
-                }
-            }
-
-            // Use room code as QR code (in a real app, user would scan a QR)
-            const qrCode = roomCode || 'manual-checkin';
-
-            await bookingsApi.checkIn(id, qrCode, latitude, longitude);
-
+            const response = await bookingsApi.earlyCheckout(id);
+            const refundedCredits = (response.data?.data as any)?.refundedCredits || 0;
             toast({
-                title: "Check-in Successful ✓",
-                description: "You have checked in to your booking.",
+                title: "Early Checkout Successful ✓",
+                description: refundedCredits > 0 
+                    ? `You ended your booking early. ${refundedCredits} credits refunded!`
+                    : "You have ended your booking early.",
             });
             await fetchBookings();
         } catch (error: any) {
             toast({
-                title: "Check-in Failed",
-                description: error.message || "Unable to check in. Please try again.",
+                title: "Early Checkout Failed",
+                description: error.message || "Unable to end booking early. Please try again.",
                 variant: "destructive",
             });
         } finally {
-            setCheckingInId(null);
+            setEarlyCheckoutId(null);
         }
+    };
+
+    // Handle extend booking (US 3.5) - Extend active booking by 15 minutes
+    const handleExtend = async (id: string) => {
+        setExtendingId(id);
+        try {
+            await bookingsApi.extendBooking(id, 15); // Extend by 15 minutes
+            toast({
+                title: "Booking Extended ✓",
+                description: "Your booking has been extended by 15 minutes.",
+            });
+            await fetchBookings();
+        } catch (error: any) {
+            toast({
+                title: "Extension Failed",
+                description: error.message || "Unable to extend booking. The room may be booked after your slot.",
+                variant: "destructive",
+            });
+        } finally {
+            setExtendingId(null);
+        }
+    };
+
+    // Handle reschedule booking (US 1.7)
+    const handleReschedule = async (bookingId: string, newStartTime: string, newEndTime: string) => {
+        try {
+            await bookingsApi.reschedule(bookingId, newStartTime, newEndTime);
+            toast({
+                title: "Booking Rescheduled ✓",
+                description: "Your booking has been rescheduled successfully.",
+            });
+            await fetchBookings();
+        } catch (error: any) {
+            toast({
+                title: "Reschedule Failed",
+                description: error.message || "Unable to reschedule booking. Please try again.",
+                variant: "destructive",
+            });
+            throw error;
+        }
+    };
+
+    // Open reschedule modal
+    const openRescheduleModal = (booking: Booking) => {
+        setSelectedBookingForReschedule(booking);
+        setRescheduleModalOpen(true);
     };
 
     if (authLoading || isLoading) {
@@ -192,8 +252,10 @@ export default function BookingsPage() {
             (booking.description || "").toLowerCase().includes(searchQuery.toLowerCase());
         const matchesStatus =
             statusFilter === "all" || booking.status === statusFilter;
-        const bookingDate = new Date(booking.startTime);
-        const isUpcoming = bookingDate >= new Date();
+        const bookingStartTime = new Date(booking.startTime);
+        const now = new Date();
+        // Compare full datetime, not just date - a booking is upcoming if its start time is in the future
+        const isUpcoming = bookingStartTime.getTime() > now.getTime();
         const matchesTab =
             activeTab === "all" ||
             (activeTab === "upcoming" && isUpcoming) ||
@@ -333,14 +395,25 @@ export default function BookingsPage() {
                             ) : (
                                 filteredBookings.map((booking) => {
                                     const StatusIcon = STATUS_ICONS[booking.status] || AlertCircle;
-                                    const startTime = new Date(booking.startTime);
-                                    const endTime = new Date(booking.endTime);
+                                    const startTime = booking.startTime ? new Date(booking.startTime) : null;
+                                    const endTime = booking.endTime ? new Date(booking.endTime) : null;
+                                    const isValidDate = startTime && !isNaN(startTime.getTime()) && endTime && !isNaN(endTime.getTime());
                                     const roomName = booking.room?.name || booking.title || "Room";
                                     const building = booking.room?.building || "Building";
                                     const floor = booking.room?.floor || "1";
-                                    const isUpcoming = startTime >= new Date();
+                                    const isUpcoming = isValidDate && startTime >= new Date();
                                     const canCancel = isUpcoming && booking.status === "CONFIRMED";
                                     const canCheckIn = isUpcoming && booking.status === "CONFIRMED";
+                                    
+                                    // US 3.4: Early checkout - booking is active if checked in and currently in progress
+                                    const now = new Date();
+                                    const isActiveBooking = isValidDate && 
+                                        booking.checkInStatus === "CHECKED_IN" && 
+                                        startTime <= now && 
+                                        endTime > now;
+                                    const canEarlyCheckout = isActiveBooking;
+                                    // US 3.5: Extend meeting - can extend active bookings by 15 minutes
+                                    const canExtend = isActiveBooking;
 
                                     return (
                                         <Card key={booking.id} className="overflow-hidden">
@@ -366,19 +439,30 @@ export default function BookingsPage() {
                                                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                                                     <div className="flex items-center gap-1">
                                                         <Calendar className="h-4 w-4" />
-                                                        {format(startTime, "PPP")}
+                                                        {isValidDate ? format(startTime, "PPP") : "Invalid date"}
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <Clock className="h-4 w-4" />
-                                                        {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
+                                                        {isValidDate ? `${format(startTime, "HH:mm")} - ${format(endTime, "HH:mm")}` : "--:-- - --:--"}
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <MapPin className="h-4 w-4" />
                                                         {building}, Floor {floor}
                                                     </div>
                                                 </div>
-                                                {(canCancel || canCheckIn) && (
-                                                    <div className="mt-4 flex gap-2">
+                                                {(canCancel || canCheckIn || canEarlyCheckout || canExtend) && (
+                                                    <div className="mt-4 flex flex-wrap gap-2">
+                                                        {canCancel && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => openRescheduleModal(booking)}
+                                                                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                                                            >
+                                                                <Clock className="mr-2 h-4 w-4" />
+                                                                Reschedule
+                                                            </Button>
+                                                        )}
                                                         {canCheckIn && (
                                                             <Button
                                                                 variant="outline"
@@ -390,6 +474,36 @@ export default function BookingsPage() {
                                                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                                                 ) : null}
                                                                 Check In
+                                                            </Button>
+                                                        )}
+                                                        {canEarlyCheckout && (
+                                                            <Button
+                                                                variant="secondary"
+                                                                size="sm"
+                                                                onClick={() => handleEarlyCheckout(booking.id)}
+                                                                disabled={earlyCheckoutId === booking.id}
+                                                                className="bg-orange-500 hover:bg-orange-600 text-white"
+                                                            >
+                                                                {earlyCheckoutId === booking.id ? (
+                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                ) : null}
+                                                                End Now
+                                                            </Button>
+                                                        )}
+                                                        {canExtend && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => handleExtend(booking.id)}
+                                                                disabled={extendingId === booking.id}
+                                                                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                                                            >
+                                                                {extendingId === booking.id ? (
+                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                                                )}
+                                                                +15 Mins
                                                             </Button>
                                                         )}
                                                         {canCancel && (
@@ -416,6 +530,31 @@ export default function BookingsPage() {
                     </Tabs>
                 </motion.div>
             </main>
+
+            {/* QR Scanner Modal for Check-in */}
+            {selectedBookingForCheckIn && (
+                <QRScanner
+                    isOpen={qrScannerOpen}
+                    bookingId={selectedBookingForCheckIn.id}
+                    roomCode={selectedBookingForCheckIn.roomCode}
+                    onSuccess={handleCheckInSuccess}
+                    onClose={() => {
+                        setQrScannerOpen(false);
+                        setSelectedBookingForCheckIn(null);
+                    }}
+                />
+            )}
+
+            {/* Reschedule Modal */}
+            <RescheduleModal
+                isOpen={rescheduleModalOpen}
+                onClose={() => {
+                    setRescheduleModalOpen(false);
+                    setSelectedBookingForReschedule(null);
+                }}
+                booking={selectedBookingForReschedule}
+                onReschedule={handleReschedule}
+            />
         </div>
     );
 }

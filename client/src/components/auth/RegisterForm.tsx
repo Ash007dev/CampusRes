@@ -70,12 +70,10 @@ interface RegisterFormProps {
 }
 
 const DEFAULT_DEPARTMENTS = [
-  { id: "cs", name: "Computer Science" },
-  { id: "ee", name: "Electrical Engineering" },
-  { id: "me", name: "Mechanical Engineering" },
-  { id: "ce", name: "Civil Engineering" },
-  { id: "math", name: "Mathematics" },
-  { id: "physics", name: "Physics" },
+  { id: "CSE", name: "Computer Science & Engineering" },
+  { id: "ECE", name: "Electronics & Communication Engineering" },
+  { id: "EEE", name: "Electrical & Electronics Engineering" },
+  { id: "ME", name: "Mechanical Engineering" },
 ];
 
 export function RegisterForm({
@@ -108,13 +106,18 @@ export function RegisterForm({
     setError(null);
 
     try {
+      // Split name into first and last name
+      const nameParts = data.name.trim().split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName;
+      
       await authApi.register({
-        firstName: data.name.split(' ')[0],
-        lastName: data.name.split(' ').slice(1).join(' ') || data.name.split(' ')[0],
+        firstName,
+        lastName,
         email: data.email,
         password: data.password,
-        // Only send departmentId if it's provided and not a placeholder ID
-        ...(data.departmentId && data.departmentId.length > 10 ? { departmentId: data.departmentId } : {}),
+        // Send departmentCode (the short code like 'CSE', 'ECE') to match backend
+        ...(data.departmentId ? { departmentCode: data.departmentId } : {}),
       });
 
       onSuccess?.();

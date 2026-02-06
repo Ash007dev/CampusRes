@@ -15,7 +15,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1
  */
 export const api: AxiosInstance = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 30000, // Increased to 30 seconds for slower operations
   headers: {
     'Content-Type': 'application/json',
   },
@@ -43,19 +43,64 @@ api.interceptors.request.use(
 );
 
 /**
- * Response interceptor - Handle errors
+ * Helper to convert snake_case to camelCase
+ */
+function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+/**
+ * Recursively transform object keys from snake_case to camelCase
+ */
+function transformKeys(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(transformKeys);
+  if (typeof obj !== 'object') return obj;
+
+  const transformed: any = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const camelKey = snakeToCamel(key);
+      transformed[camelKey] = transformKeys(obj[key]);
+    }
+  }
+  return transformed;
+}
+
+/**
+ * Response interceptor - Transform data and handle errors
  */
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Don't transform blob responses (like CSV exports)
+    if (response.data instanceof Blob) {
+      return response;
+    }
+
+    // Transform snake_case keys to camelCase in response data
+    if (response.data) {
+      response.data = transformKeys(response.data);
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config;
 
-    // Handle 401 Unauthorized
+    // Handle 401 Unauthorized - clear token and redirect to login
     if (error.response?.status === 401) {
-      // Clear token and redirect to login
       if (typeof window !== 'undefined') {
         localStorage.removeItem('accessToken');
-        window.location.href = '/auth/login';
+        localStorage.removeItem('user');
+        document.cookie = 'accessToken=; path=/; max-age=0';
+
+        // Only redirect if not already on auth pages
+        const currentPath = window.location.pathname;
+        if (!currentPath.startsWith('/auth/') && currentPath !== '/') {
+          console.log('[API] Token expired, redirecting to login...');
+          window.location.href = '/auth/login?expired=true';
+          // Return a rejected promise that won't show error in console
+          return new Promise(() => { });
+        }
       }
     }
 
@@ -90,10 +135,24 @@ export interface ApiResponse<T> {
  * =============================================================================
  */
 
+// MFA Login Response Types
+export interface LoginInitiationResponse {
+  requiresOtp: boolean;
+  userId: string;
+  email: string;
+  userName: string;
+  message: string;
+}
+
 // Auth
 export const authApi = {
+  // Step 1: Initiate login (returns userId for OTP verification)
   login: (email: string, password: string) =>
-    api.post<ApiResponse<{ user: User; tokens: Tokens }>>('/auth/login', { email, password }),
+    api.post<ApiResponse<LoginInitiationResponse>>('/auth/login', { email, password }),
+
+  // Step 2: Verify OTP and complete login
+  verifyOtp: (userId: string, otp: string) =>
+    api.post<ApiResponse<{ user: User; tokens: Tokens }>>('/auth/verify-otp', { userId, otp }),
 
   register: (data: RegisterData) =>
     api.post<ApiResponse<{ user: User; tokens: Tokens }>>('/auth/register', data),
@@ -129,6 +188,10 @@ export const bookingsApi = {
   getMyBookings: (params?: BookingQueryParams) =>
     api.get<ApiResponse<Booking[]>>('/bookings/my', { params }),
 
+  // Get all bookings for calendar view (shows all users' bookings)
+  getCalendarBookings: (params?: { startDate?: string; endDate?: string }) =>
+    api.get<ApiResponse<Booking[]>>('/bookings/calendar', { params }),
+
   getById: (id: string) =>
     api.get<ApiResponse<Booking>>(`/bookings/${id}`),
 
@@ -152,10 +215,24 @@ export const bookingsApi = {
 
   // Admin endpoints
   getAllBookings: (params?: BookingQueryParams) =>
-    api.get<ApiResponse<Booking[]>>('/bookings', { params }),
+    api.get<ApiResponse<Booking[]>>('/bookings/all', { params }),
 
   getPendingApprovals: () =>
-    api.get<ApiResponse<Booking[]>>('/bookings/pending'),
+    api.get<ApiResponse<Booking[]>>('/bookings/pending-approvals'),
+
+  importTimetable: (entries: Array<{
+    roomCode: string;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    title: string;
+    description?: string;
+    weeks: number;
+  }>) =>
+    api.post<ApiResponse<{ created: number; errors: any[] }>>('/bookings/import-timetable', { entries }),
+
+  exportBookings: (params?: { startDate?: string; endDate?: string }) =>
+    api.get('/bookings/export', { params, responseType: 'blob' }),
 };
 
 // Rooms
@@ -179,7 +256,15 @@ export const roomsApi = {
     api.post<ApiResponse<Room>>('/rooms', data),
 
   update: (id: string, data: Partial<Room>) =>
-    api.put<ApiResponse<Room>>(`/rooms/${id}`, data),
+    api.patch<ApiResponse<Room>>(`/rooms/${id}`, data),
+
+  // US 5.7: Room Maintenance Mode
+  setMaintenance: (id: string, isMaintenance: boolean, reason?: string) =>
+    api.patch<ApiResponse<{
+      room: Room;
+      cancelledBookings: number;
+      affectedUsers: string[];
+    }>>(`/rooms/${id}/maintenance`, { isMaintenance, reason }),
 };
 
 // Waitlist (US 3.7)
@@ -237,7 +322,54 @@ export const adminApi = {
   // Reject a booking
   rejectBooking: (id: string, reason?: string) =>
     api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, { approved: false, reason }),
+
+  // Update user role (Admin only) - US 5.4
+  updateUserRole: (userId: string, role: string) =>
+    api.patch<ApiResponse<void>>(`/auth/users/${userId}/role`, { role }),
 };
+
+// Holiday API (US 5.5)
+export const holidayApi = {
+  // Get all holidays
+  getHolidays: (params?: { startDate?: string; endDate?: string; type?: string; page?: number; limit?: number }) =>
+    api.get<ApiResponse<Holiday[]>>('/holidays', { params }),
+
+  // Get holidays in a date range
+  getHolidaysInRange: (startDate: string, endDate: string) =>
+    api.get<ApiResponse<Holiday[]>>('/holidays/range', { params: { startDate, endDate } }),
+
+  // Check if a date is a holiday
+  checkHoliday: (date: string) =>
+    api.get<ApiResponse<{ isHoliday: boolean; holiday?: Holiday }>>(`/holidays/check/${date}`),
+
+  // Add a new holiday (Admin only)
+  addHoliday: (data: { date: string; name: string; type?: string; description?: string; isRecurring?: boolean }) =>
+    api.post<ApiResponse<Holiday>>('/holidays', data),
+
+  // Update a holiday (Admin only)
+  updateHoliday: (id: string, data: { date?: string; name?: string; type?: string; description?: string; isRecurring?: boolean }) =>
+    api.patch<ApiResponse<Holiday>>(`/holidays/${id}`, data),
+
+  // Delete a holiday (Admin only)
+  deleteHoliday: (id: string) =>
+    api.delete<ApiResponse<void>>(`/holidays/${id}`),
+
+  // Bulk delete holidays (Admin only)
+  bulkDeleteHolidays: (ids: string[]) =>
+    api.post<ApiResponse<void>>('/holidays/bulk-delete', { ids }),
+};
+
+// Holiday type
+export interface Holiday {
+  id: string;
+  date: string;
+  name: string;
+  type: 'HOLIDAY' | 'WEEKEND' | 'MAINTENANCE' | 'CUSTOM';
+  description?: string;
+  isRecurring: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 /**
  * =============================================================================
@@ -277,6 +409,7 @@ export interface RegisterData {
   firstName: string;
   lastName: string;
   departmentId?: string;
+  departmentCode?: string;
   role?: string;
 }
 
@@ -369,3 +502,154 @@ export interface Availability {
   available: Array<{ start: string; end: string }>;
   booked: Array<{ start: string; end: string; status: string }>;
 }
+
+// Feedback types (US 5.8)
+export type FeedbackCategory = 'AC_ISSUE' | 'CLEANLINESS' | 'EQUIPMENT' | 'NOISE' | 'LIGHTING' | 'OTHER';
+export type FeedbackStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+export type FeedbackPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+export interface Feedback {
+  id: string;
+  roomId: string;
+  userId: string;
+  bookingId?: string;
+  category: FeedbackCategory;
+  title: string;
+  description: string;
+  status: FeedbackStatus;
+  priority: FeedbackPriority;
+  adminNotes?: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  room?: {
+    id: string;
+    name: string;
+    code: string;
+    building: string;
+  };
+  user?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
+export interface FeedbackStats {
+  total: number;
+  open: number;
+  inProgress: number;
+  resolved: number;
+  byCategory: Record<string, number>;
+  byPriority: Record<string, number>;
+}
+
+// Feedback API (US 5.8)
+export const feedbackApi = {
+  // Get all feedback (admin only)
+  getAll: (params?: {
+    status?: FeedbackStatus;
+    category?: FeedbackCategory;
+    roomId?: string;
+    priority?: FeedbackPriority;
+    page?: number;
+    limit?: number;
+  }) => api.get<ApiResponse<Feedback[]>>('/feedback', { params }),
+
+  // Get feedback stats (admin only)
+  getStats: () => api.get<ApiResponse<FeedbackStats>>('/feedback/stats'),
+
+  // Get my feedback (current user)
+  getMy: () => api.get<ApiResponse<Feedback[]>>('/feedback/my'),
+
+  // Get feedback by ID
+  getById: (id: string) => api.get<ApiResponse<Feedback>>(`/feedback/${id}`),
+
+  // Submit feedback
+  create: (data: {
+    roomId: string;
+    bookingId?: string;
+    category: FeedbackCategory;
+    title: string;
+    description: string;
+    priority?: FeedbackPriority;
+  }) => api.post<ApiResponse<Feedback>>('/feedback', data),
+
+  // Update feedback (admin only)
+  update: (id: string, data: {
+    status?: FeedbackStatus;
+    priority?: FeedbackPriority;
+    adminNotes?: string;
+  }) => api.patch<ApiResponse<Feedback>>(`/feedback/${id}`, data),
+
+  // Delete feedback (admin only)
+  delete: (id: string) => api.delete<ApiResponse<void>>(`/feedback/${id}`),
+};
+
+// ============================================================================
+// Configuration API (US 5.9)
+// ============================================================================
+
+export type ConfigDataType = 'string' | 'number' | 'boolean' | 'json' | 'time';
+export type ConfigCategory = 'general' | 'booking' | 'notification' | 'security';
+
+export interface SystemConfig {
+  id: string;
+  key: string;
+  value: string;
+  dataType: ConfigDataType;
+  description?: string;
+  category: ConfigCategory;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+  updatedBy?: string;
+}
+
+export interface BookingConstraints {
+  campusOpenTime: string;
+  campusCloseTime: string;
+  maxDurationHours: number;
+  minDurationMinutes: number;
+  bufferMinutes: number;
+}
+
+// Configuration API (US 5.9)
+export const configApi = {
+  // Get all configuration
+  getAll: (params?: { category?: ConfigCategory }) =>
+    api.get<ApiResponse<SystemConfig[]>>('/config', { params }),
+
+  // Get configuration by key
+  getByKey: (key: string) =>
+    api.get<ApiResponse<{ key: string; value: any; dataType: ConfigDataType; description?: string }>>(`/config/${key}`),
+
+  // Get booking time constraints (public)
+  getBookingConstraints: () =>
+    api.get<ApiResponse<BookingConstraints>>('/config/booking/constraints'),
+
+  // Update configuration (admin only)
+  update: (key: string, data: { value: string | number | boolean; description?: string }) =>
+    api.patch<ApiResponse<SystemConfig>>(`/config/${key}`, data),
+
+  // Create configuration (admin only)
+  create: (data: {
+    key: string;
+    value: string | number | boolean;
+    dataType: ConfigDataType;
+    description?: string;
+    category: ConfigCategory;
+    isPublic?: boolean;
+  }) => api.post<ApiResponse<SystemConfig>>('/config', data),
+
+  // Delete configuration (admin only)
+  delete: (key: string) =>
+    api.delete<ApiResponse<void>>(`/config/${key}`),
+
+  // Clear cache (admin only)
+  clearCache: () =>
+    api.post<ApiResponse<void>>('/config/cache/clear'),
+};
+

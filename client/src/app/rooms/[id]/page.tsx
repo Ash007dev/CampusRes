@@ -19,6 +19,9 @@ import {
     Loader2,
     Star,
     CheckCircle,
+    AlertTriangle,
+    Wrench,
+    MessageSquarePlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +38,7 @@ import { roomsApi, bookingsApi, type Room } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 import { BookingModal, type BookingFormData } from "@/components/booking/BookingModal";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { SubmitFeedbackModal } from "@/components/feedback/SubmitFeedbackModal";
 
 const AMENITY_ICONS: Record<string, React.ElementType> = {
     wifi: Wifi,
@@ -209,13 +213,36 @@ export default function RoomDetailsPage() {
                                 <Building className="h-16 w-16 text-primary/50 mx-auto mb-2" />
                                 <span className="text-muted-foreground">Room Image</span>
                             </div>
-                            {!room.isMaintenance && (
+                            {room.isMaintenance ? (
+                                <Badge className="absolute top-4 right-4 bg-yellow-500">
+                                    <Wrench className="mr-1 h-3 w-3" />
+                                    Under Maintenance
+                                </Badge>
+                            ) : (
                                 <Badge className="absolute top-4 right-4 bg-green-500">
                                     <CheckCircle className="mr-1 h-3 w-3" />
                                     Available
                                 </Badge>
                             )}
                         </div>
+
+                        {/* Maintenance Banner */}
+                        {room.isMaintenance && (
+                            <div className="bg-yellow-50 dark:bg-yellow-950 border-b border-yellow-200 dark:border-yellow-800 px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                    <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                                    <div>
+                                        <p className="font-medium text-yellow-800 dark:text-yellow-200">
+                                            This room is currently under maintenance
+                                        </p>
+                                        <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                                            Bookings are temporarily unavailable. Please check back later or choose another room.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <CardContent className="pt-6">
                             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                                 <div>
@@ -229,10 +256,26 @@ export default function RoomDetailsPage() {
                                         </Badge>
                                     </div>
                                 </div>
-                                <Button size="lg" onClick={() => setIsBookingModalOpen(true)}>
-                                    <Calendar className="mr-2 h-4 w-4" />
-                                    Book This Room
-                                </Button>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <Button 
+                                        size="lg" 
+                                        onClick={() => setIsBookingModalOpen(true)}
+                                        disabled={room.isMaintenance}
+                                    >
+                                        <Calendar className="mr-2 h-4 w-4" />
+                                        {room.isMaintenance ? "Unavailable" : "Book This Room"}
+                                    </Button>
+                                    <SubmitFeedbackModal
+                                        roomId={room.id}
+                                        roomName={room.name}
+                                        trigger={
+                                            <Button variant="outline" size="lg">
+                                                <MessageSquarePlus className="mr-2 h-4 w-4" />
+                                                Report Issue
+                                            </Button>
+                                        }
+                                    />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
