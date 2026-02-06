@@ -24,7 +24,7 @@ A modern room booking system for educational institutions built with **Next.js**
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/campus-resource-engine.git
+git clone https://github.com/Ash007dev/campus-resource-engine.git
 cd campus-resource-engine
 ```
 
