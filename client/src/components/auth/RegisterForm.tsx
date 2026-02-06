@@ -110,12 +110,13 @@ export function RegisterForm({
       const nameParts = data.name.trim().split(' ');
       const firstName = nameParts[0];
       const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName;
-      
+
       await authApi.register({
         firstName,
         lastName,
         email: data.email,
         password: data.password,
+        role: data.role,
         // Send departmentCode (the short code like 'CSE', 'ECE') to match backend
         ...(data.departmentId ? { departmentCode: data.departmentId } : {}),
       });
@@ -287,11 +288,10 @@ export function RegisterForm({
                     {[0, 1, 2, 3, 4].map((i) => (
                       <div
                         key={i}
-                        className={`h-1 flex-1 rounded-full transition-colors ${
-                          i < passwordStrength
+                        className={`h-1 flex-1 rounded-full transition-colors ${i < passwordStrength
                             ? strengthColors[passwordStrength - 1]
                             : "bg-muted"
-                        }`}
+                          }`}
                       />
                     ))}
                   </div>

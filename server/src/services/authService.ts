@@ -27,6 +27,7 @@ interface RegisterUserInput {
   firstName: string;
   lastName: string;
   departmentCode?: string;
+  role?: string;
 }
 
 interface AuthResult {
@@ -130,7 +131,7 @@ export class AuthService {
         email: input.email,
         first_name: input.firstName,
         last_name: input.lastName,
-        role: 'STUDENT',
+        role: input.role || 'STUDENT',
         department_id: departmentId,
         created_at: now,
         updated_at: now,

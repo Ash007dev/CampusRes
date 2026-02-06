@@ -53,13 +53,14 @@ export const createUserSchema = z.object({
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
-      'Password must contain uppercase, lowercase, number, and special character'
-    ),
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
   firstName: z.string().min(1).max(50),
   lastName: z.string().min(1).max(50),
   departmentId: z.string().min(1).optional(),
+  departmentCode: z.string().min(1).optional(),
   role: userRoleSchema.optional().default(USER_ROLES.STUDENT),
 });
 
@@ -218,7 +219,7 @@ export const checkInSchema = z.object({
  */
 
 export const availabilityQuerySchema = z.object({
-  roomId: z.string().cuid().optional(),
+  roomId: z.string().min(1).optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
   duration: z.coerce.number().int().min(30).max(480).optional(), // Duration in minutes
 });

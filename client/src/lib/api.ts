@@ -125,10 +125,24 @@ api.interceptors.response.use(
     }
 
     // Transform error for consistent handling
-    const errorMessage =
-      (error.response?.data as { error?: { message?: string } })?.error?.message ||
-      error.message ||
-      'An unexpected error occurred';
+    const data = error.response?.data as any;
+
+    let errorMessage = 'An unexpected error occurred';
+
+    if (data?.error?.message) {
+      errorMessage = data.error.message;
+
+      // If there are validation details, try to make the message more specific
+      if (data.error.details) {
+        const details = data.error.details;
+        const firstErrorKey = Object.keys(details)[0];
+        if (firstErrorKey && Array.isArray(details[firstErrorKey]) && details[firstErrorKey][0]) {
+          errorMessage = `${details[firstErrorKey][0]}`;
+        }
+      }
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
 
     return Promise.reject(new Error(errorMessage));
   }

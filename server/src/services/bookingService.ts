@@ -34,6 +34,7 @@ import {
   AppError,
 } from '../utils/errors.js';
 import { getCache, setCache, deleteCache } from '../lib/redis.js';
+import { emailService } from './emailService.js';
 import type { CreateBookingInput, CreateRecurringBookingInput } from '../utils/validators.js';
 
 interface BookingWithRelations {
@@ -167,10 +168,12 @@ export class BookingService {
       }
 
       // Determine status (US 4.2 & 4.3)
-      // Admins bypass approval. Students and Faculty need approval for specific rooms.
-      const requiresApproval = (user.role === USER_ROLES.STUDENT || user.role === USER_ROLES.FACULTY) && APPROVAL_REQUIRED_ROOM_TYPES.includes(
+      // Admins bypass approval. 
+      // Students ALWAYS need approval now as per user request.
+      // Faculty need approval for specific rooms.
+      const requiresApproval = user.role === USER_ROLES.STUDENT || (user.role === USER_ROLES.FACULTY && APPROVAL_REQUIRED_ROOM_TYPES.includes(
         room.room_type as typeof APPROVAL_REQUIRED_ROOM_TYPES[number]
-      );
+      ));
       const initialStatus = requiresApproval ? BOOKING_STATUS.PENDING_APPROVAL : BOOKING_STATUS.CONFIRMED;
 
       // Create booking
@@ -287,6 +290,15 @@ export class BookingService {
     const recurringGroupId = crypto.randomUUID();
     const createdBookings: any[] = [];
 
+    // Get user and room info to determine if approval is needed
+    const { data: user } = await supabase.from('users').select('role').eq('id', userId).single();
+    const { data: room } = await supabase.from('rooms').select('room_type').eq('id', input.roomId).single();
+
+    const requiresApproval = user?.role === USER_ROLES.STUDENT || (user?.role === USER_ROLES.FACULTY && APPROVAL_REQUIRED_ROOM_TYPES.includes(
+      room?.room_type as any
+    ));
+    const initialStatus = requiresApproval ? BOOKING_STATUS.PENDING_APPROVAL : BOOKING_STATUS.CONFIRMED;
+
     for (const dates of bookingDates) {
       const { data: booking, error } = await supabase
         .from('bookings')
@@ -298,7 +310,7 @@ export class BookingService {
           title: input.title,
           description: input.description,
           attendee_count: input.attendeeCount,
-          status: 'CONFIRMED',
+          status: initialStatus,
           check_in_status: 'PENDING',
           is_recurring: true,
           recurring_group_id: recurringGroupId,
@@ -727,7 +739,18 @@ export class BookingService {
       new_state: { status: newStatus, reason: reason || null },
     });
 
-    logger.info({ bookingId, adminUserId, approved, newStatus }, `Booking ${approved ? 'approved' : 'rejected'} by admin`);
+    // Send notification email (US 4.2 & 4.3)
+    const user = updated.users as any;
+    if (user && user.email) {
+      const userName = `${user.first_name} ${user.last_name}`;
+      emailService.sendBookingStatusEmail(user.email, userName, {
+        roomName: updated.rooms?.name || 'Room',
+        startTime: updated.start_time,
+        endTime: updated.end_time,
+        status: approved ? 'CONFIRMED' : 'REJECTED',
+        reason: reason || (approved ? undefined : 'Booking rejected by admin')
+      }).catch(err => logger.error({ err }, 'Failed to send booking status email'));
+    }
 
     return updated;
   }
