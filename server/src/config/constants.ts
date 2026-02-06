@@ -125,6 +125,8 @@ export const ROOM_TYPES = {
   AUDITORIUM: 'auditorium',
   MEETING_ROOM: 'meeting_room',
   CONFERENCE_HALL: 'conference_hall',
+  CONFERENCE_ROOM: 'conference_room',
+  STUDY_ROOM: 'study_room',
 } as const;
 
 /**
@@ -133,6 +135,7 @@ export const ROOM_TYPES = {
 export const APPROVAL_REQUIRED_ROOM_TYPES = [
   ROOM_TYPES.AUDITORIUM,
   ROOM_TYPES.CONFERENCE_HALL,
+  ROOM_TYPES.CONFERENCE_ROOM,
 ] as const;
 
 /**

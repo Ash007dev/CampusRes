@@ -317,15 +317,19 @@ export const adminApi = {
 
   // Approve a booking
   approveBooking: (id: string) =>
-    api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, { approved: true }),
+    api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, { bookingId: id, approved: true }),
 
   // Reject a booking
   rejectBooking: (id: string, reason?: string) =>
-    api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, { approved: false, reason }),
+    api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, { bookingId: id, approved: false, reason }),
 
   // Update user role (Admin only) - US 5.4
   updateUserRole: (userId: string, role: string) =>
     api.patch<ApiResponse<void>>(`/auth/users/${userId}/role`, { role }),
+
+  // Get audit logs (US 4.9)
+  getAuditLogs: (params?: { page?: number; limit?: number; userId?: string; action?: string }) =>
+    api.get<ApiResponse<any[]>>('/admin/audit-logs', { params }),
 };
 
 // Holiday API (US 5.5)

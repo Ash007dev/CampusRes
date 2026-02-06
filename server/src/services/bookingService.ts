@@ -165,8 +165,9 @@ export class BookingService {
         );
       }
 
-      // Determine status
-      const requiresApproval = APPROVAL_REQUIRED_ROOM_TYPES.includes(
+      // Determine status (US 4.2 & 4.3)
+      // Admins bypass approval. Students and Faculty need approval for specific rooms.
+      const requiresApproval = (userRole === USER_ROLES.STUDENT || userRole === USER_ROLES.FACULTY) && APPROVAL_REQUIRED_ROOM_TYPES.includes(
         room.room_type as typeof APPROVAL_REQUIRED_ROOM_TYPES[number]
       );
       const initialStatus = requiresApproval ? BOOKING_STATUS.PENDING_APPROVAL : BOOKING_STATUS.CONFIRMED;
@@ -191,6 +192,11 @@ export class BookingService {
           is_peak_hours: isPeakHours,
           created_at: now,
           updated_at: now,
+          metadata: (input.guestName || input.guestPhone) ? {
+            guestName: input.guestName,
+            guestPhone: input.guestPhone,
+            bookedBy: userId
+          } : undefined
         })
         .select()
         .single();

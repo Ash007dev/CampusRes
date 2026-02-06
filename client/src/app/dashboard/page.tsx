@@ -41,6 +41,7 @@ import {
 import { BookingModal, type BookingFormData } from "@/components/booking/BookingModal";
 import { BookingDetailsModal } from "@/components/booking/BookingDetailsModal";
 import { RescheduleModal } from "@/components/booking/RescheduleModal";
+import { FairnessPolicyModal } from "@/components/ui/fairness-policy-modal";
 import { RoomFilter, useRoomFilters, type RoomFilters } from "@/components/room/RoomFilter";
 import { RoomCard, type Room } from "@/components/room/RoomCard";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -401,7 +402,7 @@ export default function DashboardPage() {
     };
 
     try {
-      await bookingsApi.create({
+      const response = await bookingsApi.create({
         roomId: data.roomId,
         startTime: formatLocalAsISO(startDateTime),
         endTime: formatLocalAsISO(endDateTime),
@@ -411,6 +412,7 @@ export default function DashboardPage() {
 
       // Refresh data after booking
       await fetchData();
+      return response.data; // Return the data
     } catch (error) {
       // Re-throw so BookingModal can handle the error
       throw error;
@@ -758,6 +760,12 @@ export default function DashboardPage() {
                   </Button>
                 </div>
 
+                {/* Fairness Policy (US 4.10) */}
+                <FairnessPolicyModal
+                  quotaUsed={quotaInfo?.usedHours || 0}
+                  quotaLimit={quotaInfo?.limitHours || 4}
+                />
+
                 {/* New Booking Button */}
                 <Button onClick={() => setIsBookingModalOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
@@ -886,6 +894,7 @@ export default function DashboardPage() {
         onSubmit={handleBookingSubmit}
         selectedDate={selectedSlot?.date}
         selectedStartTime={selectedSlot?.startTime}
+        isAdmin={currentUser?.role === "ADMIN"}
       />
 
       {/* Booking Details Modal - Teams/Meet Style */}
