@@ -74,7 +74,7 @@ const configSchema = z.object({
 
   // Booking Configuration
   booking: z.object({
-    maxWeeklyQuotaHours: z.coerce.number().default(4),
+    maxWeeklyQuotaHours: z.coerce.number().default(10),
     peakHoursStart: z.coerce.number().min(0).max(23).default(9),
     peakHoursEnd: z.coerce.number().min(0).max(23).default(17),
     peakHourCreditMultiplier: z.coerce.number().default(2),
@@ -85,6 +85,22 @@ const configSchema = z.object({
   // Geolocation Configuration
   checkIn: z.object({
     radiusMeters: z.coerce.number().default(50),
+  }),
+
+  // Email Configuration (for OTP)
+  email: z.object({
+    host: z.string().default('smtp.example.com'),
+    port: z.coerce.number().default(587),
+    user: z.string().default(''),
+    password: z.string().default(''),
+    fromEmail: z.string().default('noreply@campus.edu'),
+    fromName: z.string().default('Campus Resource Engine'),
+  }),
+
+  // OTP Configuration
+  otp: z.object({
+    length: z.coerce.number().default(6),
+    expirySeconds: z.coerce.number().default(300), // 5 minutes
   }),
 
   // Logging Configuration
@@ -139,6 +155,18 @@ function loadConfig() {
     },
     checkIn: {
       radiusMeters: process.env.CHECKIN_RADIUS_METERS,
+    },
+    email: {
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER,
+      password: process.env.SMTP_PASSWORD,
+      fromEmail: process.env.SMTP_FROM_EMAIL,
+      fromName: process.env.SMTP_FROM_NAME,
+    },
+    otp: {
+      length: process.env.OTP_LENGTH,
+      expirySeconds: process.env.OTP_EXPIRY_SECONDS,
     },
     logLevel: process.env.LOG_LEVEL,
   };

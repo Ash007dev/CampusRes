@@ -17,6 +17,8 @@ import {
   EmailAlreadyExistsError,
   AppError,
 } from '../utils/errors.js';
+import { otpService } from './otpService.js';
+import { emailService } from './emailService.js';
 
 // Registration input interface
 interface RegisterUserInput {
@@ -50,6 +52,23 @@ interface QuotaUsage {
   weekStart: string;
   weekEnd: string;
 }
+
+// MFA Login initiation result
+interface LoginInitiationResult {
+  requiresOtp: true;
+  userId: string;
+  email: string;
+  userName: string;
+  message: string;
+}
+
+// Temporary storage for pending login sessions (before OTP verification)
+const pendingLoginSessions = new Map<string, {
+  supabaseSession: { access_token: string; refresh_token: string };
+  user: any;
+  departmentName: string | null;
+  expiresAt: number;
+}>();
 
 /**
  * Auth Service using Supabase Auth
@@ -164,7 +183,159 @@ export class AuthService {
   }
 
   /**
-   * Login user using Supabase Auth
+   * STEP 1: Initiate login - validate credentials and send OTP
+   * Returns userId and email for OTP verification step
+   */
+  async initiateLogin(input: { email: string; password: string }): Promise<LoginInitiationResult> {
+    const { email, password } = input;
+    logger.info({ email }, 'Login initiation - validating credentials');
+
+    // Sign in with Supabase Auth to validate credentials
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError || !signInData.session || !signInData.user) {
+      logger.warn({ email, error: signInError, errorMessage: signInError?.message }, 'Login failed - invalid credentials');
+      throw new InvalidCredentialsError();
+    }
+
+    // Get user profile from public.users
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', signInData.user.id)
+      .single();
+
+    if (userError || !user) {
+      logger.error({ userId: signInData.user.id, userError }, 'User profile not found in public.users');
+      throw new AppError('User profile not found', 500);
+    }
+
+    // Get department name if user has a department
+    let departmentName: string | null = null;
+    if (user.department_id) {
+      const { data: dept } = await supabase
+        .from('departments')
+        .select('name')
+        .eq('id', user.department_id)
+        .single();
+      departmentName = dept?.name || null;
+    }
+
+    if (!user.is_active) {
+      throw new AppError('Account is deactivated', 403);
+    }
+
+    // Check if blocked
+    if (user.blocked_until && new Date(user.blocked_until) > new Date()) {
+      throw new AppError(
+        `Account is blocked until ${new Date(user.blocked_until).toLocaleDateString()}`,
+        403
+      );
+    }
+
+    // Store the session data temporarily for OTP verification
+    const sessionExpiry = Date.now() + (config.otp.expirySeconds * 1000);
+    pendingLoginSessions.set(user.id, {
+      supabaseSession: {
+        access_token: signInData.session.access_token,
+        refresh_token: signInData.session.refresh_token,
+      },
+      user,
+      departmentName,
+      expiresAt: sessionExpiry,
+    });
+
+    // Generate and send OTP
+    const otp = await otpService.generateOtp(user.id);
+    const userName = `${user.first_name} ${user.last_name}`;
+
+    await emailService.sendOtpEmail(email, otp, userName);
+
+    logger.info({ email, userId: user.id }, 'OTP sent for login verification');
+
+    return {
+      requiresOtp: true,
+      userId: user.id,
+      email: user.email,
+      userName,
+      message: 'OTP has been sent to your email address',
+    };
+  }
+
+  /**
+   * STEP 2: Verify OTP and complete login
+   * Returns tokens and user data upon successful OTP verification
+   */
+  async verifyLoginOtp(input: { userId: string; otp: string }): Promise<AuthResult> {
+    const { userId, otp } = input;
+    logger.info({ userId }, 'Verifying login OTP');
+
+    // Get pending session
+    const pendingSession = pendingLoginSessions.get(userId);
+
+    if (!pendingSession) {
+      throw new AppError('Login session expired. Please restart login.', 400);
+    }
+
+    // Check if session expired
+    if (Date.now() > pendingSession.expiresAt) {
+      pendingLoginSessions.delete(userId);
+      throw new AppError('Login session expired. Please restart login.', 400);
+    }
+
+    // Verify OTP
+    const isValid = await otpService.verifyOtp(userId, otp);
+
+    if (!isValid) {
+      throw new AppError('Invalid or expired OTP', 400);
+    }
+
+    // OTP verified - complete login
+    const { supabaseSession, user, departmentName } = pendingSession;
+
+    // Clean up pending session
+    pendingLoginSessions.delete(userId);
+
+    // Update last login
+    await supabase
+      .from('users')
+      .update({ last_login_at: new Date().toISOString() })
+      .eq('id', user.id);
+
+    // Audit log
+    await supabase.from('audit_logs').insert({
+      action: 'LOGIN',
+      entity_type: 'user',
+      entity_id: user.id,
+      performed_by_id: user.id,
+      metadata: { mfa_verified: true },
+    });
+
+    logger.info({ userId: user.id, email: user.email }, 'Login successful with MFA');
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        departmentId: user.department_id,
+        departmentName: departmentName,
+      },
+      tokens: {
+        accessToken: supabaseSession.access_token,
+        refreshToken: supabaseSession.refresh_token,
+      },
+    };
+  }
+
+  /**
+   * Legacy login method (non-MFA) - kept for backward compatibility
+   * Use initiateLogin + verifyLoginOtp for MFA flow
    */
   async login(input: { email: string; password: string }): Promise<AuthResult> {
     const { email, password } = input;

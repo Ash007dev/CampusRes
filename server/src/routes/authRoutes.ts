@@ -70,6 +70,32 @@ router.post(
 
 /**
  * @openapi
+ * /api/v1/auth/verify-otp:
+ *   post:
+ *     summary: Verify OTP and complete login (Step 2 of MFA)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, otp]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       400:
+ *         description: Invalid or expired OTP
+ */
+router.post('/verify-otp', authRateLimiter, authController.verifyOtp);
+
+/**
+ * @openapi
  * /api/v1/auth/me:
  *   get:
  *     summary: Get current user profile
