@@ -72,7 +72,7 @@ export const adminService = {
     },
 
     /**
-     * Get audit logs from the database
+     * Get audit logs from the database with enhanced booking details
      */
     async getAuditLogs(params: {
         page?: number;
@@ -109,8 +109,46 @@ export const adminService = {
                 throw new AppError(`Failed to fetch audit logs: ${error.message}`, 500);
             }
 
+            // Enhance logs with booking and user details
+            const enhancedLogs = await Promise.all((data || []).map(async (log: any) => {
+                const enhanced: any = { ...log };
+
+                // If this is a booking-related log, fetch booking details
+                if (log.entity_type === 'booking' && log.entity_id) {
+                    const { data: booking } = await supabase
+                        .from('bookings')
+                        .select('*, rooms(id, name, type), users(id, email, first_name, last_name, role)')
+                        .eq('id', log.entity_id)
+                        .single();
+
+                    if (booking) {
+                        enhanced.booking = {
+                            id: booking.id,
+                            status: booking.status,
+                            startTime: booking.start_time,
+                            endTime: booking.end_time,
+                            purpose: booking.purpose,
+                            room: booking.rooms ? {
+                                id: booking.rooms.id,
+                                name: booking.rooms.name,
+                                type: booking.rooms.type
+                            } : null,
+                            user: booking.users ? {
+                                id: booking.users.id,
+                                email: booking.users.email,
+                                firstName: booking.users.first_name,
+                                lastName: booking.users.last_name,
+                                role: booking.users.role
+                            } : null
+                        };
+                    }
+                }
+
+                return enhanced;
+            }));
+
             return {
-                logs: data || [],
+                logs: enhancedLogs,
                 total: count || 0,
             };
         } catch (error) {

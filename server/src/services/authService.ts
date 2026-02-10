@@ -253,7 +253,9 @@ export class AuthService {
     const otp = await otpService.generateOtp(user.id);
     const userName = `${user.first_name} ${user.last_name}`;
 
+    console.log(`[AuthService] Initiating OTP send for user: ${email}`);
     await emailService.sendOtpEmail(email, otp, userName);
+    console.log(`[AuthService] ✅ OTP sent! Check the terminal output above for the verification code.`);
 
     logger.info({ email, userId: user.id }, 'OTP sent for login verification');
 

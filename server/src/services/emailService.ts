@@ -108,6 +108,17 @@ If you did not request this code, please ignore this email.
     // In development, log the OTP for testing
     if (config.nodeEnv === 'development') {
       logger.info({ email, otp }, '📧 OTP for development testing');
+      console.log('\n');
+      console.log('╔════════════════════════════════════════════════════════════╗');
+      console.log('║                    🔐 OTP VERIFICATION CODE                ║');
+      console.log('╠════════════════════════════════════════════════════════════╣');
+      console.log(`║  Email: ${email.padEnd(48)} ║`);
+      console.log(`║  OTP Code: ${otp.padEnd(45)} ║`);
+      console.log('╠════════════════════════════════════════════════════════════╣');
+      console.log('║  ⚠️  SMTP not configured - Check this terminal for OTP    ║');
+      console.log('║  📋 Copy the OTP code above and paste it in your app      ║');
+      console.log('╚════════════════════════════════════════════════════════════╝');
+      console.log('\n');
     }
 
     // Skip actual email sending if SMTP is not configured

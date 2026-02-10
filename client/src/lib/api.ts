@@ -267,6 +267,10 @@ export const bookingsApi = {
 
   exportBookings: (params?: { startDate?: string; endDate?: string }) =>
     api.get('/bookings/export', { params, responseType: 'blob' }),
+
+  // Approve or reject a booking (admin)
+  approveBooking: (id: string, data: { approved: boolean; reason?: string }) =>
+    api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, data),
 };
 
 // Rooms
