@@ -172,7 +172,7 @@ export interface ApiResponse<T> {
 // MFA Login Response Types
 export interface LoginInitiationResponse {
   requiresOtp: boolean;
-  userId: string;
+  sessionId: string;
   email: string;
   userName: string;
   message: string;
@@ -185,8 +185,8 @@ export const authApi = {
     api.post<ApiResponse<LoginInitiationResponse>>('/auth/login', { email, password }),
 
   // Step 2: Verify OTP and complete login
-  verifyOtp: (userId: string, otp: string) =>
-    api.post<ApiResponse<{ user: User; tokens: Tokens }>>('/auth/verify-otp', { userId, otp }),
+  verifyOtp: (sessionId: string, otp: string) =>
+    api.post<ApiResponse<{ user: User; tokens: Tokens }>>('/auth/verify-otp', { sessionId, otp }),
 
   register: (data: RegisterData) =>
     api.post<ApiResponse<{ user: User; tokens: Tokens }>>('/auth/register', data),

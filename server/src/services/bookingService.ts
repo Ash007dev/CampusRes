@@ -1026,16 +1026,9 @@ export class BookingService {
     }
   }
 
-  private async checkDepartmentRestrictions(userDepartmentId: string | null | undefined, roomDepartmentId: string | null, startTime: Date): Promise<void> {
-    // If user has no department or room has no department, skip restriction check
-    if (!userDepartmentId || !roomDepartmentId) return;
-    if (userDepartmentId === roomDepartmentId) return;
-    const hour = startTime.getUTCHours();
-    if (hour >= config.booking.crossDepartmentAllowedAfterHour) return;
-    throw new DepartmentRestrictionError(
-      `Cross-department booking only allowed after ${config.booking.crossDepartmentAllowedAfterHour}:00`,
-      { userDepartment: userDepartmentId, roomDepartment: roomDepartmentId, allowedAfter: config.booking.crossDepartmentAllowedAfterHour }
-    );
+  private async checkDepartmentRestrictions(_userDepartmentId: string | null | undefined, _roomDepartmentId: string | null, _startTime: Date): Promise<void> {
+    // Department restrictions removed — anyone can book any room
+    return;
   }
 
   private async checkWeeklyQuota(userId: string, startTime: Date, endTime: Date): Promise<void> {

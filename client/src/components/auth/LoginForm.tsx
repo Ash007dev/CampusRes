@@ -40,7 +40,7 @@ export function LoginForm({ onSuccess, redirectTo = "/dashboard" }: LoginFormPro
   // MFA State
   const [loginStep, setLoginStep] = useState<LoginStep>("credentials");
   const [mfaData, setMfaData] = useState<{
-    userId: string;
+    sessionId: string;
     email: string;
     userName: string;
   } | null>(null);
@@ -76,7 +76,7 @@ export function LoginForm({ onSuccess, redirectTo = "/dashboard" }: LoginFormPro
       if (result.requiresOtp) {
         // Move to OTP step
         setMfaData({
-          userId: result.userId,
+          sessionId: result.sessionId,
           email: result.email,
           userName: result.userName,
         });
@@ -94,10 +94,10 @@ export function LoginForm({ onSuccess, redirectTo = "/dashboard" }: LoginFormPro
   };
 
   // Step 2: Verify OTP
-  const onSubmitOtp = async () => {
+  const onSubmitOtp = async (directOtpCode?: string) => {
     if (!mfaData) return;
 
-    const otpCode = otp.join("");
+    const otpCode = directOtpCode || otp.join("");
     if (otpCode.length !== 6) {
       setError("Please enter all 6 digits");
       return;
@@ -107,7 +107,7 @@ export function LoginForm({ onSuccess, redirectTo = "/dashboard" }: LoginFormPro
     setError(null);
 
     try {
-      const response = await authApi.verifyOtp(mfaData.userId, otpCode);
+      const response = await authApi.verifyOtp(mfaData.sessionId, otpCode);
       const { user: apiUser, tokens } = response.data.data;
 
       // Map the user data properly
@@ -179,9 +179,10 @@ export function LoginForm({ onSuccess, redirectTo = "/dashboard" }: LoginFormPro
       otpInputRefs.current[index + 1]?.focus();
     }
 
-    // Auto-submit when all digits entered
-    if (newOtp.every(d => d !== "") && newOtp.join("").length === 6) {
-      setTimeout(() => onSubmitOtp(), 100);
+    // Auto-submit when all digits entered — pass the OTP directly to avoid state race
+    const completedCode = newOtp.join("");
+    if (newOtp.every(d => d !== "") && completedCode.length === 6) {
+      setTimeout(() => onSubmitOtp(completedCode), 100);
     }
   };
 
@@ -203,7 +204,7 @@ export function LoginForm({ onSuccess, redirectTo = "/dashboard" }: LoginFormPro
     setOtp(newOtp);
 
     if (pastedData.length === 6) {
-      setTimeout(() => onSubmitOtp(), 100);
+      setTimeout(() => onSubmitOtp(pastedData), 100);
     }
   };
 

@@ -117,10 +117,10 @@ export class AuthService {
     if (authError) {
       logger.error({ error: authError }, 'Failed to create auth user');
       // Check for duplicate email
-      if (authError.message.includes('already registered') || 
-          authError.message.includes('already been registered') ||
-          (authError as any).code === 'email_exists' ||
-          (authError as any).status === 422) {
+      if (authError.message.includes('already registered') ||
+        authError.message.includes('already been registered') ||
+        (authError as any).code === 'email_exists' ||
+        (authError as any).status === 422) {
         throw new EmailAlreadyExistsError(input.email);
       }
       throw new AppError(`Failed to create user: ${authError.message}`, 500);
@@ -281,7 +281,7 @@ export class AuthService {
     // Send OTP email
     const userName = `${user.first_name} ${user.last_name}`;
     console.log(`[AuthService] 📧 Sending OTP to ${email}: ${otp}`);
-    
+
     try {
       await emailService.sendOtpEmail(email, otp, userName);
       console.log(`[AuthService] ✅ OTP sent successfully`);
@@ -305,8 +305,8 @@ export class AuthService {
    * STEP 2: Verify OTP and complete login
    * SECURITY FIX: Attempt limiting, device binding, creates session ONLY after OTP verification
    */
-  async verifyLoginOtp(input: { 
-    sessionId: string; 
+  async verifyLoginOtp(input: {
+    sessionId: string;
     otp: string;
     deviceFingerprint?: string;
     ipAddress?: string;
@@ -418,26 +418,39 @@ export class AuthService {
     }
 
     // NOW create the Supabase auth session (only after OTP verification)
-    // IMPLEMENTATION NOTE: Supabase admin API doesn't provide direct session creation
-    // We use a workaround: create a magic link and extract the session from it
-    
+    // Generate a magic link and exchange it for a real session
+
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: user.email,
-      options: {
-        redirectTo: `${process.env.CLIENT_URL}/auth/callback`,
-      },
     });
 
     if (linkError || !linkData) {
-      logger.error({ error: linkError }, 'Failed to generate auth session');
+      logger.error({ error: linkError }, 'Failed to generate auth link');
+      throw new AppError('Failed to create authentication session', 500);
+    }
+
+    // Exchange the magic link token for a real session
+    const tokenHash = linkData.properties?.hashed_token;
+    if (!tokenHash) {
+      logger.error('No hashed_token in magic link response');
+      throw new AppError('Failed to create authentication session', 500);
+    }
+
+    const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: 'magiclink',
+    });
+
+    if (verifyError || !verifyData.session) {
+      logger.error({ error: verifyError }, 'Failed to exchange magic link for session');
       throw new AppError('Failed to create authentication session', 500);
     }
 
     // Update last login
     await supabase
       .from('users')
-      .update({ last_sign_in_at: new Date().toISOString() })
+      .update({ last_login_at: new Date().toISOString() })
       .eq('id', user.id);
 
     // Audit log
@@ -451,7 +464,6 @@ export class AuthService {
 
     logger.info({ userId: user.id, email: user.email }, 'Login successful with MFA verification');
 
-    // Return user data with magic link for client to exchange for session
     return {
       user: {
         id: user.id,
@@ -463,8 +475,8 @@ export class AuthService {
         departmentName: departmentName,
       },
       tokens: {
-        accessToken: linkData.properties.hashed_token, // Client will exchange this for real tokens
-        refreshToken: linkData.properties.hashed_token,
+        accessToken: verifyData.session.access_token,
+        refreshToken: verifyData.session.refresh_token,
       },
     };
   }

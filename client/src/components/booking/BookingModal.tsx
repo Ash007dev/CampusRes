@@ -200,10 +200,12 @@ export function BookingModal({
         const result = await onSubmit(data); // data already includes roomId
         setSuccessStatus(result?.data?.status || "CONFIRMED");
         setIsSuccess(true);
+        setIsSubmitting(false);
         // Show success animation then close
         setTimeout(() => {
           reset();
           setIsSuccess(false);
+          setError(null);
           onClose();
         }, 3000); // 3 seconds to read the approval message
       } catch (err) {
