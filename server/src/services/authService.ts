@@ -110,7 +110,11 @@ export class AuthService {
 
     if (authError) {
       logger.error({ error: authError }, 'Failed to create auth user');
-      if (authError.message.includes('already registered')) {
+      // Check for duplicate email
+      if (authError.message.includes('already registered') || 
+          authError.message.includes('already been registered') ||
+          (authError as any).code === 'email_exists' ||
+          (authError as any).status === 422) {
         throw new EmailAlreadyExistsError(input.email);
       }
       throw new AppError(`Failed to create user: ${authError.message}`, 500);
