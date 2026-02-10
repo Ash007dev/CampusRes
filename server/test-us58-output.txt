@@ -1,0 +1,46 @@
+﻿
+> @campus/server@1.0.0 npx
+> vitest run src/__tests__/epic5/us5.8-feedback.test.ts
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/Ashish/Downloads/L2_SE/server[39m
+
+{"level":20,"time":"2026-02-10T21:16:55.629Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T21:16:55.631Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-10T21:16:55.631Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis not available - caching disabled"}
+{"level":20,"time":"2026-02-10T21:16:56.311Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T21:16:56.320Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-10T21:17:09.448Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T21:17:09.457Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-10T21:17:12.259Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ETIMEDOUT"},"msg":"Redis client error (optional service)"}
+{"level":40,"time":"2026-02-10T21:17:12.259Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis unavailable - running without cache"}
+{"level":20,"time":"2026-02-10T21:17:12.260Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":30,"time":"2026-02-10T21:17:12.356Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","msg":"Login initiation - validating credentials"}
+{"level":40,"time":"2026-02-10T21:17:14.212Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","error":"Invalid login credentials","msg":"Login failed - invalid credentials"}
+{"level":40,"time":"2026-02-10T21:17:14.233Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770758232353-3m7rlaxys","method":"POST","path":"/api/v1/auth/login","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"Invalid email or password","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T21:17:14.953Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/auth/login","statusCode":401,"duration":"2599ms","requestId":"req-1770758232353-3m7rlaxys","msg":"Request completed"}
+{"level":30,"time":"2026-02-10T21:17:17.667Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/","statusCode":200,"duration":"493ms","requestId":"req-1770758237174-lxsgohth9","msg":"Request completed"}
+{"level":40,"time":"2026-02-10T21:17:18.254Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770758238246-jlu3kfrat","method":"POST","path":"/api/v1/feedback","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"No authentication token provided","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T21:17:18.280Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/feedback","statusCode":401,"duration":"34ms","requestId":"req-1770758238246-jlu3kfrat","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:17:19.511Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T21:17:19.752Z","service":"campus-resource-engine","version":"1.0.0","env":"test","feedbackId":"4c610096-e28e-4da3-9c19-15d0006df445","roomId":"cmkcomayt000o14kzpo72tm5z","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","msg":"Feedback created"}
+{"level":30,"time":"2026-02-10T21:17:19.760Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/","statusCode":201,"duration":"910ms","requestId":"req-1770758238847-dtbm8f06i","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:17:20.185Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T21:17:20.442Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/","statusCode":200,"duration":"638ms","requestId":"req-1770758239804-dj6euip12","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:17:20.825Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T21:17:21.012Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/stats","statusCode":200,"duration":"555ms","requestId":"req-1770758240457-4259zuzjs","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:17:21.435Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T21:17:21.613Z","service":"campus-resource-engine","version":"1.0.0","env":"test","feedbackId":"4c610096-e28e-4da3-9c19-15d0006df445","msg":"Feedback deleted"}
+{"level":30,"time":"2026-02-10T21:17:21.615Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"DELETE","path":"/4c610096-e28e-4da3-9c19-15d0006df445","statusCode":200,"duration":"550ms","requestId":"req-1770758241065-xj57kj45r","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic5/us5.8-feedback.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 9772[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should reject unauthenticated requests [33m 669[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should submit feedback with valid data [33m 1241[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should return a list of feedback for admin [33m 652[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should return feedback statistics [33m 571[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should delete the feedback [33m 605[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+[2m   Start at [22m 02:46:45
+[2m   Duration [22m 35.92s[2m (transform 5.10s, setup 1.01s, import 24.23s, tests 9.77s, environment 0ms)[22m
+

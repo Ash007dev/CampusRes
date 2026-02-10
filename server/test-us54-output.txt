@@ -1,0 +1,117 @@
+﻿
+> @campus/server@1.0.0 npx
+> vitest run src/__tests__/epic5/us5.4-user-roles.test.ts
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/Ashish/Downloads/L2_SE/server[39m
+
+{"level":20,"time":"2026-02-10T20:54:19.702Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T20:54:19.704Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-10T20:54:19.704Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis not available - caching disabled"}
+{"level":20,"time":"2026-02-10T20:54:20.536Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T20:54:20.537Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-10T20:54:21.797Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T20:54:21.797Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":30,"time":"2026-02-10T20:54:21.839Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","msg":"Login initiation - validating credentials"}
+{"level":40,"time":"2026-02-10T20:54:22.672Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","error":"Invalid login credentials","msg":"Login failed - invalid credentials"}
+{"level":40,"time":"2026-02-10T20:54:22.676Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770756861836-mkib5hav8","method":"POST","path":"/api/v1/auth/login","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"Invalid email or password","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T20:54:22.692Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/auth/login","statusCode":401,"duration":"856ms","requestId":"req-1770756861836-mkib5hav8","msg":"Request completed"}
+{"level":40,"time":"2026-02-10T20:54:23.139Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770756863137-qedso3k0b","method":"GET","path":"/api/v1/auth/users","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"No authentication token provided","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T20:54:23.152Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/api/v1/auth/users","statusCode":401,"duration":"15ms","requestId":"req-1770756863137-qedso3k0b","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T20:54:23.305Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":40,"time":"2026-02-10T20:54:23.305Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis unavailable - running without cache"}
+{"level":20,"time":"2026-02-10T20:54:23.305Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-10T20:54:23.526Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+[90mstdout[2m | src/__tests__/epic5/us5.4-user-roles.test.ts[2m > [22m[2mUS 5.4: User Role Management[2m > [22m[2mGET /api/v1/auth/users[2m > [22m[2mshould return a list of users for admin
+[22m[39m=== GET ALL USERS CONTROLLER HIT ===
+Query params: {
+  page: [33m1[39m,
+  limit: [33m20[39m,
+  role: [90mundefined[39m,
+  search: [90mundefined[39m,
+  departmentId: [90mundefined[39m
+}
+=== GET ALL USERS - Applying filters ===
+{
+  role: [90mundefined[39m,
+  search: [90mundefined[39m,
+  departmentId: [90mundefined[39m,
+  page: [33m1[39m,
+  limit: [33m20[39m
+}
+
+[90mstdout[2m | src/__tests__/epic5/us5.4-user-roles.test.ts[2m > [22m[2mUS 5.4: User Role Management[2m > [22m[2mGET /api/v1/auth/users[2m > [22m[2mshould return a list of users for admin
+[22m[39mSupabase result: { data: [33m20[39m, count: [33m25[39m, error: [1mnull[22m }
+
+[90mstdout[2m | src/__tests__/epic5/us5.4-user-roles.test.ts[2m > [22m[2mUS 5.4: User Role Management[2m > [22m[2mGET /api/v1/auth/users[2m > [22m[2mshould return a list of users for admin
+[22m[39mResult from service: { usersCount: [33m20[39m, total: [33m25[39m }
+
+{"level":30,"time":"2026-02-10T20:54:23.744Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/users","statusCode":200,"duration":"573ms","requestId":"req-1770756863171-hfkqcmfwi","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T20:54:24.089Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+[90mstdout[2m | src/__tests__/epic5/us5.4-user-roles.test.ts[2m > [22m[2mUS 5.4: User Role Management[2m > [22m[2mGET /api/v1/auth/users[2m > [22m[2mshould support pagination
+[22m[39m=== GET ALL USERS CONTROLLER HIT ===
+Query params: {
+  page: [32m'1'[39m,
+  limit: [32m'5'[39m,
+  role: [90mundefined[39m,
+  search: [90mundefined[39m,
+  departmentId: [90mundefined[39m
+}
+=== GET ALL USERS - Applying filters ===
+{
+  role: [90mundefined[39m,
+  search: [90mundefined[39m,
+  departmentId: [90mundefined[39m,
+  page: [33m1[39m,
+  limit: [33m5[39m
+}
+
+[90mstdout[2m | src/__tests__/epic5/us5.4-user-roles.test.ts[2m > [22m[2mUS 5.4: User Role Management[2m > [22m[2mGET /api/v1/auth/users[2m > [22m[2mshould support pagination
+[22m[39mSupabase result: { data: [33m5[39m, count: [33m25[39m, error: [1mnull[22m }
+
+[90mstdout[2m | src/__tests__/epic5/us5.4-user-roles.test.ts[2m > [22m[2mUS 5.4: User Role Management[2m > [22m[2mGET /api/v1/auth/users[2m > [22m[2mshould support pagination
+[22m[39mResult from service: { usersCount: [33m5[39m, total: [33m25[39m }
+
+{"level":30,"time":"2026-02-10T20:54:24.268Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/users","statusCode":200,"duration":"501ms","requestId":"req-1770756863767-199ta8vte","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T20:54:24.619Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+[90mstdout[2m | src/__tests__/epic5/us5.4-user-roles.test.ts[2m > [22m[2mUS 5.4: User Role Management[2m > [22m[2mGET /api/v1/auth/users[2m > [22m[2mshould support role filter
+[22m[39m=== GET ALL USERS CONTROLLER HIT ===
+Query params: {
+  page: [33m1[39m,
+  limit: [33m20[39m,
+  role: [32m'ADMIN'[39m,
+  search: [90mundefined[39m,
+  departmentId: [90mundefined[39m
+}
+=== GET ALL USERS - Applying filters ===
+{
+  role: [32m'ADMIN'[39m,
+  search: [90mundefined[39m,
+  departmentId: [90mundefined[39m,
+  page: [33m1[39m,
+  limit: [33m20[39m
+}
+
+[90mstdout[2m | src/__tests__/epic5/us5.4-user-roles.test.ts[2m > [22m[2mUS 5.4: User Role Management[2m > [22m[2mGET /api/v1/auth/users[2m > [22m[2mshould support role filter
+[22m[39mSupabase result: { data: [33m3[39m, count: [33m3[39m, error: [1mnull[22m }
+
+[90mstdout[2m | src/__tests__/epic5/us5.4-user-roles.test.ts[2m > [22m[2mUS 5.4: User Role Management[2m > [22m[2mGET /api/v1/auth/users[2m > [22m[2mshould support role filter
+[22m[39mResult from service: { usersCount: [33m3[39m, total: [33m3[39m }
+
+{"level":30,"time":"2026-02-10T20:54:24.789Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/users","statusCode":200,"duration":"508ms","requestId":"req-1770756864281-2wmqb912a","msg":"Request completed"}
+{"level":40,"time":"2026-02-10T20:54:24.810Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770756864809-fodeoe100","method":"PATCH","path":"/api/v1/auth/users/some-id/role","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"No authentication token provided","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T20:54:24.813Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"PATCH","path":"/api/v1/auth/users/some-id/role","statusCode":401,"duration":"4ms","requestId":"req-1770756864809-fodeoe100","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T20:54:25.201Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":40,"time":"2026-02-10T20:54:25.202Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770756864829-yj5qbemd2","method":"PATCH","path":"/api/v1/auth/users/00000000-0000-0000-0000-000000000001/role","statusCode":400,"errorCode":"SYSTEM_9001","isOperational":true,"userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","message":"Invalid role: INVALID_ROLE","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T20:54:25.206Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"PATCH","path":"/api/v1/auth/users/00000000-0000-0000-0000-000000000001/role","statusCode":400,"duration":"377ms","requestId":"req-1770756864829-yj5qbemd2","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic5/us5.4-user-roles.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 3627[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should return a list of users for admin [33m 592[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should support pagination [33m 517[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should support role filter [33m 523[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should reject invalid role values [33m 393[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m6 passed[39m[22m[90m (6)[39m
+[2m   Start at [22m 02:24:15
+[2m   Duration [22m 9.42s[2m (transform 1.84s, setup 143ms, import 5.01s, tests 3.63s, environment 0ms)[22m
+
