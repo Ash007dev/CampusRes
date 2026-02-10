@@ -21,7 +21,7 @@ interface AuthContextType {
   isLoading: boolean;
   isInitialized: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<any>; // Returns response for MFA handling
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   updateUser: (data: Partial<User>) => Promise<void>;
@@ -108,8 +108,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authApi.login(email, password);
       console.log("[Auth] Login response:", response.data);
-      const apiUser = response.data.data.user;
-      const token = response.data.data.tokens.accessToken;
+      
+      // With MFA enabled, login only initiates the process
+      // The actual user/token response comes from verifyOtp
+      // This method is now primarily used by non-MFA scenarios
+      const loginData = response.data.data;
+      
+      // Check if MFA is required
+      if ('requiresOtp' in loginData && loginData.requiresOtp) {
+        // Return the response for the LoginForm to handle OTP flow
+        setIsLoading(false);
+        return response;
+      }
+      
+      // Non-MFA flow (legacy support)
+      const apiUser = (loginData as any).user;
+      const token = (loginData as any).tokens?.accessToken;
+
+      if (!apiUser || !token) {
+        throw new Error('Invalid login response format');
+      }
 
       // Set cookie FIRST (for middleware SSR checks)
       document.cookie = `accessToken=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
