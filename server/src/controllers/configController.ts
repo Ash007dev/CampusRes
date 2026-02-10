@@ -12,7 +12,7 @@ import { asyncHandler } from '../middleware/errorHandler.js';
 
 interface AuthenticatedRequest extends Request {
   user?: {
-    id: string;
+    userId: string;
     role: string;
   };
 }
@@ -82,7 +82,7 @@ export const configController = {
    */
   updateConfig: asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { key } = req.params;
-    const adminId = req.user!.id;
+    const adminId = req.user!.userId;
     const { value, description } = req.body;
 
     if (value === undefined) {
@@ -109,7 +109,7 @@ export const configController = {
    * POST /api/v1/config
    */
   createConfig: asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const adminId = req.user!.id;
+    const adminId = req.user!.userId;
     const { key, value, dataType, description, category, isPublic } = req.body;
 
     if (!key || !value || !dataType || !category) {

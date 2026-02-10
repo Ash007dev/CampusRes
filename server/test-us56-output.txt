@@ -1,0 +1,41 @@
+﻿
+> @campus/server@1.0.0 npx
+> vitest run src/__tests__/epic5/us5.6-export.test.ts
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/Ashish/Downloads/L2_SE/server[39m
+
+{"level":20,"time":"2026-02-10T21:41:36.861Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T21:41:36.861Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-10T21:41:36.862Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis not available - caching disabled"}
+{"level":20,"time":"2026-02-10T21:41:37.446Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T21:41:37.446Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":30,"time":"2026-02-10T21:41:37.521Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","msg":"Login initiation - validating credentials"}
+{"level":40,"time":"2026-02-10T21:41:38.086Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","error":"Invalid login credentials","msg":"Login failed - invalid credentials"}
+{"level":40,"time":"2026-02-10T21:41:38.087Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770759697520-ey3z4bdo0","method":"POST","path":"/api/v1/auth/login","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"Invalid email or password","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T21:41:38.096Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/auth/login","statusCode":401,"duration":"576ms","requestId":"req-1770759697520-ey3z4bdo0","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:41:38.459Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T21:41:38.459Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-10T21:41:38.505Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770759698504-otiwnuiv0","method":"GET","path":"/api/v1/admin/stats","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"No authentication token provided","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T21:41:38.510Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/api/v1/admin/stats","statusCode":401,"duration":"6ms","requestId":"req-1770759698504-otiwnuiv0","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:41:38.911Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":20,"time":"2026-02-10T21:41:39.973Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":40,"time":"2026-02-10T21:41:39.973Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis unavailable - running without cache"}
+{"level":20,"time":"2026-02-10T21:41:39.974Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":50,"time":"2026-02-10T21:41:40.698Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"success":false,"error":{"message":"Failed to fetch dashboard stats","code":"SYSTEM_9001"}},"msg":"Error fetching dashboard stats"}
+{"level":40,"time":"2026-02-10T21:41:40.698Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770759698520-ctrs826wl","method":"GET","path":"/api/v1/admin/stats","statusCode":500,"errorCode":"SYSTEM_9001","isOperational":true,"userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","message":"Failed to fetch dashboard stats","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T21:41:40.700Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/api/v1/admin/stats","statusCode":500,"duration":"2180ms","requestId":"req-1770759698520-ctrs826wl","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:41:41.129Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T21:41:41.130Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/api/v1/admin/stats/bookings","statusCode":404,"duration":"416ms","requestId":"req-1770759700714-vc9ea1nuf","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:41:41.497Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T21:41:41.498Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/api/v1/admin/stats/rooms","statusCode":404,"duration":"361ms","requestId":"req-1770759701137-qo30kduta","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic5/us5.6-export.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 4053[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should return admin dashboard statistics [33m 2191[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should return booking analytics [33m 426[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should return room utilization stats [33m 367[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m4 passed[39m[22m[90m (4)[39m
+[2m   Start at [22m 03:11:35
+[2m   Duration [22m 5.87s[2m (transform 564ms, setup 74ms, import 1.50s, tests 4.05s, environment 1ms)[22m
+

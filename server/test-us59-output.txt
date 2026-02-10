@@ -1,0 +1,53 @@
+﻿
+> @campus/server@1.0.0 npx
+> vitest run src/__tests__/epic5/us5.9-config.test.ts
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/Ashish/Downloads/L2_SE/server[39m
+
+{"level":20,"time":"2026-02-10T21:29:47.441Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T21:29:47.443Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-10T21:29:47.443Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis not available - caching disabled"}
+{"level":20,"time":"2026-02-10T21:29:48.076Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T21:29:48.078Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":30,"time":"2026-02-10T21:29:49.278Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","msg":"Login initiation - validating credentials"}
+{"level":20,"time":"2026-02-10T21:29:49.395Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T21:29:49.396Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-10T21:29:50.084Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","error":"Invalid login credentials","msg":"Login failed - invalid credentials"}
+{"level":40,"time":"2026-02-10T21:29:50.086Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770758989271-igl4txdbp","method":"POST","path":"/api/v1/auth/login","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"Invalid email or password","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T21:29:50.100Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/auth/login","statusCode":401,"duration":"829ms","requestId":"req-1770758989271-igl4txdbp","msg":"Request completed"}
+{"level":40,"time":"2026-02-10T21:29:50.555Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770758990553-iun68d6xv","method":"POST","path":"/api/v1/config","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"No authentication token provided","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T21:29:50.563Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/config","statusCode":401,"duration":"10ms","requestId":"req-1770758990553-iun68d6xv","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:29:50.913Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":40,"time":"2026-02-10T21:29:50.913Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis unavailable - running without cache"}
+{"level":20,"time":"2026-02-10T21:29:50.914Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-10T21:29:50.960Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T21:29:51.144Z","service":"campus-resource-engine","version":"1.0.0","env":"test","key":"test_cfg_1770758988993","adminId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","msg":"Config created"}
+{"level":30,"time":"2026-02-10T21:29:51.146Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/","statusCode":201,"duration":"568ms","requestId":"req-1770758990578-0sbwut0lo","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:29:51.506Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T21:29:51.687Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/","statusCode":200,"duration":"531ms","requestId":"req-1770758991156-xuz9o811w","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:29:52.067Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T21:29:52.425Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/test_cfg_1770758988993","statusCode":200,"duration":"729ms","requestId":"req-1770758991696-1sf70wxi5","msg":"Request completed"}
+{"level":30,"time":"2026-02-10T21:29:53.350Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/booking/constraints","statusCode":200,"duration":"914ms","requestId":"req-1770758992436-0itl2ezih","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:29:53.722Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T21:29:53.905Z","service":"campus-resource-engine","version":"1.0.0","env":"test","key":"test_cfg_1770758988993","adminId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","msg":"Config updated"}
+{"level":30,"time":"2026-02-10T21:29:53.906Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"PATCH","path":"/test_cfg_1770758988993","statusCode":200,"duration":"538ms","requestId":"req-1770758993368-pd3dmz7c8","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:29:54.272Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T21:29:54.447Z","service":"campus-resource-engine","version":"1.0.0","env":"test","key":"test_cfg_1770758988993","msg":"Config deleted"}
+{"level":30,"time":"2026-02-10T21:29:54.449Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"DELETE","path":"/test_cfg_1770758988993","statusCode":200,"duration":"532ms","requestId":"req-1770758993917-v226gkpg8","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:29:54.815Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T21:29:54.989Z","service":"campus-resource-engine","version":"1.0.0","env":"test","key":"test_cfg_1770758988993","msg":"Config deleted"}
+{"level":30,"time":"2026-02-10T21:29:54.991Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"DELETE","path":"/test_cfg_1770758988993","statusCode":200,"duration":"526ms","requestId":"req-1770758994465-qxxhj3fca","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic5/us5.9-config.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 5987[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should create a new config entry [33m 579[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should return all config entries for admin [33m 540[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should return the specific config value [33m 737[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should return booking constraints without auth [33m 928[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should update the config value [33m 552[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should delete the config entry [33m 545[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m7 passed[39m[22m[90m (7)[39m
+[2m   Start at [22m 02:59:44
+[2m   Duration [22m 10.30s[2m (transform 1.22s, setup 123ms, import 3.82s, tests 5.99s, environment 0ms)[22m
+
