@@ -45,6 +45,7 @@ export class RoomService {
     const { data: room, error } = await supabase
       .from('rooms')
       .insert({
+        id: crypto.randomUUID(),
         name: input.name,
         code: input.code,
         description: input.description,
@@ -57,6 +58,7 @@ export class RoomService {
         latitude: input.latitude,
         longitude: input.longitude,
         qr_code_secret: crypto.randomUUID(),
+        updated_at: new Date().toISOString(),
       })
       .select()
       .single();
