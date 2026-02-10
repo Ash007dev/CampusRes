@@ -48,8 +48,8 @@ export async function executeGhostKiller(): Promise<GhostKillerStats> {
       cutoffTime: cutoffTime.toISOString(),
     }, 'Ghost Killer: Checking for bookings before cutoff time');
 
-    // Find all ghost bookings
-    const { data: ghostBookings, error } = await supabase
+    // Find all ghost bookings with PENDING check-in (standard grace period)
+    const { data: pendingGhosts, error } = await supabase
       .from('bookings')
       .select(`
         id, user_id, room_id, start_time, end_time, credits_charged,
@@ -64,7 +64,30 @@ export async function executeGhostKiller(): Promise<GhostKillerStats> {
       throw error;
     }
 
-    stats.bookingsFound = ghostBookings?.length || 0;
+    // US 3: Find LATE bookings with extended grace period (double the normal)
+    const lateCutoffTime = new Date(Date.now() - gracePeriodMs * 2);
+    const { data: lateGhosts, error: lateError } = await supabase
+      .from('bookings')
+      .select(`
+        id, user_id, room_id, start_time, end_time, credits_charged,
+        users(id, email, first_name, last_name, reputation_score),
+        rooms(id, name, code)
+      `)
+      .eq('status', 'CONFIRMED')
+      .eq('check_in_status', 'LATE')
+      .lt('start_time', lateCutoffTime.toISOString());
+
+    if (lateError) {
+      logger.error({ error: lateError }, 'Ghost Killer: Error fetching late bookings');
+    }
+
+    // Merge both sets of ghost bookings
+    const ghostBookings = [
+      ...(pendingGhosts || []),
+      ...(lateGhosts || []),
+    ];
+
+    stats.bookingsFound = ghostBookings.length;
 
     if (stats.bookingsFound === 0) {
       logger.info('👻 Ghost Killer: No ghost bookings found. All clear!');

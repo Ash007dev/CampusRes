@@ -1255,6 +1255,80 @@ export class BookingService {
 
     return results;
   }
+
+  /**
+   * Mark a booking as "Running Late" (US 3)
+   * Extends the ghost-killer grace period by updating check_in_status to LATE
+   */
+  async markRunningLate(bookingId: string, userId: string): Promise<any> {
+    // Fetch the booking
+    const { data: booking, error } = await supabase
+      .from('bookings')
+      .select(`
+        id, user_id, room_id, start_time, end_time, status, check_in_status,
+        rooms(id, name, code)
+      `)
+      .eq('id', bookingId)
+      .single();
+
+    if (error || !booking) {
+      throw new BookingNotFoundError(bookingId);
+    }
+
+    // Verify ownership
+    if (booking.user_id !== userId) {
+      throw new BookingNotFoundError(bookingId);
+    }
+
+    // Must be CONFIRMED and check-in PENDING
+    if (booking.status !== 'CONFIRMED' || booking.check_in_status !== 'PENDING') {
+      throw new AppError(
+        'Running late can only be used for confirmed bookings that are pending check-in',
+        400
+      );
+    }
+
+    // Must be within the grace window: between start_time and start_time + gracePeriod
+    const now = new Date();
+    const startTime = new Date(booking.start_time);
+    const gracePeriodMs = config.ghostKiller.gracePeriodMinutes * TIME.MINUTE;
+    const graceDeadline = new Date(startTime.getTime() + gracePeriodMs);
+
+    if (now < startTime) {
+      throw new AppError(
+        'You can only mark running late after the booking start time',
+        400
+      );
+    }
+
+    if (now > graceDeadline) {
+      throw new AppError(
+        'The grace period has already expired',
+        400
+      );
+    }
+
+    // Update check_in_status to LATE
+    const { data: updated, error: updateError } = await supabase
+      .from('bookings')
+      .update({ check_in_status: 'LATE' })
+      .eq('id', bookingId)
+      .select(`
+        *,
+        rooms(id, name, code, building, floor, capacity),
+        users(id, email, first_name, last_name, department_id)
+      `)
+      .single();
+
+    if (updateError) {
+      logger.error({ error: updateError, bookingId }, 'Failed to mark booking as running late');
+      throw new Error('Failed to update booking status');
+    }
+
+    logger.info({ bookingId, userId }, 'Booking marked as running late (US 3)');
+
+    return updated;
+  }
 }
 
 export const bookingService = new BookingService();

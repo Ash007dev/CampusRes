@@ -17,6 +17,7 @@ import {
     RefreshCw,
     Loader2,
     PlusCircle,
+    AlarmClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -75,6 +76,7 @@ export default function BookingsPage() {
     const [checkingInId, setCheckingInId] = useState<string | null>(null);
     const [earlyCheckoutId, setEarlyCheckoutId] = useState<string | null>(null);
     const [extendingId, setExtendingId] = useState<string | null>(null);
+    const [runningLateId, setRunningLateId] = useState<string | null>(null);
     const [qrScannerOpen, setQrScannerOpen] = useState(false);
     const [selectedBookingForCheckIn, setSelectedBookingForCheckIn] = useState<{ id: string, roomCode?: string } | null>(null);
     const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
@@ -220,6 +222,27 @@ export default function BookingsPage() {
                 variant: "destructive",
             });
             throw error;
+        }
+    };
+
+    // US 3: Handle running late
+    const handleRunningLate = async (id: string) => {
+        setRunningLateId(id);
+        try {
+            await bookingsApi.runningLate(id);
+            toast({
+                title: "Running Late Notified ✓",
+                description: "Your grace period has been extended by 15 minutes.",
+            });
+            await fetchBookings();
+        } catch (error: any) {
+            toast({
+                title: "Failed",
+                description: error.message || "Unable to mark as running late.",
+                variant: "destructive",
+            });
+        } finally {
+            setRunningLateId(null);
         }
     };
 
@@ -430,6 +453,14 @@ export default function BookingsPage() {
                                     // US 3.5: Extend meeting - can extend active bookings by 15 minutes
                                     const canExtend = isActiveBooking;
 
+                                    // US 3: Running Late - available when booking is confirmed, check-in pending, and within grace window
+                                    const gracePeriodMs = 15 * 60 * 1000; // 15 minutes
+                                    const canRunLate = isValidDate &&
+                                        booking.status === "CONFIRMED" &&
+                                        booking.checkInStatus === "PENDING" &&
+                                        now >= startTime &&
+                                        now <= new Date(startTime.getTime() + gracePeriodMs);
+
                                     return (
                                         <Card key={booking.id} className="overflow-hidden">
                                             <div
@@ -447,6 +478,8 @@ export default function BookingsPage() {
                                                     </Badge>
                                                 </div>
                                                 <CardDescription>
+                                                    <span className="font-mono text-xs text-muted-foreground">ID: {booking.id.slice(0, 8).toUpperCase()}</span>
+                                                    {' · '}
                                                     {booking.description || booking.title || "Booking"}
                                                 </CardDescription>
                                             </CardHeader>
@@ -465,7 +498,7 @@ export default function BookingsPage() {
                                                         {building}, Floor {floor}
                                                     </div>
                                                 </div>
-                                                {(canCancel || canCheckIn || canEarlyCheckout || canExtend) && (
+                                                {(canCancel || canCheckIn || canEarlyCheckout || canExtend || canRunLate) && (
                                                     <div className="mt-4 flex flex-wrap gap-2">
                                                         {canCancel && (
                                                             <Button
@@ -489,6 +522,22 @@ export default function BookingsPage() {
                                                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                                                 ) : null}
                                                                 Check In
+                                                            </Button>
+                                                        )}
+                                                        {canRunLate && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => handleRunningLate(booking.id)}
+                                                                disabled={runningLateId === booking.id}
+                                                                className="border-yellow-500 text-yellow-600 hover:bg-yellow-50"
+                                                            >
+                                                                {runningLateId === booking.id ? (
+                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <AlarmClock className="mr-2 h-4 w-4" />
+                                                                )}
+                                                                Running Late
                                                             </Button>
                                                         )}
                                                         {canEarlyCheckout && (

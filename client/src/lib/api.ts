@@ -271,6 +271,10 @@ export const bookingsApi = {
   // Approve or reject a booking (admin)
   approveBooking: (id: string, data: { approved: boolean; reason?: string }) =>
     api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, data),
+
+  // US 3: Mark booking as running late
+  runningLate: (id: string) =>
+    api.post<ApiResponse<Booking>>(`/bookings/${id}/running-late`),
 };
 
 // Rooms

@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { useState, useCallback } from "react";
-import { format, addHours, setHours, setMinutes } from "date-fns";
-import { CalendarIcon, Clock, Repeat, AlertCircle, CheckCircle, Loader2, User } from "lucide-react";
+import { format, addHours } from "date-fns";
+import { CalendarIcon, Clock, Repeat, AlertCircle, CheckCircle, Loader2, User, Copy, Check } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -122,6 +123,8 @@ export function BookingModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [successStatus, setSuccessStatus] = useState<string>("CONFIRMED");
+  const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
+  const [copiedId, setCopiedId] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Get default future time
@@ -199,15 +202,9 @@ export function BookingModal({
       try {
         const result = await onSubmit(data); // data already includes roomId
         setSuccessStatus(result?.data?.status || "CONFIRMED");
+        setConfirmedBooking(result?.data || null);
         setIsSuccess(true);
         setIsSubmitting(false);
-        // Show success animation then close
-        setTimeout(() => {
-          reset();
-          setIsSuccess(false);
-          setError(null);
-          onClose();
-        }, 3000); // 3 seconds to read the approval message
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to create booking"
@@ -215,7 +212,7 @@ export function BookingModal({
         setIsSubmitting(false);
       }
     },
-    [onSubmit, reset, onClose]
+    [onSubmit]
   );
 
   // Handle modal close
@@ -223,9 +220,21 @@ export function BookingModal({
     if (!isSubmitting) {
       reset();
       setError(null);
+      setIsSuccess(false);
+      setConfirmedBooking(null);
+      setCopiedId(false);
       onClose();
     }
   }, [reset, onClose, isSubmitting]);
+
+  // Handle copy booking ID
+  const handleCopyId = useCallback(() => {
+    if (confirmedBooking?.id) {
+      navigator.clipboard.writeText(confirmedBooking.id);
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+    }
+  }, [confirmedBooking]);
 
 
   return (
@@ -243,24 +252,65 @@ export function BookingModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
-          {/* Success Animation Overlay */}
+          {/* Success / Booking Confirmation Overlay (US 4) */}
           {isSuccess && (
-            <div className="absolute inset-0 bg-background/95 backdrop-blur-sm flex flex-col items-center justify-center z-50 rounded-lg">
-              <div className="animate-bounce">
+            <div className="absolute inset-0 bg-background/95 backdrop-blur-sm flex flex-col items-center justify-center z-50 rounded-lg p-6">
+              <div className="animate-bounce mb-2">
                 {successStatus === "PENDING_APPROVAL" ? (
-                  <Clock className="w-20 h-20 text-blue-500" />
+                  <Clock className="w-14 h-14 text-blue-500" />
                 ) : (
-                  <CheckCircle className="w-20 h-20 text-green-500" />
+                  <CheckCircle className="w-14 h-14 text-green-500" />
                 )}
               </div>
-              <h3 className={`text-xl font-bold mt-4 ${successStatus === "PENDING_APPROVAL" ? "text-blue-600" : "text-green-600"}`}>
+              <h3 className={`text-xl font-bold mt-2 ${successStatus === "PENDING_APPROVAL" ? "text-blue-600" : "text-green-600"}`}>
                 {successStatus === "PENDING_APPROVAL" ? "Request Submitted!" : "Booking Confirmed!"}
               </h3>
-              <p className="text-muted-foreground mt-2 text-center px-6">
+              <p className="text-muted-foreground mt-1 text-center text-sm px-4">
                 {successStatus === "PENDING_APPROVAL"
                   ? "This room requires admin approval. You will be notified once it is reviewed."
                   : "Your booking has been successfully created."}
               </p>
+
+              {/* Booking ID */}
+              {confirmedBooking?.id && (
+                <div className="mt-4 flex items-center gap-2 bg-muted rounded-md px-3 py-2">
+                  <span className="text-sm font-mono font-semibold">
+                    BK-{confirmedBooking.id.slice(0, 8).toUpperCase()}
+                  </span>
+                  <button
+                    onClick={handleCopyId}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    title="Copy Booking ID"
+                  >
+                    {copiedId ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* QR Code for Check-in */}
+              {confirmedBooking && successStatus !== "PENDING_APPROVAL" && (
+                <div className="mt-4 p-3 bg-white rounded-lg shadow-sm border">
+                  <QRCodeSVG
+                    value={confirmedBooking.room?.code || confirmedBooking.roomId || confirmedBooking.id}
+                    size={120}
+                    level="M"
+                  />
+                  <p className="text-xs text-center text-muted-foreground mt-2">
+                    Scan to check in
+                  </p>
+                </div>
+              )}
+
+              <Button
+                className="mt-4"
+                onClick={handleClose}
+              >
+                Done
+              </Button>
             </div>
           )}
 

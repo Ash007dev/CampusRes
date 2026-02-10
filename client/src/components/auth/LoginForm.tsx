@@ -474,7 +474,7 @@ export function LoginForm({ onSuccess, redirectTo = "/dashboard" }: LoginFormPro
 
               <CardFooter className="flex flex-col space-y-4">
                 <Button
-                  onClick={onSubmitOtp}
+                  onClick={() => onSubmitOtp()}
                   className="w-full"
                   disabled={isLoading || otp.some(d => !d)}
                 >
