@@ -1,0 +1,46 @@
+﻿
+> @campus/server@1.0.0 npx
+> vitest run src/__tests__/epic5/us5.5-holidays.test.ts
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/Ashish/Downloads/L2_SE/server[39m
+
+{"level":20,"time":"2026-02-10T20:51:40.882Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T20:51:40.884Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-10T20:51:40.884Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis not available - caching disabled"}
+{"level":20,"time":"2026-02-10T20:51:41.615Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T20:51:41.620Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-10T20:51:42.803Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T20:51:42.803Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":30,"time":"2026-02-10T20:51:43.398Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","msg":"Login initiation - validating credentials"}
+{"level":20,"time":"2026-02-10T20:51:44.311Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":40,"time":"2026-02-10T20:51:44.312Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis unavailable - running without cache"}
+{"level":20,"time":"2026-02-10T20:51:44.312Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-10T20:51:44.407Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","error":"Invalid login credentials","msg":"Login failed - invalid credentials"}
+{"level":40,"time":"2026-02-10T20:51:44.409Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770756703391-ta3r86b4d","method":"POST","path":"/api/v1/auth/login","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"Invalid email or password","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T20:51:44.427Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/auth/login","statusCode":401,"duration":"1036ms","requestId":"req-1770756703391-ta3r86b4d","msg":"Request completed"}
+{"level":40,"time":"2026-02-10T20:51:44.840Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770756704837-yjtge5rmf","method":"POST","path":"/api/v1/holidays","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"No authentication token provided","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T20:51:44.849Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/holidays","statusCode":401,"duration":"12ms","requestId":"req-1770756704837-yjtge5rmf","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T20:51:45.257Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T20:51:45.451Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/","statusCode":201,"duration":"581ms","requestId":"req-1770756704870-e923j3kz7","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T20:51:45.825Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T20:51:45.830Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/","statusCode":400,"duration":"366ms","requestId":"req-1770756705464-5pqrkc9fy","msg":"Request completed"}
+{"level":30,"time":"2026-02-10T20:51:46.036Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/","statusCode":200,"duration":"181ms","requestId":"req-1770756705855-nu8tjpstg","msg":"Request completed"}
+{"level":30,"time":"2026-02-10T20:51:46.218Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/check/2030-12-25","statusCode":200,"duration":"172ms","requestId":"req-1770756706046-gt5rxi4zi","msg":"Request completed"}
+{"level":30,"time":"2026-02-10T20:51:46.407Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/check/2030-06-15","statusCode":200,"duration":"173ms","requestId":"req-1770756706234-aeo03z6hy","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T20:51:46.772Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T20:51:47.125Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"PATCH","path":"/4d8e7545-897e-4453-b91f-5c56998b1774","statusCode":200,"duration":"704ms","requestId":"req-1770756706421-owaj1rneq","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T20:51:47.475Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-10T20:51:47.647Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"DELETE","path":"/4d8e7545-897e-4453-b91f-5c56998b1774","statusCode":200,"duration":"502ms","requestId":"req-1770756707145-xg7fq0oei","msg":"Request completed"}
+{"level":30,"time":"2026-02-10T20:51:47.829Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/check/2030-12-25","statusCode":200,"duration":"169ms","requestId":"req-1770756707660-pme6rdqc2","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic5/us5.5-holidays.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 5029[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should create a new holiday with valid data [33m 598[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should reject missing required fields [33m 383[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should update the holiday name [33m 721[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should delete the holiday [33m 519[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m9 passed[39m[22m[90m (9)[39m
+[2m   Start at [22m 02:21:37
+[2m   Duration [22m 10.42s[2m (transform 1.91s, setup 130ms, import 4.69s, tests 5.03s, environment 0ms)[22m
+
