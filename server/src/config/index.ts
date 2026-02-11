@@ -74,7 +74,7 @@ const configSchema = z.object({
 
   // Booking Configuration
   booking: z.object({
-    maxWeeklyQuotaHours: z.coerce.number().default(10),
+    maxWeeklyQuotaHours: z.coerce.number().default(4),
     peakHoursStart: z.coerce.number().min(0).max(23).default(9),
     peakHoursEnd: z.coerce.number().min(0).max(23).default(17),
     peakHourCreditMultiplier: z.coerce.number().default(2),
