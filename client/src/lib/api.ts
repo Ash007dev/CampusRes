@@ -50,12 +50,32 @@ function snakeToCamel(str: string): string {
 }
 
 /**
+ * Check if a string looks like a timestamp (ISO 8601 format)
+ * and ensure it has UTC timezone indicator
+ */
+function ensureUTCTimestamp(value: any): any {
+  if (typeof value !== 'string') return value;
+
+  // Match ISO 8601 date-time format without timezone: YYYY-MM-DDTHH:MM:SS or YYYY-MM-DDTHH:MM:SS.sss
+  // But NOT if it already has a timezone (Z, +00:00, etc.)
+  const isoDateTimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/;
+
+  if (isoDateTimeRegex.test(value)) {
+    // Append 'Z' to indicate UTC timezone
+    return value + 'Z';
+  }
+
+  return value;
+}
+
+/**
  * Recursively transform object keys from snake_case to camelCase
+ * Also ensures timestamps are properly formatted as UTC
  */
 function transformKeys(obj: any): any {
   if (obj === null || obj === undefined) return obj;
   if (Array.isArray(obj)) return obj.map(transformKeys);
-  if (typeof obj !== 'object') return obj;
+  if (typeof obj !== 'object') return ensureUTCTimestamp(obj);
 
   const transformed: any = {};
   for (const key in obj) {
@@ -105,10 +125,24 @@ api.interceptors.response.use(
     }
 
     // Transform error for consistent handling
-    const errorMessage =
-      (error.response?.data as { error?: { message?: string } })?.error?.message ||
-      error.message ||
-      'An unexpected error occurred';
+    const data = error.response?.data as any;
+
+    let errorMessage = 'An unexpected error occurred';
+
+    if (data?.error?.message) {
+      errorMessage = data.error.message;
+
+      // If there are validation details, try to make the message more specific
+      if (data.error.details) {
+        const details = data.error.details;
+        const firstErrorKey = Object.keys(details)[0];
+        if (firstErrorKey && Array.isArray(details[firstErrorKey]) && details[firstErrorKey][0]) {
+          errorMessage = `${details[firstErrorKey][0]}`;
+        }
+      }
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
 
     return Promise.reject(new Error(errorMessage));
   }
@@ -138,7 +172,7 @@ export interface ApiResponse<T> {
 // MFA Login Response Types
 export interface LoginInitiationResponse {
   requiresOtp: boolean;
-  userId: string;
+  sessionId: string;
   email: string;
   userName: string;
   message: string;
@@ -151,8 +185,8 @@ export const authApi = {
     api.post<ApiResponse<LoginInitiationResponse>>('/auth/login', { email, password }),
 
   // Step 2: Verify OTP and complete login
-  verifyOtp: (userId: string, otp: string) =>
-    api.post<ApiResponse<{ user: User; tokens: Tokens }>>('/auth/verify-otp', { userId, otp }),
+  verifyOtp: (sessionId: string, otp: string) =>
+    api.post<ApiResponse<{ user: User; tokens: Tokens }>>('/auth/verify-otp', { sessionId, otp }),
 
   register: (data: RegisterData) =>
     api.post<ApiResponse<{ user: User; tokens: Tokens }>>('/auth/register', data),
@@ -233,6 +267,14 @@ export const bookingsApi = {
 
   exportBookings: (params?: { startDate?: string; endDate?: string }) =>
     api.get('/bookings/export', { params, responseType: 'blob' }),
+
+  // Approve or reject a booking (admin)
+  approveBooking: (id: string, data: { approved: boolean; reason?: string }) =>
+    api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, data),
+
+  // US 3: Mark booking as running late
+  runningLate: (id: string) =>
+    api.post<ApiResponse<Booking>>(`/bookings/${id}/running-late`),
 };
 
 // Rooms
@@ -265,7 +307,24 @@ export const roomsApi = {
       cancelledBookings: number;
       affectedUsers: string[];
     }>>(`/rooms/${id}/maintenance`, { isMaintenance, reason }),
+
+  // US 3.3: Get real-time availability status
+  getAvailableNow: () =>
+    api.get<ApiResponse<RoomWithAvailability[]>>('/rooms/available-now'),
 };
+
+// US 3.3: Room with real-time availability status
+export type AvailabilityStatus = 'AVAILABLE' | 'PENDING_CHECKIN' | 'OCCUPIED';
+
+export interface RoomWithAvailability extends Room {
+  availabilityStatus: AvailabilityStatus;
+  currentBooking?: {
+    id: string;
+    endTime: string;
+    checkInStatus: string;
+  };
+  nextBookingInHours?: number;
+}
 
 // Waitlist (US 3.7)
 export const waitlistApi = {
@@ -317,15 +376,19 @@ export const adminApi = {
 
   // Approve a booking
   approveBooking: (id: string) =>
-    api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, { approved: true }),
+    api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, { bookingId: id, approved: true }),
 
   // Reject a booking
   rejectBooking: (id: string, reason?: string) =>
-    api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, { approved: false, reason }),
+    api.post<ApiResponse<Booking>>(`/bookings/${id}/approve`, { bookingId: id, approved: false, reason }),
 
   // Update user role (Admin only) - US 5.4
   updateUserRole: (userId: string, role: string) =>
     api.patch<ApiResponse<void>>(`/auth/users/${userId}/role`, { role }),
+
+  // Get audit logs (US 4.9)
+  getAuditLogs: (params?: { page?: number; limit?: number; userId?: string; action?: string }) =>
+    api.get<ApiResponse<any[]>>('/admin/audit-logs', { params }),
 };
 
 // Holiday API (US 5.5)

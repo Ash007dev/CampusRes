@@ -26,7 +26,7 @@ type ValidatableProperty = 'body' | 'query' | 'params';
  */
 function formatZodErrors(error: ZodError): Record<string, string[]> {
   const formatted: Record<string, string[]> = {};
-  
+
   for (const issue of error.issues) {
     const path = issue.path.join('.') || 'root';
     if (!formatted[path]) {
@@ -34,7 +34,7 @@ function formatZodErrors(error: ZodError): Record<string, string[]> {
     }
     formatted[path].push(issue.message);
   }
-  
+
   return formatted;
 }
 
@@ -56,22 +56,22 @@ export function validate<T>(
     try {
       // Parse and validate the request data
       const validated = await schema.parseAsync(req[property]);
-      
+
       // Replace the request property with validated data
       // This ensures controllers receive transformed/defaulted values
       req[property] = validated as typeof req[typeof property];
-      
+
       next();
     } catch (error) {
       if (error instanceof ZodError) {
         const formattedErrors = formatZodErrors(error);
-        
+
         logger.debug({
           property,
           errors: formattedErrors,
           received: req[property],
         }, 'Validation failed');
-        
+
         next(new ValidationError('Validation failed', formattedErrors));
       } else {
         next(error);
@@ -102,10 +102,10 @@ export function validateMultiple(schemas: {
 }) {
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     const errors: Record<string, Record<string, string[]>> = {};
-    
+
     for (const [property, schema] of Object.entries(schemas)) {
       if (!schema) continue;
-      
+
       try {
         const validated = await schema.parseAsync(req[property as ValidatableProperty]);
         req[property as ValidatableProperty] = validated;
@@ -118,12 +118,12 @@ export function validateMultiple(schemas: {
         }
       }
     }
-    
+
     if (Object.keys(errors).length > 0) {
       next(new ValidationError('Validation failed', errors));
       return;
     }
-    
+
     next();
   };
 }
@@ -134,13 +134,13 @@ export function validateMultiple(schemas: {
 import { z } from 'zod';
 
 export const idParamsSchema = z.object({
-  id: z.string().cuid(),
+  id: z.string().min(1),
 });
 
 export const roomIdParamsSchema = z.object({
-  roomId: z.string().cuid(),
+  roomId: z.string().min(1),
 });
 
 export const bookingIdParamsSchema = z.object({
-  bookingId: z.string().cuid(),
+  bookingId: z.string().min(1),
 });

@@ -40,12 +40,18 @@ export const authController = {
   /**
    * Initiate login (Step 1 of MFA)
    * POST /api/v1/auth/login
-   * Returns userId for OTP verification step
+   * Returns sessionId for OTP verification step
    */
   login: asyncHandler(async (req: Request, res: Response) => {
     const input = req.body as LoginInput;
 
-    const result = await authService.initiateLogin(input);
+    // Extract device fingerprint and IP address
+    const deviceInfo = {
+      fingerprint: req.headers['x-device-fingerprint'] as string | undefined,
+      ipAddress: (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || req.socket.remoteAddress,
+    };
+
+    const result = await authService.initiateLogin(input, deviceInfo);
 
     res.json({
       success: true,
@@ -59,24 +65,33 @@ export const authController = {
    * POST /api/v1/auth/verify-otp
    */
   verifyOtp: asyncHandler(async (req: Request, res: Response) => {
-    const { userId, otp } = req.body;
+    const { sessionId, userId, otp } = req.body;
 
-    if (!userId || !otp) {
+    // Accept either sessionId (new) or userId (backward compatibility)
+    const idToUse = sessionId || userId;
+
+    if (!idToUse || !otp) {
       res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        error: { message: 'userId and otp are required', code: 'AUTH_4004' },
+        error: { message: 'sessionId and otp are required', code: 'AUTH_4004' },
       });
       return;
     }
 
-    const { user, tokens } = await authService.verifyLoginOtp({ userId, otp });
+    // Extract device fingerprint and IP address
+    const deviceFingerprint = req.headers['x-device-fingerprint'] as string | undefined;
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || req.socket.remoteAddress;
+
+    const result = await authService.verifyLoginOtp({ 
+      sessionId: idToUse, 
+      otp,
+      deviceFingerprint,
+      ipAddress,
+    });
 
     res.json({
       success: true,
-      data: {
-        user,
-        tokens,
-      },
+      data: result,
       message: 'Login successful',
     });
   }),

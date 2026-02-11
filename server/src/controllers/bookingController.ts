@@ -429,4 +429,21 @@ export const bookingController = {
       message: `Successfully created ${result.created} bookings${result.errors.length > 0 ? ` with ${result.errors.length} errors` : ''}`,
     });
   }),
+
+  /**
+   * Mark a booking as "Running Late" (US 3)
+   * POST /api/v1/bookings/:id/running-late
+   */
+  runningLate: asyncHandler(async (req, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    const booking = await bookingService.markRunningLate(id, authReq.user.userId);
+
+    res.json({
+      success: true,
+      data: booking,
+      message: 'Booking marked as running late. You have an additional 15 minutes to check in.',
+    });
+  }),
 };

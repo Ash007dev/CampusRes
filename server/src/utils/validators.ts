@@ -21,7 +21,7 @@ import { BOOKING_STATUS, USER_ROLES, ROOM_TYPES } from '../config/constants.js';
  * =============================================================================
  */
 
-export const idSchema = z.string().cuid();
+export const idSchema = z.string().min(1);
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -53,13 +53,14 @@ export const createUserSchema = z.object({
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
-      'Password must contain uppercase, lowercase, number, and special character'
-    ),
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
   firstName: z.string().min(1).max(50),
   lastName: z.string().min(1).max(50),
-  departmentId: z.string().cuid().optional(),
+  departmentId: z.string().min(1).optional(),
+  departmentCode: z.string().min(1).optional(),
   role: userRoleSchema.optional().default(USER_ROLES.STUDENT),
 });
 
@@ -104,7 +105,7 @@ export const createRoomSchema = z.object({
   building: z.string().max(100).default('Main'),
   amenities: amenitiesSchema.optional().default({}),
   roomType: roomTypeSchema.optional().default(ROOM_TYPES.CLASSROOM),
-  departmentId: z.string().cuid(),
+  departmentId: z.string().min(1),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
 });
@@ -113,7 +114,7 @@ export const updateRoomSchema = createRoomSchema.partial();
 
 export const roomQuerySchema = z.object({
   ...paginationSchema.shape,
-  departmentId: z.string().cuid().optional(),
+  departmentId: z.string().min(1).optional(),
   minCapacity: z.coerce.number().int().min(1).optional(),
   maxCapacity: z.coerce.number().int().optional(),
   roomType: roomTypeSchema.optional(),
@@ -139,12 +140,15 @@ export const bookingStatusSchema = z.enum([
 
 // Base booking fields without refinements
 const bookingBaseFields = {
-  roomId: z.string().cuid(),
+  roomId: z.string().min(1),
   startTime: isoDateTimeSchema,
   endTime: isoDateTimeSchema,
   title: z.string().max(100).optional(),
   description: z.string().max(500).optional(),
   attendeeCount: z.number().int().min(1).optional().default(1),
+  // Guest booking fields (for booking on behalf of guests)
+  guestName: z.string().max(100).optional(),
+  guestPhone: z.string().max(20).optional(),
 };
 
 // Refinement functions
@@ -187,8 +191,8 @@ export const cancelBookingSchema = z.object({
 
 export const bookingQuerySchema = z.object({
   ...paginationSchema.shape,
-  roomId: z.string().cuid().optional(),
-  userId: z.string().cuid().optional(),
+  roomId: z.string().min(1).optional(),
+  userId: z.string().min(1).optional(),
   status: bookingStatusSchema.optional(),
   startDate: isoDateTimeSchema.optional(),
   endDate: isoDateTimeSchema.optional(),
@@ -202,7 +206,7 @@ export const bookingQuerySchema = z.object({
  */
 
 export const checkInSchema = z.object({
-  bookingId: z.string().cuid().optional(), // Optional - comes from URL params
+  bookingId: z.string().min(1).optional(), // Optional - comes from URL params
   qrCode: z.string().min(1),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
@@ -215,13 +219,13 @@ export const checkInSchema = z.object({
  */
 
 export const availabilityQuerySchema = z.object({
-  roomId: z.string().cuid().optional(),
+  roomId: z.string().min(1).optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
   duration: z.coerce.number().int().min(30).max(480).optional(), // Duration in minutes
 });
 
 export const weeklyAvailabilityQuerySchema = z.object({
-  roomId: z.string().cuid(),
+  roomId: z.string().min(1),
   weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
 });
 
@@ -232,7 +236,7 @@ export const weeklyAvailabilityQuerySchema = z.object({
  */
 
 export const createWaitlistSchema = z.object({
-  roomId: z.string().cuid(),
+  roomId: z.string().min(1),
   desiredStartTime: isoDateTimeSchema,
   desiredEndTime: isoDateTimeSchema,
 });
@@ -246,7 +250,7 @@ export const createWaitlistSchema = z.object({
 export const createDepartmentSchema = z.object({
   name: z.string().min(1).max(100),
   code: z.string().min(1).max(10).toUpperCase(),
-  headUserId: z.string().cuid().optional(),
+  headUserId: z.string().min(1).optional(),
 });
 
 export const updateDepartmentSchema = createDepartmentSchema.partial();
@@ -258,7 +262,7 @@ export const updateDepartmentSchema = createDepartmentSchema.partial();
  */
 
 export const approveBookingSchema = z.object({
-  bookingId: z.string().cuid(),
+  bookingId: z.string().min(1),
   approved: z.boolean(),
   reason: z.string().max(500).optional(),
 });

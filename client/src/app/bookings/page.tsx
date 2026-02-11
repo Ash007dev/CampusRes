@@ -17,6 +17,7 @@ import {
     RefreshCw,
     Loader2,
     PlusCircle,
+    AlarmClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -75,8 +76,9 @@ export default function BookingsPage() {
     const [checkingInId, setCheckingInId] = useState<string | null>(null);
     const [earlyCheckoutId, setEarlyCheckoutId] = useState<string | null>(null);
     const [extendingId, setExtendingId] = useState<string | null>(null);
+    const [runningLateId, setRunningLateId] = useState<string | null>(null);
     const [qrScannerOpen, setQrScannerOpen] = useState(false);
-    const [selectedBookingForCheckIn, setSelectedBookingForCheckIn] = useState<{id: string, roomCode?: string} | null>(null);
+    const [selectedBookingForCheckIn, setSelectedBookingForCheckIn] = useState<{ id: string, roomCode?: string } | null>(null);
     const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
     const [selectedBookingForReschedule, setSelectedBookingForReschedule] = useState<Booking | null>(null);
 
@@ -143,11 +145,11 @@ export default function BookingsPage() {
     const handleCheckIn = (id: string, roomCode?: string) => {
         const booking = bookings.find(b => b.id === id);
         if (!booking) return;
-        
+
         // Extract room code from room name (e.g., "LB-101" from "Library Room 101")
         const roomName = booking.room?.name || '';
         const extractedCode = roomName.match(/([A-Z]+-\d+)/)?.[0] || roomCode;
-        
+
         setSelectedBookingForCheckIn({ id, roomCode: extractedCode });
         setQrScannerOpen(true);
     };
@@ -167,7 +169,7 @@ export default function BookingsPage() {
             const refundedCredits = (response.data?.data as any)?.refundedCredits || 0;
             toast({
                 title: "Early Checkout Successful ✓",
-                description: refundedCredits > 0 
+                description: refundedCredits > 0
                     ? `You ended your booking early. ${refundedCredits} credits refunded!`
                     : "You have ended your booking early.",
             });
@@ -223,6 +225,27 @@ export default function BookingsPage() {
         }
     };
 
+    // US 3: Handle running late
+    const handleRunningLate = async (id: string) => {
+        setRunningLateId(id);
+        try {
+            await bookingsApi.runningLate(id);
+            toast({
+                title: "Running Late Notified ✓",
+                description: "Your grace period has been extended by 15 minutes.",
+            });
+            await fetchBookings();
+        } catch (error: any) {
+            toast({
+                title: "Failed",
+                description: error.message || "Unable to mark as running late.",
+                variant: "destructive",
+            });
+        } finally {
+            setRunningLateId(null);
+        }
+    };
+
     // Open reschedule modal
     const openRescheduleModal = (booking: Booking) => {
         setSelectedBookingForReschedule(booking);
@@ -252,14 +275,15 @@ export default function BookingsPage() {
             (booking.description || "").toLowerCase().includes(searchQuery.toLowerCase());
         const matchesStatus =
             statusFilter === "all" || booking.status === statusFilter;
-        const bookingStartTime = new Date(booking.startTime);
+        const bookingEndTime = new Date(booking.endTime);
         const now = new Date();
-        // Compare full datetime, not just date - a booking is upcoming if its start time is in the future
-        const isUpcoming = bookingStartTime.getTime() > now.getTime();
+        // A booking is "upcoming/active" until its END time passes (not start time)
+        // This keeps active bookings in the Upcoming tab where users can check-in, extend, etc.
+        const isUpcomingOrActive = bookingEndTime.getTime() > now.getTime();
         const matchesTab =
             activeTab === "all" ||
-            (activeTab === "upcoming" && isUpcoming) ||
-            (activeTab === "past" && !isUpcoming);
+            (activeTab === "upcoming" && isUpcomingOrActive) ||
+            (activeTab === "past" && !isUpcomingOrActive);
         return matchesSearch && matchesStatus && matchesTab;
     });
 
@@ -355,10 +379,15 @@ export default function BookingsPage() {
                         </Card>
                         <Card>
                             <CardContent className="pt-4">
-                                <div className="text-2xl font-bold text-blue-500">
-                                    {bookings.filter(b => b.status === "COMPLETED").length}
+                                <div className="text-2xl font-bold text-emerald-500">
+                                    {bookings.filter(b => {
+                                        const now = new Date();
+                                        const start = new Date(b.startTime);
+                                        const end = new Date(b.endTime);
+                                        return b.checkInStatus === "CHECKED_IN" && start <= now && end > now;
+                                    }).length}
                                 </div>
-                                <p className="text-xs text-muted-foreground">Completed</p>
+                                <p className="text-xs text-muted-foreground">Active Now</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -401,19 +430,36 @@ export default function BookingsPage() {
                                     const roomName = booking.room?.name || booking.title || "Room";
                                     const building = booking.room?.building || "Building";
                                     const floor = booking.room?.floor || "1";
-                                    const isUpcoming = isValidDate && startTime >= new Date();
-                                    const canCancel = isUpcoming && booking.status === "CONFIRMED";
-                                    const canCheckIn = isUpcoming && booking.status === "CONFIRMED";
-                                    
-                                    // US 3.4: Early checkout - booking is active if checked in and currently in progress
                                     const now = new Date();
-                                    const isActiveBooking = isValidDate && 
-                                        booking.checkInStatus === "CHECKED_IN" && 
-                                        startTime <= now && 
+                                    const isUpcoming = isValidDate && startTime >= now;
+                                    const canCancel = isUpcoming && booking.status === "CONFIRMED";
+
+                                    // US 3.2: Check-in window - 15 min before start until end of booking
+                                    const checkInWindowStart = isValidDate ? new Date(startTime.getTime() - 15 * 60 * 1000) : null;
+                                    const inCheckInWindow = isValidDate &&
+                                        checkInWindowStart &&
+                                        now >= checkInWindowStart &&
+                                        now < endTime;
+                                    const canCheckIn = inCheckInWindow &&
+                                        booking.status === "CONFIRMED" &&
+                                        booking.checkInStatus !== "CHECKED_IN";
+
+                                    // US 3.4: Early checkout - booking is active if checked in and currently in progress
+                                    const isActiveBooking = isValidDate &&
+                                        booking.checkInStatus === "CHECKED_IN" &&
+                                        startTime <= now &&
                                         endTime > now;
                                     const canEarlyCheckout = isActiveBooking;
                                     // US 3.5: Extend meeting - can extend active bookings by 15 minutes
                                     const canExtend = isActiveBooking;
+
+                                    // US 3: Running Late - available when booking is confirmed, check-in pending, and within grace window
+                                    const gracePeriodMs = 15 * 60 * 1000; // 15 minutes
+                                    const canRunLate = isValidDate &&
+                                        booking.status === "CONFIRMED" &&
+                                        booking.checkInStatus === "PENDING" &&
+                                        now >= startTime &&
+                                        now <= new Date(startTime.getTime() + gracePeriodMs);
 
                                     return (
                                         <Card key={booking.id} className="overflow-hidden">
@@ -432,6 +478,8 @@ export default function BookingsPage() {
                                                     </Badge>
                                                 </div>
                                                 <CardDescription>
+                                                    <span className="font-mono text-xs text-muted-foreground">ID: {booking.id.slice(0, 8).toUpperCase()}</span>
+                                                    {' · '}
                                                     {booking.description || booking.title || "Booking"}
                                                 </CardDescription>
                                             </CardHeader>
@@ -450,7 +498,7 @@ export default function BookingsPage() {
                                                         {building}, Floor {floor}
                                                     </div>
                                                 </div>
-                                                {(canCancel || canCheckIn || canEarlyCheckout || canExtend) && (
+                                                {(canCancel || canCheckIn || canEarlyCheckout || canExtend || canRunLate) && (
                                                     <div className="mt-4 flex flex-wrap gap-2">
                                                         {canCancel && (
                                                             <Button
@@ -474,6 +522,22 @@ export default function BookingsPage() {
                                                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                                                 ) : null}
                                                                 Check In
+                                                            </Button>
+                                                        )}
+                                                        {canRunLate && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => handleRunningLate(booking.id)}
+                                                                disabled={runningLateId === booking.id}
+                                                                className="border-yellow-500 text-yellow-600 hover:bg-yellow-50"
+                                                            >
+                                                                {runningLateId === booking.id ? (
+                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <AlarmClock className="mr-2 h-4 w-4" />
+                                                                )}
+                                                                Running Late
                                                             </Button>
                                                         )}
                                                         {canEarlyCheckout && (

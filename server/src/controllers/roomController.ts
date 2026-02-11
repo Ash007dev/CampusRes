@@ -24,9 +24,9 @@ export const roomController = {
    */
   create: asyncHandler(async (req: Request, res: Response) => {
     const input = req.body as CreateRoomInput;
-    
+
     const room = await roomService.createRoom(input);
-    
+
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
       data: room,
@@ -40,9 +40,9 @@ export const roomController = {
    */
   getById: asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    
+
     const room = await roomService.getRoomById(id);
-    
+
     if (!room) {
       res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
@@ -50,7 +50,7 @@ export const roomController = {
       });
       return;
     }
-    
+
     res.json({
       success: true,
       data: room,
@@ -63,9 +63,9 @@ export const roomController = {
    */
   search: asyncHandler(async (req: Request, res: Response) => {
     const query = req.query as unknown as RoomQueryInput;
-    
+
     const result = await roomService.searchRooms(query);
-    
+
     res.json({
       success: true,
       data: result.rooms,
@@ -75,6 +75,20 @@ export const roomController = {
         limit: result.limit,
         totalPages: Math.ceil(result.total / result.limit),
       },
+    });
+  }),
+
+  /**
+   * Get rooms with real-time availability status (US 3.3)
+   * GET /api/v1/rooms/available-now
+   */
+  getAvailableNow: asyncHandler(async (_req: Request, res: Response) => {
+    const rooms = await roomService.getAvailableNowRooms();
+
+    res.json({
+      success: true,
+      data: rooms,
+      message: `Found ${rooms.length} rooms with real-time availability`,
     });
   }),
 
@@ -89,7 +103,7 @@ export const roomController = {
       amenities?: string;
       date?: string;
     };
-    
+
     const rooms = await roomService.findBestFitRooms(
       parseInt(attendeeCount, 10),
       {
@@ -98,7 +112,7 @@ export const roomController = {
         date,
       }
     );
-    
+
     res.json({
       success: true,
       data: rooms,
@@ -113,9 +127,9 @@ export const roomController = {
   update: asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const input = req.body as Partial<CreateRoomInput>;
-    
+
     const room = await roomService.updateRoom(id, input);
-    
+
     res.json({
       success: true,
       data: room,
@@ -131,9 +145,9 @@ export const roomController = {
   setMaintenance: asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { isMaintenance, reason } = req.body as { isMaintenance: boolean; reason?: string };
-    
+
     const result = await roomService.setMaintenanceStatus(id, isMaintenance, reason);
-    
+
     res.json({
       success: true,
       data: {
@@ -141,8 +155,8 @@ export const roomController = {
         cancelledBookings: result.cancelledBookings,
         affectedUsers: result.affectedUsers,
       },
-      message: isMaintenance 
-        ? `Room set to maintenance mode. ${result.cancelledBookings} booking(s) cancelled.` 
+      message: isMaintenance
+        ? `Room set to maintenance mode. ${result.cancelledBookings} booking(s) cancelled.`
         : 'Room maintenance mode disabled',
     });
   }),
@@ -153,7 +167,7 @@ export const roomController = {
    */
   getByBuilding: asyncHandler(async (_req: Request, res: Response) => {
     const roomsByBuilding = await roomService.getRoomsByBuilding();
-    
+
     res.json({
       success: true,
       data: roomsByBuilding,
@@ -166,9 +180,9 @@ export const roomController = {
    */
   getDepartmentRooms: asyncHandler(async (req: Request, res: Response) => {
     const { departmentId } = req.params;
-    
+
     const rooms = await roomService.getDepartmentRooms(departmentId);
-    
+
     res.json({
       success: true,
       data: rooms,

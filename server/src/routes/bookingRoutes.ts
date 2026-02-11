@@ -362,5 +362,21 @@ router.put(
   bookingController.reschedule
 );
 
+/**
+ * @openapi
+ * /api/v1/bookings/{id}/running-late:
+ *   post:
+ *     summary: Mark booking as running late (US 3)
+ *     description: Extends the check-in grace period by an additional 15 minutes
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post(
+  '/:id/running-late',
+  authenticate,
+  bookingController.runningLate
+);
+
 export default router;
 

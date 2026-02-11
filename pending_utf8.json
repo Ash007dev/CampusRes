@@ -1,0 +1,88 @@
+﻿{
+    "success":  true,
+    "data":  [
+                 {
+                     "id":  "05e198ab-51a1-4aef-a893-be1b2c1c1633",
+                     "start_time":  "2026-02-06T12:00:00",
+                     "end_time":  "2026-02-06T13:00:00",
+                     "title":  "Lab Session",
+                     "description":  "Lab Session",
+                     "attendee_count":  1,
+                     "status":  "PENDING_APPROVAL",
+                     "check_in_status":  "PENDING",
+                     "checked_in_at":  null,
+                     "is_recurring":  false,
+                     "recurring_group_id":  null,
+                     "credits_charged":  20,
+                     "is_peak_hours":  true,
+                     "cancelled_at":  null,
+                     "cancelled_by":  null,
+                     "cancellation_reason":  null,
+                     "created_at":  "2026-02-06T05:49:16.088",
+                     "updated_at":  "2026-02-06T05:49:16.088",
+                     "user_id":  "bf49064c-a175-4449-9bef-cd755b6d5a49",
+                     "room_id":  "cmkcom9o4000k14kzgkcqohq1",
+                     "rooms":  {
+                                   "id":  "cmkcom9o4000k14kzgkcqohq1",
+                                   "code":  "LH-B",
+                                   "name":  "Lecture Hall B",
+                                   "floor":  0,
+                                   "building":  "Main Building",
+                                   "capacity":  150,
+                                   "latitude":  null,
+                                   "amenities":  {
+                                                     "ac":  true,
+                                                     "audio":  true,
+                                                     "projector":  true,
+                                                     "videoConference":  true
+                                                 },
+                                   "is_active":  true,
+                                   "longitude":  null,
+                                   "room_type":  "auditorium",
+                                   "created_at":  "2026-01-13T14:23:20.692",
+                                   "updated_at":  "2026-01-13T14:23:20.692",
+                                   "description":  "Medium lecture hall",
+                                   "department_id":  "cmkcom1f0000014kz1tmgn2ch",
+                                   "is_maintenance":  false,
+                                   "qr_code_secret":  null,
+                                   "operating_hours":  {
+                                                           "friday":  {
+                                                                          "open":  "08:00",
+                                                                          "close":  "20:00"
+                                                                      },
+                                                           "monday":  {
+                                                                          "open":  "08:00",
+                                                                          "close":  "22:00"
+                                                                      },
+                                                           "sunday":  {
+                                                                          "open":  "10:00",
+                                                                          "close":  "16:00"
+                                                                      },
+                                                           "tuesday":  {
+                                                                           "open":  "08:00",
+                                                                           "close":  "22:00"
+                                                                       },
+                                                           "saturday":  {
+                                                                            "open":  "10:00",
+                                                                            "close":  "18:00"
+                                                                        },
+                                                           "thursday":  {
+                                                                            "open":  "08:00",
+                                                                            "close":  "22:00"
+                                                                        },
+                                                           "wednesday":  {
+                                                                             "open":  "08:00",
+                                                                             "close":  "22:00"
+                                                                         }
+                                                       }
+                               },
+                     "users":  {
+                                   "id":  "bf49064c-a175-4449-9bef-cd755b6d5a49",
+                                   "email":  "darunrg11@gmail.com",
+                                   "last_name":  "R G",
+                                   "first_name":  "Darun",
+                                   "department_id":  null
+                               }
+                 }
+             ]
+}

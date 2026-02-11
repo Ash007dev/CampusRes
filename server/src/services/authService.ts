@@ -11,13 +11,13 @@ import { supabase } from '../lib/supabase.js';
 import { config } from '../config/index.js';
 import { logger } from '../config/logger.js';
 import { TIME } from '../config/constants.js';
+import bcrypt from 'bcryptjs';
 import {
   InvalidCredentialsError,
   UserNotFoundError,
   EmailAlreadyExistsError,
   AppError,
 } from '../utils/errors.js';
-import { otpService } from './otpService.js';
 import { emailService } from './emailService.js';
 
 // Registration input interface
@@ -27,6 +27,7 @@ interface RegisterUserInput {
   firstName: string;
   lastName: string;
   departmentCode?: string;
+  role?: string;
 }
 
 interface AuthResult {
@@ -56,19 +57,25 @@ interface QuotaUsage {
 // MFA Login initiation result
 interface LoginInitiationResult {
   requiresOtp: true;
-  userId: string;
+  sessionId: string; // OTP session ID (not user ID for security)
   email: string;
-  userName: string;
   message: string;
+  expiresIn: number; // Seconds until OTP expires
 }
 
 // Temporary storage for pending login sessions (before OTP verification)
-const pendingLoginSessions = new Map<string, {
-  supabaseSession: { access_token: string; refresh_token: string };
-  user: any;
-  departmentName: string | null;
-  expiresAt: number;
-}>();
+// REMOVED - Now using database table 'otp_sessions' for security and scalability
+
+/**
+ * Generate a random numeric OTP
+ */
+function generateRandomOtp(length: number = 6): string {
+  let otp = '';
+  for (let i = 0; i < length; i++) {
+    otp += Math.floor(Math.random() * 10).toString();
+  }
+  return otp;
+}
 
 /**
  * Auth Service using Supabase Auth
@@ -100,7 +107,7 @@ export class AuthService {
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: input.email,
       password: input.password,
-      email_confirm: true, // Auto-confirm email for now
+      email_confirm: false, // Require email confirmation for security
       user_metadata: {
         first_name: input.firstName,
         last_name: input.lastName,
@@ -109,7 +116,11 @@ export class AuthService {
 
     if (authError) {
       logger.error({ error: authError }, 'Failed to create auth user');
-      if (authError.message.includes('already registered')) {
+      // Check for duplicate email
+      if (authError.message.includes('already registered') ||
+        authError.message.includes('already been registered') ||
+        (authError as any).code === 'email_exists' ||
+        (authError as any).status === 422) {
         throw new EmailAlreadyExistsError(input.email);
       }
       throw new AppError(`Failed to create user: ${authError.message}`, 500);
@@ -130,7 +141,7 @@ export class AuthService {
         email: input.email,
         first_name: input.firstName,
         last_name: input.lastName,
-        role: 'STUDENT',
+        role: input.role || 'STUDENT',
         department_id: departmentId,
         created_at: now,
         updated_at: now,
@@ -184,22 +195,30 @@ export class AuthService {
 
   /**
    * STEP 1: Initiate login - validate credentials and send OTP
-   * Returns userId and email for OTP verification step
+   * SECURITY FIX: Does NOT create session until OTP is verified
    */
-  async initiateLogin(input: { email: string; password: string }): Promise<LoginInitiationResult> {
+  async initiateLogin(
+    input: { email: string; password: string },
+    deviceInfo?: { fingerprint?: string; ipAddress?: string }
+  ): Promise<LoginInitiationResult> {
     const { email, password } = input;
     logger.info({ email }, 'Login initiation - validating credentials');
 
-    // Sign in with Supabase Auth to validate credentials
+    // CRITICAL FIX: Only validate credentials, DON'T create session yet
+    // We verify password by attempting sign-in then immediately signing out
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (signInError || !signInData.session || !signInData.user) {
-      logger.warn({ email, error: signInError, errorMessage: signInError?.message }, 'Login failed - invalid credentials');
+    if (signInError || !signInData.user) {
+      logger.warn({ email, error: signInError?.message }, 'Login failed - invalid credentials');
       throw new InvalidCredentialsError();
     }
+
+    // IMMEDIATELY sign out to invalidate the session
+    // User will only get real session after OTP verification
+    await supabase.auth.signOut();
 
     // Get user profile from public.users
     const { data: user, error: userError } = await supabase
@@ -209,11 +228,185 @@ export class AuthService {
       .single();
 
     if (userError || !user) {
-      logger.error({ userId: signInData.user.id, userError }, 'User profile not found in public.users');
+      logger.error({ userId: signInData.user.id, userError }, 'User profile not found');
       throw new AppError('User profile not found', 500);
     }
 
-    // Get department name if user has a department
+    if (!user.is_active) {
+      throw new AppError('Account is deactivated', 403);
+    }
+
+    if (user.blocked_until && new Date(user.blocked_until) > new Date()) {
+      throw new AppError(
+        `Account is blocked until ${new Date(user.blocked_until).toLocaleDateString()}`,
+        403
+      );
+    }
+
+    // Clean up any existing unverified OTP sessions for this user
+    await supabase
+      .from('otp_sessions')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('is_verified', false);
+
+    // Generate OTP and hash it
+    const otp = generateRandomOtp(6);
+    const otpHash = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(Date.now() + config.otp.expirySeconds * 1000);
+
+    // Create OTP session in database with device binding
+    const { data: otpSession, error: otpError } = await supabase
+      .from('otp_sessions')
+      .insert({
+        user_id: user.id,
+        email: user.email,
+        otp_hash: otpHash,
+        device_fingerprint: deviceInfo?.fingerprint || null,
+        ip_address: deviceInfo?.ipAddress || null,
+        expires_at: expiresAt.toISOString(),
+        attempts: 0,
+        max_attempts: 3,
+        is_verified: false,
+        is_locked: false,
+      })
+      .select('id')
+      .single();
+
+    if (otpError || !otpSession) {
+      logger.error({ error: otpError }, 'Failed to create OTP session');
+      throw new AppError('Failed to initiate login', 500);
+    }
+
+    // Send OTP email
+    const userName = `${user.first_name} ${user.last_name}`;
+    console.log(`[AuthService] 📧 Sending OTP to ${email}: ${otp}`);
+
+    try {
+      await emailService.sendOtpEmail(email, otp, userName);
+      console.log(`[AuthService] ✅ OTP sent successfully`);
+    } catch (emailError) {
+      console.log(`[AuthService] ⚠️ Email service unavailable - OTP: ${otp}`);
+      logger.warn({ error: emailError }, 'Email service unavailable');
+    }
+
+    logger.info({ email, sessionId: otpSession.id }, 'OTP session created');
+
+    return {
+      requiresOtp: true,
+      sessionId: otpSession.id, // Return session ID, not user ID
+      email: user.email,
+      message: 'OTP has been sent to your email address',
+      expiresIn: config.otp.expirySeconds,
+    };
+  }
+
+  /**
+   * STEP 2: Verify OTP and complete login
+   * SECURITY FIX: Attempt limiting, device binding, creates session ONLY after OTP verification
+   */
+  async verifyLoginOtp(input: {
+    sessionId: string;
+    otp: string;
+    deviceFingerprint?: string;
+    ipAddress?: string;
+  }): Promise<AuthResult> {
+    const { sessionId, otp, deviceFingerprint, ipAddress } = input;
+    logger.info({ sessionId }, 'Verifying login OTP');
+
+    // Get OTP session from database
+    const { data: otpSession, error: sessionError } = await supabase
+      .from('otp_sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .single();
+
+    if (sessionError || !otpSession) {
+      logger.warn({ sessionId }, 'OTP session not found');
+      throw new AppError('Invalid or expired OTP session', 400);
+    }
+
+    // Check if session is locked
+    if (otpSession.is_locked) {
+      logger.warn({ sessionId }, 'OTP session locked after too many failed attempts');
+      throw new AppError('Too many failed attempts. Please request a new OTP.', 403);
+    }
+
+    // Check if session expired
+    if (new Date(otpSession.expires_at) < new Date()) {
+      await supabase.from('otp_sessions').delete().eq('id', sessionId);
+      logger.warn({ sessionId }, 'OTP session expired');
+      throw new AppError('OTP has expired. Please request a new one.', 400);
+    }
+
+    // Check if already verified
+    if (otpSession.is_verified) {
+      logger.warn({ sessionId }, 'OTP already verified');
+      throw new AppError('OTP already used', 400);
+    }
+
+    // Verify device fingerprint (if provided during initiation)
+    if (otpSession.device_fingerprint && deviceFingerprint) {
+      if (otpSession.device_fingerprint !== deviceFingerprint) {
+        // Increment attempts for suspicious activity
+        await supabase
+          .from('otp_sessions')
+          .update({ attempts: otpSession.attempts + 1 })
+          .eq('id', sessionId);
+
+        logger.warn(
+          { sessionId, expected: otpSession.device_fingerprint, received: deviceFingerprint },
+          'Device fingerprint mismatch'
+        );
+        throw new AppError('Device verification failed', 403);
+      }
+    }
+
+    // Verify OTP hash
+    const isValidOtp = await bcrypt.compare(otp, otpSession.otp_hash);
+
+    if (!isValidOtp) {
+      // Increment attempt counter
+      const newAttempts = otpSession.attempts + 1;
+      const updateData: any = { attempts: newAttempts };
+
+      // Lock session if max attempts reached
+      if (newAttempts >= otpSession.max_attempts) {
+        updateData.is_locked = true;
+        logger.warn({ sessionId, attempts: newAttempts }, 'OTP session locked after max attempts');
+      }
+
+      await supabase.from('otp_sessions').update(updateData).eq('id', sessionId);
+
+      const remainingAttempts = Math.max(0, otpSession.max_attempts - newAttempts);
+      throw new AppError(
+        `Invalid OTP. ${remainingAttempts} attempt(s) remaining.`,
+        400
+      );
+    }
+
+    // OTP is valid - mark session as verified
+    await supabase
+      .from('otp_sessions')
+      .update({
+        is_verified: true,
+        verified_at: new Date().toISOString(),
+      })
+      .eq('id', sessionId);
+
+    // Get user profile
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', otpSession.user_id)
+      .single();
+
+    if (userError || !user) {
+      logger.error({ userId: otpSession.user_id }, 'User not found');
+      throw new AppError('User not found', 404);
+    }
+
+    // Get department name
     let departmentName: string | null = null;
     if (user.department_id) {
       const { data: dept } = await supabase
@@ -224,80 +417,35 @@ export class AuthService {
       departmentName = dept?.name || null;
     }
 
-    if (!user.is_active) {
-      throw new AppError('Account is deactivated', 403);
-    }
+    // NOW create the Supabase auth session (only after OTP verification)
+    // Generate a magic link and exchange it for a real session
 
-    // Check if blocked
-    if (user.blocked_until && new Date(user.blocked_until) > new Date()) {
-      throw new AppError(
-        `Account is blocked until ${new Date(user.blocked_until).toLocaleDateString()}`,
-        403
-      );
-    }
-
-    // Store the session data temporarily for OTP verification
-    const sessionExpiry = Date.now() + (config.otp.expirySeconds * 1000);
-    pendingLoginSessions.set(user.id, {
-      supabaseSession: {
-        access_token: signInData.session.access_token,
-        refresh_token: signInData.session.refresh_token,
-      },
-      user,
-      departmentName,
-      expiresAt: sessionExpiry,
+    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email: user.email,
     });
 
-    // Generate and send OTP
-    const otp = await otpService.generateOtp(user.id);
-    const userName = `${user.first_name} ${user.last_name}`;
-
-    await emailService.sendOtpEmail(email, otp, userName);
-
-    logger.info({ email, userId: user.id }, 'OTP sent for login verification');
-
-    return {
-      requiresOtp: true,
-      userId: user.id,
-      email: user.email,
-      userName,
-      message: 'OTP has been sent to your email address',
-    };
-  }
-
-  /**
-   * STEP 2: Verify OTP and complete login
-   * Returns tokens and user data upon successful OTP verification
-   */
-  async verifyLoginOtp(input: { userId: string; otp: string }): Promise<AuthResult> {
-    const { userId, otp } = input;
-    logger.info({ userId }, 'Verifying login OTP');
-
-    // Get pending session
-    const pendingSession = pendingLoginSessions.get(userId);
-
-    if (!pendingSession) {
-      throw new AppError('Login session expired. Please restart login.', 400);
+    if (linkError || !linkData) {
+      logger.error({ error: linkError }, 'Failed to generate auth link');
+      throw new AppError('Failed to create authentication session', 500);
     }
 
-    // Check if session expired
-    if (Date.now() > pendingSession.expiresAt) {
-      pendingLoginSessions.delete(userId);
-      throw new AppError('Login session expired. Please restart login.', 400);
+    // Exchange the magic link token for a real session
+    const tokenHash = linkData.properties?.hashed_token;
+    if (!tokenHash) {
+      logger.error('No hashed_token in magic link response');
+      throw new AppError('Failed to create authentication session', 500);
     }
 
-    // Verify OTP
-    const isValid = await otpService.verifyOtp(userId, otp);
+    const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: 'magiclink',
+    });
 
-    if (!isValid) {
-      throw new AppError('Invalid or expired OTP', 400);
+    if (verifyError || !verifyData.session) {
+      logger.error({ error: verifyError }, 'Failed to exchange magic link for session');
+      throw new AppError('Failed to create authentication session', 500);
     }
-
-    // OTP verified - complete login
-    const { supabaseSession, user, departmentName } = pendingSession;
-
-    // Clean up pending session
-    pendingLoginSessions.delete(userId);
 
     // Update last login
     await supabase
@@ -311,10 +459,10 @@ export class AuthService {
       entity_type: 'user',
       entity_id: user.id,
       performed_by_id: user.id,
-      metadata: { mfa_verified: true },
+      metadata: { mfa_verified: true, device_fingerprint: deviceFingerprint, ip_address: ipAddress },
     });
 
-    logger.info({ userId: user.id, email: user.email }, 'Login successful with MFA');
+    logger.info({ userId: user.id, email: user.email }, 'Login successful with MFA verification');
 
     return {
       user: {
@@ -327,8 +475,8 @@ export class AuthService {
         departmentName: departmentName,
       },
       tokens: {
-        accessToken: supabaseSession.access_token,
-        refreshToken: supabaseSession.refresh_token,
+        accessToken: verifyData.session.access_token,
+        refreshToken: verifyData.session.refresh_token,
       },
     };
   }
@@ -641,24 +789,44 @@ export class AuthService {
     const { page = 1, limit = 20, role, search, departmentId } = options;
     const skip = (page - 1) * limit;
 
-    console.log('=== SUPABASE QUERY START ===');
+    console.log('=== GET ALL USERS - Applying filters ===');
+    console.log({ role, search, departmentId, page, limit });
 
-    // Simple query first - no joins
-    const { data, count, error } = await supabase
+    // Build query with filters
+    let query = supabase
       .from('users')
-      .select('*', { count: 'exact' })
+      .select('*', { count: 'exact' });
+
+    // SECURITY FIX: Apply role filter
+    if (role) {
+      query = query.eq('role', role);
+    }
+
+    // SECURITY FIX: Apply search filter (email, first_name, last_name)
+    if (search) {
+      query = query.or(`email.ilike.%${search}%,first_name.ilike.%${search}%,last_name.ilike.%${search}%`);
+    }
+
+    // SECURITY FIX: Apply department filter
+    if (departmentId) {
+      query = query.eq('department_id', departmentId);
+    }
+
+    // Apply pagination
+    const { data, count, error } = await query
       .order('created_at', { ascending: false })
       .range(skip, skip + limit - 1);
 
-    console.log('Supabase raw result:', { data: data?.length, count, error });
+    console.log('Supabase result:', { data: data?.length, count, error });
 
     if (error) {
       console.error('Supabase error:', error);
+      logger.error({ error }, 'Failed to fetch users');
       return { users: [], total: 0 };
     }
 
     if (!data || data.length === 0) {
-      console.log('No data returned from Supabase');
+      console.log('No users found matching filters');
       return { users: [], total: 0 };
     }
 
@@ -670,7 +838,7 @@ export class AuthService {
         lastName: u.last_name,
         role: u.role,
         departmentId: u.department_id,
-        departmentName: null,
+        departmentName: null, // Could join departments table if needed
         reputationScore: u.reputation_score || 100,
         creditsBalance: u.credits_balance || 0,
         isActive: u.is_active,
