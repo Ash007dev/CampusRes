@@ -1,5 +1,7 @@
+import { vi, expect } from 'vitest';
+
 /**
- * Jest Test Setup
+ * Vitest Test Setup
  * Global configuration and mocks for all tests
  */
 
@@ -11,8 +13,8 @@ process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
 // Mock console methods to reduce noise in tests
 global.console = {
   ...console,
-  error: jest.fn(),
-  warn: jest.fn(),
+  error: vi.fn(),
+  warn: vi.fn(),
 };
 
 // Add custom matchers
@@ -28,6 +30,3 @@ expect.extend({
     };
   },
 });
-
-// Increase timeout for integration tests
-jest.setTimeout(10000);

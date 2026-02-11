@@ -339,7 +339,16 @@ export class BookingService {
       throw new BookingNotFoundError(bookingId);
     }
 
-    if (booking.user_id !== userId) {
+    // Check if performer is admin or owner
+    const { data: performer } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    const isAdmin = performer?.role === USER_ROLES.ADMIN || performer?.role === USER_ROLES.LAB_ADMIN;
+
+    if (booking.user_id !== userId && !isAdmin) {
       throw new AppError('You can only cancel your own bookings', 403);
     }
 
@@ -1037,9 +1046,15 @@ export class BookingService {
 
     const { data: user } = await supabase
       .from('users')
-      .select('quota_limit_hours')
+      .select('quota_limit_hours, role')
       .eq('id', userId)
       .single();
+
+    // US 4.7: Faculty Unlimited Access
+    if (user?.role === USER_ROLES.FACULTY) {
+      logger.debug({ userId }, 'Faculty member: skipping quota validation');
+      return;
+    }
 
     const quotaLimit = user?.quota_limit_hours || config.booking.maxWeeklyQuotaHours;
 
