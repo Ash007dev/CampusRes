@@ -4,6 +4,7 @@ import * as React from "react";
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 
 // Types
 export interface User {
@@ -92,6 +93,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           document.cookie = 'accessToken=; path=/; max-age=0';
           setUser(null);
         }
+      } else {
+        // No token in localStorage — check if Supabase has an OAuth session
+        // This handles the case where Google OAuth completed but our app
+        // didn't sync the token yet (e.g., callback page race condition)
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            console.log("[Auth] Found Supabase OAuth session for:", session.user.email);
+            const accessToken = session.access_token;
+            const sbUser = session.user;
+
+            // Sync to our app's storage
+            localStorage.setItem("accessToken", accessToken);
+            const userData: User = {
+              id: sbUser.id,
+              name: sbUser.user_metadata?.full_name || sbUser.email || "User",
+              email: sbUser.email || "",
+              role: "STUDENT" as const,
+              reputationScore: 100,
+            };
+            localStorage.setItem("user", JSON.stringify(userData));
+            document.cookie = `accessToken=${accessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+            setUser(userData);
+
+            console.log("[Auth] OAuth session synced, redirecting to dashboard");
+            window.location.replace("/dashboard");
+            return;
+          }
+        } catch (err) {
+          console.log("[Auth] No Supabase session found:", err);
+        }
       }
 
       setIsLoading(false);
@@ -108,19 +140,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authApi.login(email, password);
       console.log("[Auth] Login response:", response.data);
-      
+
       // With MFA enabled, login only initiates the process
       // The actual user/token response comes from verifyOtp
       // This method is now primarily used by non-MFA scenarios
       const loginData = response.data.data;
-      
+
       // Check if MFA is required
       if ('requiresOtp' in loginData && loginData.requiresOtp) {
         // Return the response for the LoginForm to handle OTP flow
         setIsLoading(false);
         return response;
       }
-      
+
       // Non-MFA flow (legacy support)
       const apiUser = (loginData as any).user;
       const token = (loginData as any).tokens?.accessToken;
