@@ -1,0 +1,457 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/SEM 6/Software engg/Campus reservation/CampusRes/server[39m
+
+{"level":20,"time":"2026-02-11T12:56:18.725Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:18.727Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-11T12:56:18.727Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis not available - caching disabled"}
+{"level":20,"time":"2026-02-11T12:56:18.728Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:18.732Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:18.733Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-11T12:56:18.733Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis not available - caching disabled"}
+{"level":20,"time":"2026-02-11T12:56:18.731Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:18.732Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-11T12:56:18.733Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis not available - caching disabled"}
+{"level":20,"time":"2026-02-11T12:56:18.734Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:18.729Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-11T12:56:18.734Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis not available - caching disabled"}
+{"level":20,"time":"2026-02-11T12:56:18.735Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:18.736Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-11T12:56:18.736Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis not available - caching disabled"}
+{"level":20,"time":"2026-02-11T12:56:18.741Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:18.737Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-11T12:56:18.737Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis not available - caching disabled"}
+{"level":20,"time":"2026-02-11T12:56:18.742Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-11T12:56:18.742Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis not available - caching disabled"}
+{"level":20,"time":"2026-02-11T12:56:19.237Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:19.237Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:19.237Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-11T12:56:19.238Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-11T12:56:19.244Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:19.244Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-11T12:56:19.246Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:19.245Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:19.248Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-11T12:56:19.448Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:19.448Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-11T12:56:19.247Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-11T12:56:19.460Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:19.460Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":30,"time":"2026-02-11T12:56:19.567Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","msg":"Login initiation - validating credentials"}
+{"level":30,"time":"2026-02-11T12:56:19.571Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","msg":"Login initiation - validating credentials"}
+{"level":30,"time":"2026-02-11T12:56:19.575Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","msg":"Login initiation - validating credentials"}
+{"level":30,"time":"2026-02-11T12:56:19.577Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","msg":"Login initiation - validating credentials"}
+{"level":30,"time":"2026-02-11T12:56:19.582Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","msg":"Login initiation - validating credentials"}
+{"level":30,"time":"2026-02-11T12:56:19.588Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","msg":"Login initiation - validating credentials"}
+{"level":30,"time":"2026-02-11T12:56:19.592Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","msg":"Login initiation - validating credentials"}
+{"level":40,"time":"2026-02-11T12:56:20.010Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","error":"Invalid login credentials","msg":"Login failed - invalid credentials"}
+{"level":40,"time":"2026-02-11T12:56:20.011Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814579576-dyfbm6yhy","method":"POST","path":"/api/v1/auth/login","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"Invalid email or password","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:20.029Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/auth/login","statusCode":401,"duration":"452ms","requestId":"req-1770814579576-dyfbm6yhy","msg":"Request completed"}
+{"level":40,"time":"2026-02-11T12:56:20.033Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","error":"Invalid login credentials","msg":"Login failed - invalid credentials"}
+{"level":40,"time":"2026-02-11T12:56:20.034Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814579566-3e6cb6e4h","method":"POST","path":"/api/v1/auth/login","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"Invalid email or password","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:20.046Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/auth/login","statusCode":401,"duration":"480ms","requestId":"req-1770814579566-3e6cb6e4h","msg":"Request completed"}
+{"level":40,"time":"2026-02-11T12:56:20.093Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","error":"Invalid login credentials","msg":"Login failed - invalid credentials"}
+{"level":40,"time":"2026-02-11T12:56:20.102Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","error":"Invalid login credentials","msg":"Login failed - invalid credentials"}
+{"level":40,"time":"2026-02-11T12:56:20.107Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","error":"Invalid login credentials","msg":"Login failed - invalid credentials"}
+{"level":40,"time":"2026-02-11T12:56:20.107Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","error":"Invalid login credentials","msg":"Login failed - invalid credentials"}
+{"level":40,"time":"2026-02-11T12:56:20.094Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814579590-1f2l94wrq","method":"POST","path":"/api/v1/auth/login","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"Invalid email or password","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:20.111Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/auth/login","statusCode":401,"duration":"521ms","requestId":"req-1770814579590-1f2l94wrq","msg":"Request completed"}
+{"level":40,"time":"2026-02-11T12:56:20.108Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814579581-p281zps5k","method":"POST","path":"/api/v1/auth/login","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"Invalid email or password","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:20.118Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/auth/login","statusCode":401,"duration":"537ms","requestId":"req-1770814579581-p281zps5k","msg":"Request completed"}
+{"level":40,"time":"2026-02-11T12:56:20.108Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814579574-s6zt28bdq","method":"POST","path":"/api/v1/auth/login","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"Invalid email or password","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:20.120Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/auth/login","statusCode":401,"duration":"546ms","requestId":"req-1770814579574-s6zt28bdq","msg":"Request completed"}
+{"level":40,"time":"2026-02-11T12:56:20.104Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814579587-z6hsaz8i2","method":"POST","path":"/api/v1/auth/login","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"Invalid email or password","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:20.122Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/auth/login","statusCode":401,"duration":"535ms","requestId":"req-1770814579587-z6hsaz8i2","msg":"Request completed"}
+{"level":20,"time":"2026-02-11T12:56:20.244Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:20.245Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-11T12:56:20.245Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:20.245Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-11T12:56:20.260Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:20.260Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:20.261Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-11T12:56:20.260Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-11T12:56:20.261Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:20.262Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-11T12:56:20.296Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","error":"Invalid login credentials","msg":"Login failed - invalid credentials"}
+{"level":40,"time":"2026-02-11T12:56:20.297Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814579570-wimqoc4zz","method":"POST","path":"/api/v1/auth/login","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"Invalid email or password","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:20.315Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/auth/login","statusCode":401,"duration":"745ms","requestId":"req-1770814579570-wimqoc4zz","msg":"Request completed"}
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.2-ghost-bookings.test.ts[2m > [22mUS 3.2: Auto-Cancel Ghost Bookings[2m > [22mGhost Booking Status Verification[2m > [22mshould support NO_SHOW as a valid booking status
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.2-ghost-bookings.test.ts[2m > [22mUS 3.2: Auto-Cancel Ghost Bookings[2m > [22mGhost Booking Status Verification[2m > [22mshould include check_in_status field in booking responses
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.2-ghost-bookings.test.ts[2m > [22mUS 3.2: Auto-Cancel Ghost Bookings[2m > [22mGhost Killer Required Fields[2m > [22mshould include start_time in booking data for grace period calculation
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.2-ghost-bookings.test.ts[2m > [22mUS 3.2: Auto-Cancel Ghost Bookings[2m > [22mGhost Killer Required Fields[2m > [22mshould track CONFIRMED + PENDING bookings that are candidates for ghost killing
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.2-ghost-bookings.test.ts[2m > [22mUS 3.2: Auto-Cancel Ghost Bookings[2m > [22mRunning Late ΓÇö Extended Grace Period[2m > [22mshould reject unauthenticated running-late requests
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.2-ghost-bookings.test.ts[2m > [22mUS 3.2: Auto-Cancel Ghost Bookings[2m > [22mRunning Late ΓÇö Extended Grace Period[2m > [22mshould return error for non-existent booking
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.7-waitlist.test.ts[2m > [22mUS 3.7: Waitlist Notification[2m > [22mPOST /api/v1/waitlist ΓÇö Join Waitlist[2m > [22mshould reject unauthenticated waitlist join requests
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.7-waitlist.test.ts[2m > [22mUS 3.7: Waitlist Notification[2m > [22mPOST /api/v1/waitlist ΓÇö Join Waitlist[2m > [22mshould reject joining waitlist with missing fields
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.7-waitlist.test.ts[2m > [22mUS 3.7: Waitlist Notification[2m > [22mPOST /api/v1/waitlist ΓÇö Join Waitlist[2m > [22mshould successfully join waitlist with valid data
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.7-waitlist.test.ts[2m > [22mUS 3.7: Waitlist Notification[2m > [22mPOST /api/v1/waitlist ΓÇö Join Waitlist[2m > [22mshould reject duplicate waitlist entry for same slot
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.7-waitlist.test.ts[2m > [22mUS 3.7: Waitlist Notification[2m > [22mGET /api/v1/waitlist/my ΓÇö My Waitlist Entries[2m > [22mshould reject unauthenticated requests
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.7-waitlist.test.ts[2m > [22mUS 3.7: Waitlist Notification[2m > [22mGET /api/v1/waitlist/my ΓÇö My Waitlist Entries[2m > [22mshould return user waitlist entries
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.7-waitlist.test.ts[2m > [22mUS 3.7: Waitlist Notification[2m > [22mGET /api/v1/waitlist/my ΓÇö My Waitlist Entries[2m > [22mshould include the newly created waitlist entry
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.7-waitlist.test.ts[2m > [22mUS 3.7: Waitlist Notification[2m > [22mGET /api/v1/waitlist/:id/position ΓÇö Waitlist Position[2m > [22mshould reject unauthenticated requests
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.7-waitlist.test.ts[2m > [22mUS 3.7: Waitlist Notification[2m > [22mGET /api/v1/waitlist/:id/position ΓÇö Waitlist Position[2m > [22mshould return position for valid waitlist entry
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.7-waitlist.test.ts[2m > [22mUS 3.7: Waitlist Notification[2m > [22mGET /api/v1/waitlist/:id/position ΓÇö Waitlist Position[2m > [22mshould return error for non-existent waitlist entry
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.7-waitlist.test.ts[2m > [22mUS 3.7: Waitlist Notification[2m > [22mDELETE /api/v1/waitlist/:id ΓÇö Leave Waitlist[2m > [22mshould reject unauthenticated requests
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.7-waitlist.test.ts[2m > [22mUS 3.7: Waitlist Notification[2m > [22mDELETE /api/v1/waitlist/:id ΓÇö Leave Waitlist[2m > [22mshould return error for non-existent entry
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.7-waitlist.test.ts[2m > [22mUS 3.7: Waitlist Notification[2m > [22mDELETE /api/v1/waitlist/:id ΓÇö Leave Waitlist[2m > [22mshould successfully leave waitlist
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.7-waitlist.test.ts[2m > [22mUS 3.7: Waitlist Notification[2m > [22mDELETE /api/v1/waitlist/:id ΓÇö Leave Waitlist[2m > [22mshould no longer show in user waitlist after leaving
+{"level":20,"time":"2026-02-11T12:56:20.462Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:20.462Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.8-checkin-reminder.test.ts[2m > [22mUS 3.8: Check-In Reminder[2m > [22mBooking Data for Reminder Scheduling[2m > [22mshould include start_time in booking data for scheduling reminders
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.8-checkin-reminder.test.ts[2m > [22mUS 3.8: Check-In Reminder[2m > [22mBooking Data for Reminder Scheduling[2m > [22mshould include user_id for directing reminder to correct user
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.8-checkin-reminder.test.ts[2m > [22mUS 3.8: Check-In Reminder[2m > [22mBooking Data for Reminder Scheduling[2m > [22mshould include room details for reminder message content
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.8-checkin-reminder.test.ts[2m > [22mUS 3.8: Check-In Reminder[2m > [22mReminder Candidate Identification[2m > [22mshould identify CONFIRMED + PENDING bookings as reminder candidates
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.8-checkin-reminder.test.ts[2m > [22mUS 3.8: Check-In Reminder[2m > [22mIndividual Booking Reminder Data[2m > [22mshould return full booking details needed for reminder via GET
+{"level":20,"time":"2026-02-11T12:56:20.481Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-11T12:56:20.481Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.5-extend-meeting.test.ts[2m > [22mUS 3.5: Extend Meeting[2m > [22mPOST /api/v1/bookings/:id/extend ΓÇö Auth[2m > [22mshould reject unauthenticated extend requests
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.5-extend-meeting.test.ts[2m > [22mUS 3.5: Extend Meeting[2m > [22mPOST /api/v1/bookings/:id/extend ΓÇö Validation[2m > [22mshould return error for non-existent booking ID
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.5-extend-meeting.test.ts[2m > [22mUS 3.5: Extend Meeting[2m > [22mPOST /api/v1/bookings/:id/extend ΓÇö Validation[2m > [22mshould reject extension less than 15 minutes
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.5-extend-meeting.test.ts[2m > [22mUS 3.5: Extend Meeting[2m > [22mPOST /api/v1/bookings/:id/extend ΓÇö Validation[2m > [22mshould reject extension more than 120 minutes
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.5-extend-meeting.test.ts[2m > [22mUS 3.5: Extend Meeting[2m > [22mPOST /api/v1/bookings/:id/extend ΓÇö Business Rules[2m > [22mshould only allow extending confirmed bookings
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.5-extend-meeting.test.ts[2m > [22mUS 3.5: Extend Meeting[2m > [22mPOST /api/v1/bookings/:id/extend ΓÇö Business Rules[2m > [22mshould accept valid additionalMinutes in request body
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.5-extend-meeting.test.ts[2m > [22mUS 3.5: Extend Meeting[2m > [22mExtend Meeting ΓÇö Conflict Detection[2m > [22mshould reject extension if room has upcoming conflict
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.3-live-occupancy.test.ts[2m > [22mUS 3.3: Live Occupancy View[2m > [22mGET /api/v1/rooms/available-now[2m > [22mshould return a list of rooms with availability status
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.3-live-occupancy.test.ts[2m > [22mUS 3.3: Live Occupancy View[2m > [22mGET /api/v1/rooms/available-now[2m > [22mshould include availability state for each room
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.3-live-occupancy.test.ts[2m > [22mUS 3.3: Live Occupancy View[2m > [22mGET /api/v1/rooms/available-now[2m > [22mshould show rooms as publicly accessible (no auth required)
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.3-live-occupancy.test.ts[2m > [22mUS 3.3: Live Occupancy View[2m > [22mGET /api/v1/bookings/availability[2m > [22mshould return availability for a specific room and date
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.3-live-occupancy.test.ts[2m > [22mUS 3.3: Live Occupancy View[2m > [22mGET /api/v1/bookings/availability[2m > [22mshould return available and booked time slots
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.3-live-occupancy.test.ts[2m > [22mUS 3.3: Live Occupancy View[2m > [22mGET /api/v1/bookings/availability[2m > [22mshould require date parameter in YYYY-MM-DD format
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.3-live-occupancy.test.ts[2m > [22mUS 3.3: Live Occupancy View[2m > [22mGET /api/v1/bookings/availability[2m > [22mshould handle missing date parameter
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.3-live-occupancy.test.ts[2m > [22mUS 3.3: Live Occupancy View[2m > [22mGET /api/v1/rooms ΓÇö Status Data for Live View[2m > [22mshould return rooms list for live occupancy widget
+ [2m[90mΓåô[39m[22m src/__tests__/epic3/us3.3-live-occupancy.test.ts[2m > [22mUS 3.3: Live Occupancy View[2m > [22mGET /api/v1/rooms ΓÇö Status Data for Live View[2m > [22mshould include room identifiers needed for live status
+{"level":20,"time":"2026-02-11T12:56:20.856Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-11T12:56:21.029Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/my","statusCode":200,"duration":"511ms","requestId":"req-1770814580518-gxnhtw3ab","msg":"Request completed"}
+{"level":40,"time":"2026-02-11T12:56:21.042Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814581041-oztypd8j2","method":"POST","path":"/api/v1/bookings/f2f86d6d-2281-4895-91bc-f4e4656ed067/check-in","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"No authentication token provided","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:21.047Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/bookings/f2f86d6d-2281-4895-91bc-f4e4656ed067/check-in","statusCode":401,"duration":"6ms","requestId":"req-1770814581041-oztypd8j2","msg":"Request completed"}
+{"level":20,"time":"2026-02-11T12:56:21.080Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+ [32mΓ£ô[39m src/__tests__/epic3/us3.1-checkin.test.ts[2m > [22mUS 3.1: QR Code Check-In (Simplified ΓÇö Room Code Entry)[2m > [22mPOST /api/v1/bookings/:id/check-in ΓÇö Auth[2m > [22mshould reject unauthenticated check-in requests[32m 17[2mms[22m[39m
+{"level":30,"time":"2026-02-11T12:56:21.252Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/my","statusCode":200,"duration":"552ms","requestId":"req-1770814580700-e2v6p9a80","msg":"Request completed"}
+{"level":40,"time":"2026-02-11T12:56:21.257Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814581257-3vx8l7vd2","method":"POST","path":"/api/v1/bookings/a33689d6-ab7d-4b14-ba73-ae1ec55904b9/early-checkout","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"No authentication token provided","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:21.259Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/bookings/a33689d6-ab7d-4b14-ba73-ae1ec55904b9/early-checkout","statusCode":401,"duration":"2ms","requestId":"req-1770814581257-3vx8l7vd2","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic3/us3.4-early-checkout.test.ts[2m > [22mUS 3.4: Early Checkout[2m > [22mPOST /api/v1/bookings/:id/early-checkout ΓÇö Auth[2m > [22mshould reject unauthenticated early-checkout requests[32m 6[2mms[22m[39m
+{"level":20,"time":"2026-02-11T12:56:21.386Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":20,"time":"2026-02-11T12:56:21.387Z","service":"campus-resource-engine","version":"1.0.0","env":"test","property":"body","errors":{"qrCode":["Required"]},"received":{},"msg":"Validation failed"}
+{"level":40,"time":"2026-02-11T12:56:21.387Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814581058-wadvb2pzm","method":"POST","path":"/api/v1/bookings/f2f86d6d-2281-4895-91bc-f4e4656ed067/check-in","statusCode":400,"errorCode":"VALIDATION_6001","isOperational":true,"userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","message":"Validation failed","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:21.387Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/bookings/f2f86d6d-2281-4895-91bc-f4e4656ed067/check-in","statusCode":400,"duration":"329ms","requestId":"req-1770814581058-wadvb2pzm","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic3/us3.1-checkin.test.ts[2m > [22mUS 3.1: QR Code Check-In (Simplified ΓÇö Room Code Entry)[2m > [22mPOST /api/v1/bookings/:id/check-in ΓÇö Auth[2m > [22mshould reject check-in with missing qrCode field[33m 337[2mms[22m[39m
+{"level":20,"time":"2026-02-11T12:56:21.594Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":20,"time":"2026-02-11T12:56:21.721Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":40,"time":"2026-02-11T12:56:21.758Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814581263-ui1lyo4w8","method":"POST","path":"/api/v1/bookings/00000000-0000-0000-0000-000000000000/early-checkout","statusCode":404,"errorCode":"BOOKING_2005","isOperational":true,"userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","message":"Booking 00000000-0000-0000-0000-000000000000 not found","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:21.762Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/bookings/00000000-0000-0000-0000-000000000000/early-checkout","statusCode":404,"duration":"499ms","requestId":"req-1770814581263-ui1lyo4w8","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic3/us3.4-early-checkout.test.ts[2m > [22mUS 3.4: Early Checkout[2m > [22mPOST /api/v1/bookings/:id/early-checkout ΓÇö Validation[2m > [22mshould return error for non-existent booking ID[33m 504[2mms[22m[39m
+{"level":20,"time":"2026-02-11T12:56:21.769Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":40,"time":"2026-02-11T12:56:21.770Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis unavailable - running without cache"}
+{"level":20,"time":"2026-02-11T12:56:21.770Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-11T12:56:21.893Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814581391-u7n8rj59e","method":"POST","path":"/api/v1/bookings/00000000-0000-0000-0000-000000000000/check-in","statusCode":404,"errorCode":"BOOKING_2005","isOperational":true,"userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","message":"Booking 00000000-0000-0000-0000-000000000000 not found","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:21.897Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/bookings/00000000-0000-0000-0000-000000000000/check-in","statusCode":404,"duration":"506ms","requestId":"req-1770814581391-u7n8rj59e","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic3/us3.1-checkin.test.ts[2m > [22mUS 3.1: QR Code Check-In (Simplified ΓÇö Room Code Entry)[2m > [22mPOST /api/v1/bookings/:id/check-in ΓÇö Validation[2m > [22mshould return error for non-existent booking ID[33m 511[2mms[22m[39m
+{"level":20,"time":"2026-02-11T12:56:21.974Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":40,"time":"2026-02-11T12:56:21.975Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis unavailable - running without cache"}
+{"level":20,"time":"2026-02-11T12:56:21.975Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-11T12:56:22.103Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":20,"time":"2026-02-11T12:56:22.234Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":40,"time":"2026-02-11T12:56:22.281Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814581770-uiipv8lol","method":"POST","path":"/api/v1/bookings/00000000-0000-0000-0000-000000000000/early-checkout","statusCode":404,"errorCode":"BOOKING_2005","isOperational":true,"userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","message":"Booking 00000000-0000-0000-0000-000000000000 not found","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:22.282Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/bookings/00000000-0000-0000-0000-000000000000/early-checkout","statusCode":404,"duration":"512ms","requestId":"req-1770814581770-uiipv8lol","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic3/us3.4-early-checkout.test.ts[2m > [22mUS 3.4: Early Checkout[2m > [22mPOST /api/v1/bookings/:id/early-checkout ΓÇö Validation[2m > [22mshould return proper error structure on validation failure[33m 520[2mms[22m[39m
+{"level":40,"time":"2026-02-11T12:56:22.398Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814581904-ecz54g0re","method":"POST","path":"/api/v1/bookings/not-a-valid-uuid/check-in","statusCode":404,"errorCode":"BOOKING_2005","isOperational":true,"userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","message":"Booking not-a-valid-uuid not found","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:22.399Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/bookings/not-a-valid-uuid/check-in","statusCode":404,"duration":"495ms","requestId":"req-1770814581904-ecz54g0re","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic3/us3.1-checkin.test.ts[2m > [22mUS 3.1: QR Code Check-In (Simplified ΓÇö Room Code Entry)[2m > [22mPOST /api/v1/bookings/:id/check-in ΓÇö Validation[2m > [22mshould return error for invalid booking ID format[33m 501[2mms[22m[39m
+{"level":20,"time":"2026-02-11T12:56:22.619Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":20,"time":"2026-02-11T12:56:22.734Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":40,"time":"2026-02-11T12:56:22.781Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814582288-cxwjch3dc","method":"POST","path":"/api/v1/bookings/a33689d6-ab7d-4b14-ba73-ae1ec55904b9/early-checkout","statusCode":400,"errorCode":"SYSTEM_9001","isOperational":true,"userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","message":"Can only early checkout from an active, checked-in booking","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:22.782Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/bookings/a33689d6-ab7d-4b14-ba73-ae1ec55904b9/early-checkout","statusCode":400,"duration":"494ms","requestId":"req-1770814582288-cxwjch3dc","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic3/us3.4-early-checkout.test.ts[2m > [22mUS 3.4: Early Checkout[2m > [22mPOST /api/v1/bookings/:id/early-checkout ΓÇö Business Rules[2m > [22mshould only allow checkout from active checked-in bookings[33m 498[2mms[22m[39m
+{"level":40,"time":"2026-02-11T12:56:22.894Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814582406-r5x2579iq","method":"POST","path":"/api/v1/bookings/00000000-0000-0000-0000-000000000000/check-in","statusCode":404,"errorCode":"BOOKING_2005","isOperational":true,"userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","message":"Booking 00000000-0000-0000-0000-000000000000 not found","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:22.894Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/bookings/00000000-0000-0000-0000-000000000000/check-in","statusCode":404,"duration":"488ms","requestId":"req-1770814582406-r5x2579iq","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic3/us3.1-checkin.test.ts[2m > [22mUS 3.1: QR Code Check-In (Simplified ΓÇö Room Code Entry)[2m > [22mPOST /api/v1/bookings/:id/check-in ΓÇö Response Structure[2m > [22mshould return proper error structure on failure[33m 494[2mms[22m[39m
+{"level":20,"time":"2026-02-11T12:56:23.147Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":20,"time":"2026-02-11T12:56:23.230Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":40,"time":"2026-02-11T12:56:23.334Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814582786-goqwarper","method":"POST","path":"/api/v1/bookings/a33689d6-ab7d-4b14-ba73-ae1ec55904b9/early-checkout","statusCode":400,"errorCode":"SYSTEM_9001","isOperational":true,"userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","message":"Can only early checkout from an active, checked-in booking","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:23.336Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/bookings/a33689d6-ab7d-4b14-ba73-ae1ec55904b9/early-checkout","statusCode":400,"duration":"550ms","requestId":"req-1770814582786-goqwarper","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic3/us3.4-early-checkout.test.ts[2m > [22mUS 3.4: Early Checkout[2m > [22mPOST /api/v1/bookings/:id/early-checkout ΓÇö Business Rules[2m > [22mshould return refunded credits info on successful checkout[33m 556[2mms[22m[39m
+{"level":40,"time":"2026-02-11T12:56:23.396Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814582897-p88sb933f","method":"POST","path":"/api/v1/bookings/f2f86d6d-2281-4895-91bc-f4e4656ed067/check-in","statusCode":400,"errorCode":"SYSTEM_9001","isOperational":true,"userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","message":"Check-in window has expired","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:23.397Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/bookings/f2f86d6d-2281-4895-91bc-f4e4656ed067/check-in","statusCode":400,"duration":"500ms","requestId":"req-1770814582897-p88sb933f","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic3/us3.1-checkin.test.ts[2m > [22mUS 3.1: QR Code Check-In (Simplified ΓÇö Room Code Entry)[2m > [22mPOST /api/v1/bookings/:id/check-in ΓÇö Request Format[2m > [22mshould accept qrCode field as room code identifier[33m 504[2mms[22m[39m
+{"level":20,"time":"2026-02-11T12:56:23.695Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":20,"time":"2026-02-11T12:56:23.742Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":30,"time":"2026-02-11T12:56:23.872Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/a33689d6-ab7d-4b14-ba73-ae1ec55904b9","statusCode":200,"duration":"527ms","requestId":"req-1770814583345-02x02tor2","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic3/us3.4-early-checkout.test.ts[2m > [22mUS 3.4: Early Checkout[2m > [22mEarly Checkout ΓÇö Status Verification[2m > [22mshould set booking status to COMPLETED after early checkout[33m 536[2mms[22m[39m
+{"level":40,"time":"2026-02-11T12:56:23.905Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770814583407-mbnoqub2m","method":"POST","path":"/api/v1/bookings/f2f86d6d-2281-4895-91bc-f4e4656ed067/check-in","statusCode":400,"errorCode":"SYSTEM_9001","isOperational":true,"userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","message":"Check-in window has expired","msg":"Operational error"}
+{"level":30,"time":"2026-02-11T12:56:23.906Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/bookings/f2f86d6d-2281-4895-91bc-f4e4656ed067/check-in","statusCode":400,"duration":"499ms","requestId":"req-1770814583407-mbnoqub2m","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic3/us3.1-checkin.test.ts[2m > [22mUS 3.1: QR Code Check-In (Simplified ΓÇö Room Code Entry)[2m > [22mPOST /api/v1/bookings/:id/check-in ΓÇö Request Format[2m > [22mshould accept optional latitude and longitude for location verification[33m 509[2mms[22m[39m
+npx : 
+At line:1 char:1
++ npx vitest run 
+src/__tests__/epic3/ 
+--reporter=verbose 
+2>&1 | Out-Fil ...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo   
+           : 
+NotSpecified: (:    
+String) [], 
+RemoteExc    eption
+    + 
+FullyQualifiedError  
+  Id : 
+NativeCommandErr    
+or
+ 
+[31mΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»Γ
+Ä»[39m[1m[41m 
+Failed Suites 5 [49m
+[22m[31mΓÄ»ΓÄ»ΓÄ»ΓÄ
+»ΓÄ»ΓÄ»ΓÄ»[39m
+
+[41m[1m FAIL 
+[22m[49m src/__test
+s__/epic3/us3.2-ghost
+-bookings.test.ts[2m
+ [ src/__tests__/epic
+3/us3.2-ghost-booking
+s.test.ts ][22m
+[31m[1mError[22m: 
+Failed to verify 
+test auth token: 
+Email link is 
+invalid or has 
+expired[39m
+[36m [2mΓ¥»[22m 
+getAdminToken src/__t
+ests__/setup/testSetu
+p.ts:[2m84:15[22m[
+39m
+    [90m 82| [39m
+    [90m 83| [39m  
+  [35mif[39m 
+(verifyError 
+[33m||[39m [33m![
+39mverifyData[33m?.
+[39msession[33m?.[3
+9maccess_token) {
+    [90m 84| [39m  
+      throw new 
+Error(`Failed to 
+verify test auth 
+token: ${verifyErrΓÇª
+    [90m   | [39m  
+            
+[31m^[39m
+    [90m 85| [39m  
+  }
+    [90m 86| [39m
+[90m [2mΓ¥»[22m sr
+c/__tests__/epic3/us3
+.2-ghost-bookings.tes
+t.ts:[2m27:5[22m[3
+9m
+
+[31m[2mΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[1/
+5]ΓÄ»[22m[39m
+
+[41m[1m FAIL 
+[22m[49m src/__test
+s__/epic3/us3.3-live-
+occupancy.test.ts[2m
+ [ src/__tests__/epic
+3/us3.3-live-occupanc
+y.test.ts ][22m
+[31m[1mError[22m: 
+Failed to verify 
+test auth token: 
+Email link is 
+invalid or has 
+expired[39m
+[36m [2mΓ¥»[22m 
+getAdminToken src/__t
+ests__/setup/testSetu
+p.ts:[2m84:15[22m[
+39m
+    [90m 82| [39m
+    [90m 83| [39m  
+  [35mif[39m 
+(verifyError 
+[33m||[39m [33m![
+39mverifyData[33m?.
+[39msession[33m?.[3
+9maccess_token) {
+    [90m 84| [39m  
+      throw new 
+Error(`Failed to 
+verify test auth 
+token: ${verifyErrΓÇª
+    [90m   | [39m  
+            
+[31m^[39m
+    [90m 85| [39m  
+  }
+    [90m 86| [39m
+[90m [2mΓ¥»[22m sr
+c/__tests__/epic3/us3
+.3-live-occupancy.tes
+t.ts:[2m24:5[22m[3
+9m
+
+[31m[2mΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[2/
+5]ΓÄ»[22m[39m
+
+[41m[1m FAIL 
+[22m[49m src/__test
+s__/epic3/us3.5-exten
+d-meeting.test.ts[2m
+ [ src/__tests__/epic
+3/us3.5-extend-meetin
+g.test.ts ][22m
+[31m[1mError[22m: 
+Failed to verify 
+test auth token: 
+Email link is 
+invalid or has 
+expired[39m
+[36m [2mΓ¥»[22m 
+getAdminToken src/__t
+ests__/setup/testSetu
+p.ts:[2m84:15[22m[
+39m
+    [90m 82| [39m
+    [90m 83| [39m  
+  [35mif[39m 
+(verifyError 
+[33m||[39m [33m![
+39mverifyData[33m?.
+[39msession[33m?.[3
+9maccess_token) {
+    [90m 84| [39m  
+      throw new 
+Error(`Failed to 
+verify test auth 
+token: ${verifyErrΓÇª
+    [90m   | [39m  
+            
+[31m^[39m
+    [90m 85| [39m  
+  }
+    [90m 86| [39m
+[90m [2mΓ¥»[22m sr
+c/__tests__/epic3/us3
+.5-extend-meeting.tes
+t.ts:[2m25:5[22m[3
+9m
+
+[31m[2mΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[3/
+5]ΓÄ»[22m[39m
+
+[41m[1m FAIL 
+[22m[49m src/__test
+s__/epic3/us3.7-waitl
+ist.test.ts[2m [ src
+/__tests__/epic3/us3.
+7-waitlist.test.ts 
+][22m
+[31m[1mError[22m: 
+Failed to verify 
+test auth token: 
+Email link is 
+invalid or has 
+expired[39m
+[36m [2mΓ¥»[22m 
+getAdminToken src/__t
+ests__/setup/testSetu
+p.ts:[2m84:15[22m[
+39m
+    [90m 82| [39m
+    [90m 83| [39m  
+  [35mif[39m 
+(verifyError 
+[33m||[39m [33m![
+39mverifyData[33m?.
+[39msession[33m?.[3
+9maccess_token) {
+    [90m 84| [39m  
+      throw new 
+Error(`Failed to 
+verify test auth 
+token: ${verifyErrΓÇª
+    [90m   | [39m  
+            
+[31m^[39m
+    [90m 85| [39m  
+  }
+    [90m 86| [39m
+[90m [2mΓ¥»[22m sr
+c/__tests__/epic3/us3
+.7-waitlist.test.ts:
+[2m28:5[22m[39m
+
+[31m[2mΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[4/
+5]ΓÄ»[22m[39m
+
+[41m[1m FAIL 
+[22m[49m src/__test
+s__/epic3/us3.8-check
+in-reminder.test.ts[
+2m [ src/__tests__/ep
+ic3/us3.8-checkin-rem
+inder.test.ts ][22m
+[31m[1mError[22m: 
+Failed to verify 
+test auth token: 
+Email link is 
+invalid or has 
+expired[39m
+[36m [2mΓ¥»[22m 
+getAdminToken src/__t
+ests__/setup/testSetu
+p.ts:[2m84:15[22m[
+39m
+    [90m 82| [39m
+    [90m 83| [39m  
+  [35mif[39m 
+(verifyError 
+[33m||[39m [33m![
+39mverifyData[33m?.
+[39msession[33m?.[3
+9maccess_token) {
+    [90m 84| [39m  
+      throw new 
+Error(`Failed to 
+verify test auth 
+token: ${verifyErrΓÇª
+    [90m   | [39m  
+            
+[31m^[39m
+    [90m 85| [39m  
+  }
+    [90m 86| [39m
+[90m [2mΓ¥»[22m sr
+c/__tests__/epic3/us3
+.8-checkin-reminder.t
+est.ts:[2m25:5[22m
+[39m
+
+[31m[2mΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[5/
+5]ΓÄ»[22m[39m
+
+
+[2m Test Files [22m [1m[31m5 failed[39m[22m[2m | [22m[1m[32m2 passed[39m[22m[90m (7)[39m
+[2m      Tests [22m [1m[32m13 passed[39m[22m[2m | [22m[33m41 skipped[39m[90m (54)[39m
+[2m   Start at [22m 18:26:17
+[2m   Duration [22m 6.51s[2m (transform 3.09s, setup 421ms, import 11.98s, tests 13.77s, environment 1ms)[22m
+

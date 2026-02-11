@@ -37,6 +37,10 @@ export function request() {
  */
 export async function getAdminToken(): Promise<string> {
     if (adminToken) return adminToken;
+    if (process.env.TEST_ADMIN_TOKEN) {
+        adminToken = process.env.TEST_ADMIN_TOKEN;
+        return adminToken;
+    }
 
     const res = await request()
         .post('/api/v1/auth/login')
@@ -46,6 +50,7 @@ export async function getAdminToken(): Promise<string> {
     // check if we got tokens directly (non-MFA path)
     if (res.body?.data?.tokens?.accessToken) {
         adminToken = res.body.data.tokens.accessToken;
+        process.env.TEST_ADMIN_TOKEN = adminToken;
         return adminToken;
     }
 
@@ -85,6 +90,7 @@ export async function getAdminToken(): Promise<string> {
     }
 
     adminToken = verifyData.session.access_token;
+    process.env.TEST_ADMIN_TOKEN = adminToken;
     return adminToken;
 }
 

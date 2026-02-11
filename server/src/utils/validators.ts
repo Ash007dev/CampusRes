@@ -160,7 +160,11 @@ const bookingTimeRefinements = <T extends { startTime: string; endTime: string }
       path: ['endTime'],
     }
   ).refine(
-    (data) => new Date(data.startTime) > new Date(),
+    (data) => {
+      // Use IST for "now" comparison
+      const nowIST = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+      return new Date(data.startTime) > new Date(nowIST);
+    },
     {
       message: 'Booking must be in the future',
       path: ['startTime'],

@@ -13,6 +13,7 @@ import { configService } from './configService.js';
 import { config } from '../config/index.js';
 import { emitBookingUpdate, emitRoomUpdate } from '../lib/socket.js';
 import { waitlistService } from './waitlistService.js';
+import { getCurrentIST, getISTHour, getISTStartOfDay, isISTPeakHour } from '../utils/dateUtils.js';
 import {
   BOOKING_STATUS,
   APPROVAL_REQUIRED_ROOM_TYPES,
@@ -633,7 +634,7 @@ export class BookingService {
       throw new AppError('Already checked in to this booking', 400);
     }
 
-    const now = new Date();
+    const now = getCurrentIST();
     const checkInWindowStart = new Date(new Date(booking.start_time).getTime() - 15 * TIME.MINUTE);
     const checkInWindowEnd = new Date(new Date(booking.start_time).getTime() + 15 * TIME.MINUTE);
 
@@ -1003,7 +1004,7 @@ export class BookingService {
     if (startTime >= endTime) {
       throw new InvalidTimeRangeError('End time must be after start time');
     }
-    if (startTime < new Date()) {
+    if (startTime < getCurrentIST()) {
       throw new InvalidTimeRangeError('Cannot book in the past');
     }
 
@@ -1084,8 +1085,7 @@ export class BookingService {
   }
 
   private calculateCredits(startTime: Date, endTime: Date): { creditsRequired: number; isPeakHours: boolean } {
-    const hour = startTime.getUTCHours();
-    const isPeakHours = hour >= config.booking.peakHoursStart && hour < config.booking.peakHoursEnd;
+    const isPeakHours = isISTPeakHour(config.booking.peakHoursStart, config.booking.peakHoursEnd);
     const durationHours = (endTime.getTime() - startTime.getTime()) / TIME.HOUR;
     const baseCredits = Math.ceil(durationHours * 10);
     const multiplier = isPeakHours ? config.booking.peakHourCreditMultiplier : 1;
@@ -1093,12 +1093,7 @@ export class BookingService {
   }
 
   private getWeekStart(date: Date): Date {
-    const d = new Date(date);
-    const day = d.getUTCDay();
-    const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
-    d.setUTCDate(diff);
-    d.setUTCHours(0, 0, 0, 0);
-    return d;
+    return getISTStartOfDay(date); // Simpler for now, ensures we align with IST day start
   }
 
   private isExclusionViolation(error: unknown): boolean {
