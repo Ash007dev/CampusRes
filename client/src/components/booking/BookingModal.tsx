@@ -4,7 +4,6 @@ import * as React from "react";
 import { useState, useCallback } from "react";
 import { format, addHours } from "date-fns";
 import { CalendarIcon, Clock, Repeat, AlertCircle, CheckCircle, Loader2, User, Copy, Check } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
