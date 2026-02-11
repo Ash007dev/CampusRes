@@ -1,0 +1,43 @@
+﻿
+> @campus/server@1.0.0 npx
+> vitest run src/__tests__/epic5/us5.2-amenities.test.ts
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/Ashish/Downloads/L2_SE/server[39m
+
+{"level":20,"time":"2026-02-10T21:23:08.321Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T21:23:08.322Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-10T21:23:08.322Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis not available - caching disabled"}
+{"level":20,"time":"2026-02-10T21:23:09.140Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T21:23:09.140Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":30,"time":"2026-02-10T21:23:09.226Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","msg":"Login initiation - validating credentials"}
+{"level":40,"time":"2026-02-10T21:23:09.867Z","service":"campus-resource-engine","version":"1.0.0","env":"test","email":"ashish007tup@gmail.com","error":"Invalid login credentials","msg":"Login failed - invalid credentials"}
+{"level":40,"time":"2026-02-10T21:23:09.869Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770758589225-zmxfsqjdw","method":"POST","path":"/api/v1/auth/login","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"Invalid email or password","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T21:23:09.879Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/auth/login","statusCode":401,"duration":"654ms","requestId":"req-1770758589225-zmxfsqjdw","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:23:10.149Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T21:23:10.149Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":30,"time":"2026-02-10T21:23:10.537Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/","statusCode":200,"duration":"216ms","requestId":"req-1770758590321-yc6g73z76","msg":"Request completed"}
+{"level":40,"time":"2026-02-10T21:23:10.551Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770758590549-33xw21k6f","method":"PATCH","path":"/api/v1/rooms/cmkedhve8000g14m3gtzyakl0","statusCode":401,"errorCode":"AUTH_1001","isOperational":true,"message":"No authentication token provided","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T21:23:10.554Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"PATCH","path":"/api/v1/rooms/cmkedhve8000g14m3gtzyakl0","statusCode":401,"duration":"4ms","requestId":"req-1770758590549-33xw21k6f","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:23:10.926Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":20,"time":"2026-02-10T21:23:11.346Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{},"key":"room:details:cmkedhve8000g14m3gtzyakl0","msg":"Cache set error"}
+{"level":30,"time":"2026-02-10T21:23:11.347Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"PATCH","path":"/cmkedhve8000g14m3gtzyakl0","statusCode":200,"duration":"785ms","requestId":"req-1770758590562-wii7uvrxa","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:23:11.355Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{},"key":"room:details:cmkedhve8000g14m3gtzyakl0","msg":"Cache get error"}
+{"level":20,"time":"2026-02-10T21:23:11.540Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{},"key":"room:details:cmkedhve8000g14m3gtzyakl0","msg":"Cache set error"}
+{"level":30,"time":"2026-02-10T21:23:11.541Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/cmkedhve8000g14m3gtzyakl0","statusCode":200,"duration":"186ms","requestId":"req-1770758591355-86glvvxch","msg":"Request completed"}
+{"level":20,"time":"2026-02-10T21:23:11.664Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":40,"time":"2026-02-10T21:23:11.665Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis unavailable - running without cache"}
+{"level":20,"time":"2026-02-10T21:23:11.665Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-10T21:23:11.901Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":20,"time":"2026-02-10T21:23:12.260Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{},"key":"room:details:cmkedhve8000g14m3gtzyakl0","msg":"Cache set error"}
+{"level":30,"time":"2026-02-10T21:23:12.262Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"PATCH","path":"/cmkedhve8000g14m3gtzyakl0","statusCode":200,"duration":"714ms","requestId":"req-1770758591548-fzee2pka1","msg":"Request completed"}
+{"level":30,"time":"2026-02-10T21:23:12.455Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/","statusCode":200,"duration":"186ms","requestId":"req-1770758592269-50ad9ufeh","msg":"Request completed"}
+ [32mΓ£ô[39m src/__tests__/epic5/us5.2-amenities.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 3316[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should update amenities on a room [33m 792[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should allow toggling individual amenities [33m 720[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+[2m   Start at [22m 02:53:07
+[2m   Duration [22m 5.42s[2m (transform 609ms, setup 74ms, import 1.78s, tests 3.32s, environment 0ms)[22m
+

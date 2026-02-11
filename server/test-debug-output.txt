@@ -1,0 +1,71 @@
+﻿
+> @campus/server@1.0.0 npx
+> vitest run src/__tests__/epic5/debug-room.test.ts --reporter=verbose
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/Ashish/Downloads/L2_SE/server[39m
+
+{"level":20,"time":"2026-02-10T18:49:05.869Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T18:49:05.870Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":40,"time":"2026-02-10T18:49:05.870Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis not available - caching disabled"}
+{"level":20,"time":"2026-02-10T18:49:06.634Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T18:49:06.635Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":20,"time":"2026-02-10T18:49:07.653Z","service":"campus-resource-engine","version":"1.0.0","env":"test","error":{"code":"ECONNREFUSED"},"msg":"Redis client error (optional service)"}
+{"level":20,"time":"2026-02-10T18:49:07.653Z","service":"campus-resource-engine","version":"1.0.0","env":"test","msg":"Redis connection closed"}
+{"level":30,"time":"2026-02-10T18:49:08.300Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"GET","path":"/","statusCode":200,"duration":"439ms","requestId":"req-1770749347861-wqn9krfq1","msg":"Request completed"}
+[90mstdout[2m | src/__tests__/epic5/debug-room.test.ts[2m > [22m[2mDEBUG ΓÇö Room Creation[2m > [22m[2mshould show the error response from room creation
+[22m[39mROOMS RESPONSE: {
+  "success": true,
+  "data": [
+    {
+      "id": "cmkcomayt000o14kzpo72tm5z",
+      "name": "Meeting Room 2",
+      "code": "MR-02",
+      "description": "Small meeting room",
+      "capacity": 8,
+      "floor": 2,
+      "building": "Building B",
+      "amenities": {
+        "ac": true,
+        "wifi": true,
+        "projector": true,
+        "microphone": true,
+        "whiteboard": true
+      },
+      "room_type": "meeting_room",
+      "is_maintenance": false,
+      "is_active": true,
+      
+DEPARTMENT ID: cmkcom1f0000014kz1tmgn2ch
+
+{"level":20,"time":"2026-02-10T18:49:09.011Z","service":"campus-resource-engine","version":"1.0.0","env":"test","userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","role":"ADMIN","msg":"User authenticated via Supabase"}
+{"level":20,"time":"2026-02-10T18:49:09.016Z","service":"campus-resource-engine","version":"1.0.0","env":"test","property":"body","errors":{"code":["String must contain at most 20 character(s)"],"roomType":["Invalid enum value. Expected 'classroom' | 'lab' | 'auditorium' | 'meeting_room' | 'conference_hall', received 'CLASSROOM'"]},"received":{"name":"Debug Room DBG-1770749348310-is8ei","code":"DBG-1770749348310-is8ei","capacity":30,"floor":2,"building":"Test Building","roomType":"CLASSROOM","departmentId":"cmkcom1f0000014kz1tmgn2ch","amenities":{"projector":true,"ac":true,"whiteboard":true}},"msg":"Validation failed"}
+{"level":40,"time":"2026-02-10T18:49:09.017Z","service":"campus-resource-engine","version":"1.0.0","env":"test","requestId":"req-1770749348339-lqbtsliu2","method":"POST","path":"/api/v1/rooms","statusCode":400,"errorCode":"VALIDATION_6001","isOperational":true,"userId":"0d442eb3-c1e9-49bd-b111-87cf03aa8968","message":"Validation failed","msg":"Operational error"}
+{"level":30,"time":"2026-02-10T18:49:09.022Z","service":"campus-resource-engine","version":"1.0.0","env":"test","method":"POST","path":"/api/v1/rooms","statusCode":400,"duration":"683ms","requestId":"req-1770749348339-lqbtsliu2","msg":"Request completed"}
+[90mstdout[2m | src/__tests__/epic5/debug-room.test.ts[2m > [22m[2mDEBUG ΓÇö Room Creation[2m > [22m[2mshould show the error response from room creation
+[22m[39mCREATE ROOM STATUS: [33m400[39m
+CREATE ROOM BODY: {
+  "success": false,
+  "error": {
+    "message": "Validation failed",
+    "code": "VALIDATION_6001",
+    "details": {
+      "code": [
+        "String must contain at most 20 character(s)"
+      ],
+      "roomType": [
+        "Invalid enum value. Expected 'classroom' | 'lab' | 'auditorium' | 'meeting_room' | 'conference_hall', received 'CLASSROOM'"
+      ]
+    },
+    "stack": "Error: Validation failed\n    at C:/Users/Ashish/Downloads/L2_SE/server/src/middleware/validation.ts:75:14\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+  },
+  "requestId": "req-1770749348339-lqbtsliu2"
+}
+
+ [32mΓ£ô[39m src/__tests__/epic5/debug-room.test.ts[2m > [22mDEBUG ΓÇö Room Creation[2m > [22mshould show the error response from room creation[33m 1189[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m   Start at [22m 00:19:04
+[2m   Duration [22m 4.65s[2m (transform 672ms, setup 0ms, import 1.97s, tests 2.38s, environment 0ms)[22m
+

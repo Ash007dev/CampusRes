@@ -10,6 +10,7 @@
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:epic5": "vitest run src/__tests__/epic5/",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "seed": "tsx scripts/seed.ts",

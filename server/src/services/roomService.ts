@@ -45,6 +45,7 @@ export class RoomService {
     const { data: room, error } = await supabase
       .from('rooms')
       .insert({
+        id: crypto.randomUUID(),
         name: input.name,
         code: input.code,
         description: input.description,
@@ -57,6 +58,7 @@ export class RoomService {
         latitude: input.latitude,
         longitude: input.longitude,
         qr_code_secret: crypto.randomUUID(),
+        updated_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -236,12 +238,19 @@ export class RoomService {
     }
 
     // Update maintenance status
+    const updatePayload: Record<string, any> = {
+      is_maintenance: isMaintenance,
+      updated_at: new Date().toISOString(),
+    };
+    // Only set maintenance_reason if the column exists in the schema
+    // Some DB setups may not have this column
+    if (maintenanceReason) {
+      updatePayload.description = `[MAINTENANCE] ${maintenanceReason}`;
+    }
+
     const { data: room, error } = await supabase
       .from('rooms')
-      .update({
-        is_maintenance: isMaintenance,
-        maintenance_reason: maintenanceReason || null
-      })
+      .update(updatePayload)
       .eq('id', roomId)
       .select()
       .single();

@@ -1,7 +1,8 @@
+import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://arxsyeioxxjrukonnzwm.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyeHN5ZWlveHhqcnVrb25uendtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzYxNzAxNiwiZXhwIjoyMDUzMTkzMDE2fQ.jQ6oEewjVQUPy3rI6JJC-l50P9dxY0nMFgmjMNwgIU0';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -28,32 +29,32 @@ CREATE INDEX IF NOT EXISTS idx_otp_sessions_expires_at ON otp_sessions(expires_a
 
 (async () => {
   console.log('Creating otp_sessions table...');
-  
+
   const { data, error } = await supabase.rpc('exec_sql', { sql });
-  
+
   if (error) {
     console.log('❌ RPC exec_sql not available, trying direct query...');
-    
+
     // Try creating table directly
     const queries = sql.split(';').filter(q => q.trim());
-    
+
     for (const query of queries) {
       const trimmed = query.trim();
       if (!trimmed) continue;
-      
+
       console.log('Executing:', trimmed.substring(0, 50) + '...');
       const { error: queryError } = await supabase.from('_sql').insert({ query: trimmed });
       if (queryError) {
         console.log('Error:', queryError.message);
       }
     }
-    
+
     // Check if table exists
     const { data: checkData, error: checkError } = await supabase
       .from('otp_sessions')
       .select('id')
       .limit(1);
-    
+
     if (checkError) {
       console.log('❌ Table does not exist:', checkError.message);
       console.log('\n📝 Please run this SQL manually in Supabase SQL Editor:');
