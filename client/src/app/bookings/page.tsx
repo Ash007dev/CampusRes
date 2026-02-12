@@ -432,7 +432,7 @@ export default function BookingsPage() {
                                     const floor = booking.room?.floor || "1";
                                     const now = new Date();
                                     const isUpcoming = isValidDate && startTime >= now;
-                                    const canCancel = isUpcoming && booking.status === "CONFIRMED";
+                                    const canCancel = isUpcoming && booking.status === "CONFIRMED" && booking.checkInStatus !== "CHECKED_IN";
 
                                     // US 3.2: Check-in window - 15 min before start until end of booking
                                     const checkInWindowStart = isValidDate ? new Date(startTime.getTime() - 15 * 60 * 1000) : null;
@@ -447,8 +447,7 @@ export default function BookingsPage() {
                                     // US 3.4: Early checkout - booking is active if checked in and currently in progress
                                     const isActiveBooking = isValidDate &&
                                         booking.checkInStatus === "CHECKED_IN" &&
-                                        startTime <= now &&
-                                        endTime > now;
+                                        now < endTime;
                                     const canEarlyCheckout = isActiveBooking;
                                     // US 3.5: Extend meeting - can extend active bookings by 15 minutes
                                     const canExtend = isActiveBooking;

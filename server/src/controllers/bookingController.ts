@@ -12,6 +12,7 @@ import { bookingService } from '../services/bookingService.js';
 import { asyncHandler, type AuthenticatedRequest } from '../middleware/index.js';
 import { HTTP_STATUS } from '../config/constants.js';
 import { logger } from '../config/logger.js';
+import { istToUtc } from '../utils/dateUtils.js';
 import type {
   CreateBookingInput,
   CreateRecurringBookingInput,
@@ -101,8 +102,8 @@ export const bookingController = {
 
     const result = await bookingService.getUserBookings(authReq.user.userId, {
       status: query.status as any,
-      startDate: query.startDate ? new Date(query.startDate) : undefined,
-      endDate: query.endDate ? new Date(query.endDate) : undefined,
+      startDate: query.startDate ? istToUtc(query.startDate as unknown as string) : undefined,
+      endDate: query.endDate ? istToUtc(query.endDate as unknown as string) : undefined,
       page: query.page,
       limit: query.limit,
     });
@@ -225,8 +226,8 @@ export const bookingController = {
 
     const result = await bookingService.getAllBookings({
       status: query.status as any,
-      startDate: query.startDate ? new Date(query.startDate) : undefined,
-      endDate: query.endDate ? new Date(query.endDate) : undefined,
+      startDate: query.startDate ? istToUtc(query.startDate as unknown as string) : undefined,
+      endDate: query.endDate ? istToUtc(query.endDate as unknown as string) : undefined,
       page: query.page,
       limit: query.limit,
     });
@@ -302,8 +303,8 @@ export const bookingController = {
     const booking = await bookingService.rescheduleBooking(
       id,
       authReq.user.userId,
-      new Date(startTime),
-      new Date(endTime)
+      startTime,
+      endTime
     );
 
     res.json({
@@ -321,8 +322,8 @@ export const bookingController = {
     const query = req.query as { startDate?: string; endDate?: string };
 
     const result = await bookingService.getAllBookings({
-      startDate: query.startDate ? new Date(query.startDate) : undefined,
-      endDate: query.endDate ? new Date(query.endDate) : undefined,
+      startDate: query.startDate ? istToUtc(query.startDate) : undefined,
+      endDate: query.endDate ? istToUtc(query.endDate) : undefined,
       page: 1,
       limit: 500, // Get more bookings for calendar view
     });

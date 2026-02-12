@@ -14,6 +14,7 @@
 
 import { z } from 'zod';
 import { BOOKING_STATUS, USER_ROLES, ROOM_TYPES } from '../config/constants.js';
+import { istToUtc } from './dateUtils.js';
 
 /**
  * =============================================================================
@@ -33,7 +34,7 @@ export const dateTimeSchema = z.coerce.date();
 /**
  * ISO 8601 datetime string validation
  */
-export const isoDateTimeSchema = z.string().datetime({ offset: true });
+export const isoDateTimeSchema = z.string(); // Permissive to allow naive IST strings from client
 
 /**
  * =============================================================================
@@ -154,16 +155,15 @@ const bookingBaseFields = {
 // Refinement functions
 const bookingTimeRefinements = <T extends { startTime: string; endTime: string }>(schema: z.ZodType<T>) =>
   schema.refine(
-    (data) => new Date(data.startTime) < new Date(data.endTime),
+    (data) => istToUtc(data.startTime) < istToUtc(data.endTime),
     {
       message: 'End time must be after start time',
       path: ['endTime'],
     }
   ).refine(
     (data) => {
-      // Use IST for "now" comparison
-      const nowIST = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
-      return new Date(data.startTime) > new Date(nowIST);
+      // Compare with current UTC time
+      return istToUtc(data.startTime) > new Date();
     },
     {
       message: 'Booking must be in the future',

@@ -76,7 +76,8 @@ const getEventStyle = (event: BookingEvent) => {
     display: "block",
     fontSize: "0.75rem",
     padding: "4px 6px",
-    border: "1px solid",
+    borderWidth: "1px",
+    borderStyle: "solid",
     fontWeight: "500",
   };
 

@@ -12,6 +12,7 @@ import { logger } from '../config/logger.js';
 import { getCache, setCache } from '../lib/redis.js';
 import { RoomNotFoundError } from '../utils/errors.js';
 import { CACHE } from '../config/constants.js';
+import { parseDbDate } from '../utils/dateUtils.js';
 import type { CreateRoomInput, RoomQueryInput } from '../utils/validators.js';
 
 interface Room {
@@ -380,8 +381,8 @@ export class RoomService {
 
       // Find active booking (started and not ended)
       const activeBooking = roomBookings.find((b: any) => {
-        const startTime = new Date(b.start_time);
-        const endTime = new Date(b.end_time);
+        const startTime = parseDbDate(b.start_time);
+        const endTime = parseDbDate(b.end_time);
         return startTime <= now && endTime > now;
       });
 
@@ -407,11 +408,11 @@ export class RoomService {
       let nextBookingInHours: number | undefined = undefined;
       if (availabilityStatus === 'AVAILABLE') {
         const futureBooking = roomBookings
-          .filter((b: any) => new Date(b.start_time) > now)
-          .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0];
+          .filter((b: any) => parseDbDate(b.start_time) > now)
+          .sort((a: any, b: any) => parseDbDate(a.start_time).getTime() - parseDbDate(b.start_time).getTime())[0];
 
         if (futureBooking) {
-          const hoursUntilNext = (new Date(futureBooking.start_time).getTime() - now.getTime()) / (1000 * 60 * 60);
+          const hoursUntilNext = (parseDbDate(futureBooking.start_time).getTime() - now.getTime()) / (1000 * 60 * 60);
           nextBookingInHours = Math.round(hoursUntilNext * 10) / 10;
         }
       }

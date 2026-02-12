@@ -77,3 +77,18 @@ export function istToUtc(dateStr: string): Date {
     }
     return new Date(dateStr);
 }
+
+/**
+ * Parse a date string from the database.
+ * Since our database uses 'timestamp without time zone', we must manually
+ * ensure that the date is interpreted as UTC (as stored by .toISOString()).
+ */
+export function parseDbDate(dateStr: string | Date): Date {
+    if (!dateStr) return new Date();
+    if (dateStr instanceof Date) return dateStr;
+
+    if (typeof dateStr === 'string' && !dateStr.includes('Z') && !dateStr.includes('+')) {
+        return new Date(dateStr + 'Z');
+    }
+    return new Date(dateStr);
+}
