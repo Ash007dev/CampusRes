@@ -27,12 +27,13 @@
 - [x] Extend booking
 - [x] Booking status tracking (PENDING, APPROVED, CHECKED_IN, COMPLETED, CANCELLED)
 
-## Epic 4: Admin Features ✅
+## Epic 4: Admin Features ✅ (Tests Verified)
 - [x] Booking approvals
 - [x] Audit logs with activity tracking
 - [x] User management
 - [x] Room management (CRUD)
 - [x] Quota management
+- [x] **Unit Testing (7/7 Passed in Vitest)**
 
 ## Epic 5: System Configuration ✅
 - [x] US 5.1: Manage Rooms (Admin CRUD)
