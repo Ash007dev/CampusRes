@@ -55,7 +55,7 @@ const registerSchema = z
       ),
     confirmPassword: z.string(),
     role: z.enum(["STUDENT", "FACULTY"]),
-    departmentId: z.string().optional(),
+    departmentId: z.string().min(1, "Please select your department"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -235,9 +235,8 @@ export function RegisterForm({
               )}
             </div>
 
-            {/* Department Selection */}
             <div className="space-y-2">
-              <Label>Department</Label>
+              <Label>Department *</Label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none z-10" />
                 <Select
@@ -255,6 +254,9 @@ export function RegisterForm({
                   </SelectContent>
                 </Select>
               </div>
+              {errors.departmentId && (
+                <p className="text-sm text-destructive">{errors.departmentId.message}</p>
+              )}
             </div>
 
             {/* Password Field */}
@@ -289,8 +291,8 @@ export function RegisterForm({
                       <div
                         key={i}
                         className={`h-1 flex-1 rounded-full transition-colors ${i < passwordStrength
-                            ? strengthColors[passwordStrength - 1]
-                            : "bg-muted"
+                          ? strengthColors[passwordStrength - 1]
+                          : "bg-muted"
                           }`}
                       />
                     ))}

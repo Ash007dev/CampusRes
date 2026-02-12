@@ -156,15 +156,24 @@ export class AuthService {
       throw new AppError('Failed to create user profile', 500);
     }
 
-    // Sign in to get tokens
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: input.email,
-      password: input.password,
-    });
+    // Sign in to get tokens (best-effort — if this fails, user can login manually)
+    let accessToken = '';
+    let refreshToken = '';
 
-    if (signInError || !signInData.session) {
-      logger.error({ error: signInError }, 'Failed to sign in after registration');
-      throw new AppError('Registration successful but login failed', 500);
+    try {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: input.email,
+        password: input.password,
+      });
+
+      if (!signInError && signInData.session) {
+        accessToken = signInData.session.access_token;
+        refreshToken = signInData.session.refresh_token || '';
+      } else {
+        logger.warn({ error: signInError }, 'Auto-login failed after registration — user must login manually');
+      }
+    } catch (loginErr) {
+      logger.warn({ error: loginErr }, 'Auto-login failed after registration');
     }
 
     // Audit log
@@ -187,8 +196,8 @@ export class AuthService {
         departmentName: departmentName,
       },
       tokens: {
-        accessToken: signInData.session.access_token,
-        refreshToken: signInData.session.refresh_token,
+        accessToken,
+        refreshToken,
       },
     };
   }

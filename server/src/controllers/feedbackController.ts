@@ -12,8 +12,10 @@ import { asyncHandler } from '../middleware/errorHandler.js';
 
 interface AuthenticatedRequest extends Request {
   user?: {
-    id: string;
+    userId: string;
+    email: string;
     role: string;
+    departmentId: string;
   };
 }
 
@@ -73,7 +75,7 @@ export const feedbackController = {
    * POST /api/v1/feedback
    */
   createFeedback: asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const { roomId, bookingId, category, title, description, priority } = req.body;
 
     const feedback = await feedbackService.createFeedback(userId, {
@@ -98,7 +100,7 @@ export const feedbackController = {
    */
   updateFeedback: asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
-    const adminId = req.user!.id;
+    const adminId = req.user!.userId;
     const { status, priority, adminNotes } = req.body;
 
     const feedback = await feedbackService.updateFeedback(id, adminId, {
@@ -147,7 +149,7 @@ export const feedbackController = {
    * GET /api/v1/feedback/my
    */
   getMyFeedback: asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     const feedback = await feedbackService.getUserFeedback(userId);
 
