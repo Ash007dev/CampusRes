@@ -49,33 +49,10 @@ function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
 }
 
-/**
- * Check if a string looks like a timestamp (ISO 8601 format)
- * and ensure it has UTC timezone indicator
- */
-function ensureUTCTimestamp(value: any): any {
-  if (typeof value !== 'string') return value;
-
-  // Match ISO 8601 date-time format without timezone: YYYY-MM-DDTHH:MM:SS or YYYY-MM-DDTHH:MM:SS.sss
-  // But NOT if it already has a timezone (Z, +00:00, etc.)
-  const isoDateTimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/;
-
-  if (isoDateTimeRegex.test(value)) {
-    // Append 'Z' to indicate UTC timezone
-    return value + 'Z';
-  }
-
-  return value;
-}
-
-/**
- * Recursively transform object keys from snake_case to camelCase
- * Also ensures timestamps are properly formatted as UTC
- */
 function transformKeys(obj: any): any {
   if (obj === null || obj === undefined) return obj;
   if (Array.isArray(obj)) return obj.map(transformKeys);
-  if (typeof obj !== 'object') return ensureUTCTimestamp(obj);
+  if (typeof obj !== 'object') return obj;
 
   const transformed: any = {};
   for (const key in obj) {

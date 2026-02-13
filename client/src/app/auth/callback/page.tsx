@@ -1,85 +1,104 @@
 "use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { authApi } from '@/lib/api';
 
 export default function AuthCallback() {
-  const router = useRouter();
+  const [status, setStatus] = useState('Completing sign in...');
+  const handled = useRef(false);
 
   useEffect(() => {
-    const handleCallback = async () => {
+    const handleOAuthCallback = async () => {
+      if (handled.current) return;
+      handled.current = true;
+
       try {
-        // Get the session from the URL
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Implicit flow: Supabase returns #access_token=...&refresh_token=... in hash
+        const hashParams = new URLSearchParams(
+          window.location.hash.substring(1)
+        );
 
-        if (error) throw error;
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
 
-        if (session) {
-          const user = session.user;
-          
-          // Check if user exists in public.users table
-          const { data: existingUser } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-
-          // If user doesn't exist in public.users, create them
-          if (!existingUser) {
-            // Extract name from metadata or email
-            const firstName = user.user_metadata?.full_name?.split(' ')[0] || 
-                            user.email?.split('@')[0] || 'User';
-            const lastName = user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '';
-
-            await supabase
-              .from('users')
-              .insert({
-                id: user.id,
-                email: user.email,
-                firstName: firstName,
-                lastName: lastName,
-                role: 'STUDENT', // Default role for OAuth users
-                reputationScore: 100,
-                weeklyQuota: 10,
-                weeklyUsage: 0,
-              });
-          }
-
-          // Store the session token for our backend
-          const accessToken = session.access_token;
-          localStorage.setItem('accessToken', accessToken);
-          localStorage.setItem('user', JSON.stringify({
-            id: user.id,
-            email: user.email,
-            name: user.user_metadata?.full_name || user.email,
-            role: existingUser?.role || 'STUDENT',
-            reputationScore: existingUser?.reputationScore || 100,
-          }));
-
-          document.cookie = `accessToken=${accessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-
-          // Redirect to dashboard
-          router.push('/dashboard');
-        } else {
-          // No session, redirect to login
-          router.push('/auth/login?error=oauth_failed');
+        if (!accessToken) {
+          console.error('[OAuth Callback] No access_token in URL hash');
+          window.location.replace('/auth/login?error=no_tokens');
+          return;
         }
+
+        // Decode the JWT payload to get user info (no API call needed)
+        const payload = JSON.parse(atob(accessToken.split('.')[1]));
+        const userId = payload.sub;
+        const email = payload.email;
+        const metadata = payload.user_metadata || {};
+        const fullName = metadata.full_name || metadata.name || email?.split('@')[0] || 'User';
+
+        console.log('[OAuth Callback] Logged in as:', email);
+        setStatus('Setting up your account...');
+
+        // Ensure user exists in public.users table
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id, role, reputation_score')
+          .eq('id', userId)
+          .single();
+
+        if (!existingUser) {
+          const firstName = metadata.first_name || fullName.split(' ')[0];
+          const lastName = metadata.last_name || fullName.split(' ').slice(1).join(' ') || '';
+
+          await supabase.from('users').insert({
+            id: userId,
+            email: email,
+            first_name: firstName,
+            last_name: lastName,
+            role: 'STUDENT',
+            reputation_score: 100,
+            credits_balance: 100,
+            quota_limit_hours: 10,
+            is_active: true,
+            email_verified: true,
+            no_show_count: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+        }
+
+        // Store token and user info for our app
+        localStorage.setItem('accessToken', accessToken);
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken);
+        }
+        localStorage.setItem('user', JSON.stringify({
+          id: userId,
+          email: email,
+          name: fullName,
+          role: existingUser?.role || 'STUDENT',
+          reputationScore: existingUser?.reputation_score || 100,
+        }));
+
+        // Set cookie for Next.js middleware
+        document.cookie = `accessToken=${accessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+
+        setStatus('Redirecting to dashboard...');
+        window.location.replace('/dashboard');
+
       } catch (error) {
-        console.error('OAuth callback error:', error);
-        router.push('/auth/login?error=oauth_error');
+        console.error('[OAuth Callback] Error:', error);
+        setStatus('Something went wrong...');
+        setTimeout(() => window.location.replace('/auth/login?error=oauth_error'), 2000);
       }
     };
 
-    handleCallback();
-  }, [router]);
+    handleOAuthCallback();
+  }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="text-center">
         <div className="mx-auto h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-        <p className="mt-4 text-muted-foreground">Completing sign in...</p>
+        <p className="mt-4 text-muted-foreground">{status}</p>
       </div>
     </div>
   );

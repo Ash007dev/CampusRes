@@ -39,7 +39,6 @@ interface AuthResult {
     role: string;
     departmentId: string | null;
     departmentName: string | null;
-    reputationScore?: number;
   };
   tokens: {
     accessToken: string;
@@ -91,25 +90,24 @@ export class AuthService {
     // Get department ID if code provided
     let departmentId: string | null = null;
     let departmentName: string | null = null;
-    logger.debug({ departmentCode: input.departmentCode }, 'Looking up department');
-    const { data: dept } = await supabase
-      .from('departments')
-      .select('id, name')
-      .eq('code', input.departmentCode)
-      .single();
+    if (input.departmentCode) {
+      const { data: dept } = await supabase
+        .from('departments')
+        .select('id, name')
+        .eq('code', input.departmentCode)
+        .single();
 
-    if (dept) {
-      logger.info({ deptId: dept.id, deptName: dept.name }, 'Found department');
-      departmentId = dept.id;
-      departmentName = dept.name;
-    } else {
-      logger.warn({ departmentCode: input.departmentCode }, 'Department not found');
+      if (dept) {
+        departmentId = dept.id;
+        departmentName = dept.name;
+      }
     }
+
     // Create user in Supabase Auth using admin API
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: input.email,
       password: input.password,
-      email_confirm: true, // Mark email as confirmed immediately to allow login
+      email_confirm: false, // Require email confirmation for security
       user_metadata: {
         first_name: input.firstName,
         last_name: input.lastName,
@@ -145,7 +143,6 @@ export class AuthService {
         last_name: input.lastName,
         role: input.role || 'STUDENT',
         department_id: departmentId,
-        credits_balance: input.role === 'FACULTY' ? 500 : 200, // Initial credits
         created_at: now,
         updated_at: now,
       })
@@ -159,71 +156,50 @@ export class AuthService {
       throw new AppError('Failed to create user profile', 500);
     }
 
-    // Sign in to get tokens (optional/best-effort after registration)
+    // Sign in to get tokens (best-effort — if this fails, user can login manually)
+    let accessToken = '';
+    let refreshToken = '';
+
     try {
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: input.email,
         password: input.password,
       });
 
-      // Audit log
-      await supabase.from('audit_logs').insert({
-        action: 'CREATE',
-        entity_type: 'user',
-        entity_id: user.id,
-        performed_by_id: user.id,
-        new_state: { email: user.email, role: user.role },
-      });
-
-      if (signInError || !signInData.session) {
-        logger.warn({ email: input.email, error: signInError?.message }, 'Auto-login after registration failed');
-        return {
-          user: {
-            id: user.id,
-            email: user.email,
-            firstName: user.first_name,
-            lastName: user.last_name,
-            role: user.role as any,
-            departmentId: user.department_id || null,
-            departmentName: departmentName || null,
-            reputationScore: (user as any).reputation_score || 0,
-          },
-          tokens: { accessToken: '', refreshToken: '', expiresIn: 0 } as any,
-        };
+      if (!signInError && signInData.session) {
+        accessToken = signInData.session.access_token;
+        refreshToken = signInData.session.refresh_token || '';
+      } else {
+        logger.warn({ error: signInError }, 'Auto-login failed after registration — user must login manually');
       }
-
-      return {
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          role: user.role as any,
-          departmentId: user.department_id || null,
-          departmentName: departmentName || null,
-          reputationScore: (user as any).reputation_score || 0,
-        },
-        tokens: {
-          accessToken: signInData.session.access_token,
-          refreshToken: signInData.session.refresh_token || '',
-          expiresIn: signInData.session.expires_in || 3600,
-        } as any,
-      };
-    } catch (err) {
-      logger.warn({ err }, 'Error during auto-login after register');
-      return {
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          role: user.role as any,
-          departmentId: user.department_id || null,
-          departmentName: departmentName || null,
-        },
-        tokens: { accessToken: '', refreshToken: '', expiresIn: 0 } as any
-      };
+    } catch (loginErr) {
+      logger.warn({ error: loginErr }, 'Auto-login failed after registration');
     }
+
+    // Audit log
+    await supabase.from('audit_logs').insert({
+      action: 'CREATE',
+      entity_type: 'user',
+      entity_id: user.id,
+      performed_by_id: user.id,
+      new_state: { email: user.email, role: user.role },
+    });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        departmentId: user.department_id,
+        departmentName: departmentName,
+      },
+      tokens: {
+        accessToken,
+        refreshToken,
+      },
+    };
   }
 
   /**

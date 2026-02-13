@@ -45,3 +45,11 @@ prisma/
 
 # Debug
 .env.debug
+
+# Generated docs & temp files
+API_ENDPOINTS.md
+EPIC5_TESTING_EXPLANATION.md
+auth_files.txt
+oauth_debug.txt
+*.txt
+!README.txt
