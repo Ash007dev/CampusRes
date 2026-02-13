@@ -66,7 +66,7 @@ vi.mock('../emailService.js', () => ({
 }));
 
 // ─── Import after mocks ────────────────────────────────────────────────────
-import { BookingService } from '../bookingService.js';
+import { BookingService } from '../../services/bookingService.js';
 
 // ─── Helper to build Supabase chain ─────────────────────────────────────────
 function setupSupabaseMock(booking: any | null, updateResult?: any) {

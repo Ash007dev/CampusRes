@@ -47,7 +47,7 @@ jest.mock('../../services/emailService.js', () => ({
 }));
 
 // Import the service after mocks
-import { bookingService } from '../bookingService.js';
+import { bookingService } from '../../services/bookingService.js';
 
 describe('Approval Workflow Unit Tests', () => {
     const userId = 'user-123';
