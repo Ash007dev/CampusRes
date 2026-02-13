@@ -11,14 +11,17 @@ import { supabase } from '../lib/supabase.js';
 import { logger } from '../config/logger.js';
 import { AppError } from '../utils/errors.js';
 import { emitWaitlistUpdate } from '../lib/socket.js';
+import { istToUtc, parseDbDate } from '../utils/dateUtils.js';
 
 export class WaitlistService {
     async joinWaitlist(
         userId: string,
         roomId: string,
-        desiredStartTime: Date,
-        desiredEndTime: Date
+        desiredStartTimeStr: string,
+        desiredEndTimeStr: string
     ): Promise<{ id: string; position: number }> {
+        const desiredStartTime = istToUtc(desiredStartTimeStr);
+        const desiredEndTime = istToUtc(desiredEndTimeStr);
         logger.info({ userId, roomId, desiredStartTime, desiredEndTime }, 'Joining waitlist');
 
         const { data: existing } = await supabase
@@ -139,10 +142,10 @@ export class WaitlistService {
                 id: e.id,
                 roomId: e.room_id,
                 roomName: e.rooms?.name || 'Unknown',
-                desiredStartTime: new Date(e.desired_start_time),
-                desiredEndTime: new Date(e.desired_end_time),
+                desiredStartTime: parseDbDate(e.desired_start_time),
+                desiredEndTime: parseDbDate(e.desired_end_time),
                 position: await this.getPosition(e.id),
-                createdAt: new Date(e.created_at),
+                createdAt: parseDbDate(e.created_at),
             }))
         );
 

@@ -33,19 +33,24 @@ export function request() {
 
 /**
  * Login as admin and cache the JWT token.
- * Uses the admin account: ashish007tup@gmail.com / Admin123!
+ * Uses the admin account: satheeshadwaitha@gmail.com / Password123!
  */
 export async function getAdminToken(): Promise<string> {
     if (adminToken) return adminToken;
+    if (process.env.TEST_ADMIN_TOKEN) {
+        adminToken = process.env.TEST_ADMIN_TOKEN;
+        return adminToken;
+    }
 
     const res = await request()
         .post('/api/v1/auth/login')
-        .send({ email: 'ashish007tup@gmail.com', password: 'Admin123!' });
+        .send({ email: 'satheeshadwaitha@gmail.com', password: 'Password123!' });
 
     // If MFA is required, we need to handle OTP — but for tests we'll
     // check if we got tokens directly (non-MFA path)
     if (res.body?.data?.tokens?.accessToken) {
         adminToken = res.body.data.tokens.accessToken;
+        process.env.TEST_ADMIN_TOKEN = adminToken;
         return adminToken;
     }
 
@@ -63,28 +68,25 @@ export async function getAdminToken(): Promise<string> {
         );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Generate a magic link and exchange it for a session
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email: 'ashish007tup@gmail.com',
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false
+        }
     });
 
-    if (linkError || !linkData?.properties?.hashed_token) {
-        throw new Error(`Failed to generate test auth token: ${linkError?.message}`);
-    }
-
-    const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
-        token_hash: linkData.properties.hashed_token,
-        type: 'magiclink',
+    // Try direct sign-in with password
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: 'satheeshadwaitha@gmail.com',
+        password: 'Password123!',
     });
 
-    if (verifyError || !verifyData?.session?.access_token) {
-        throw new Error(`Failed to verify test auth token: ${verifyError?.message}`);
+    if (authError || !authData?.session?.access_token) {
+        throw new Error(`Failed to authenticate test user: ${authError?.message}`);
     }
 
-    adminToken = verifyData.session.access_token;
+    adminToken = authData.session.access_token;
+    process.env.TEST_ADMIN_TOKEN = adminToken;
     return adminToken;
 }
 

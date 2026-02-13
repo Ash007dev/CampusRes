@@ -292,17 +292,27 @@ export const configService = {
   async isWithinCampusHours(startTime: Date, endTime: Date): Promise<boolean> {
     const constraints = await this.getBookingTimeConstraints();
 
-    // Use UTC hours since client sends times as UTC (with Z suffix)
-    const startHour = startTime.getUTCHours();
-    const startMinute = startTime.getUTCMinutes();
-    const endHour = endTime.getUTCHours();
-    const endMinute = endTime.getUTCMinutes();
+    // Use IST hours for comparison with campus times
+    const formatInTimeZone = (date: Date, fmt: string) =>
+      new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour12: false, hour: 'numeric' }).format(date);
+    const getISTMinutes = (date: Date) => {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: false
+      }).formatToParts(date);
+      const h = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+      const m = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+      return h * 60 + m;
+    };
+
+    const startMinutes = getISTMinutes(startTime);
+    const endMinutes = getISTMinutes(endTime);
 
     const [openHour, openMinute] = constraints.campusOpenTime.split(':').map(Number);
     const [closeHour, closeMinute] = constraints.campusCloseTime.split(':').map(Number);
 
-    const startMinutes = startHour * 60 + startMinute;
-    const endMinutes = endHour * 60 + endMinute;
     const openMinutes = openHour * 60 + openMinute;
     const closeMinutes = closeHour * 60 + closeMinute;
 

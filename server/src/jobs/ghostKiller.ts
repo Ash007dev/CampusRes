@@ -13,6 +13,7 @@ import { supabase } from '../lib/supabase.js';
 import { config } from '../config/index.js';
 import { logger } from '../config/logger.js';
 import { emitBookingUpdate, emitRoomUpdate } from '../lib/socket.js';
+import { parseDbDate } from '../utils/dateUtils.js';
 
 const SYSTEM_USER_ID = 'system-ghost-killer';
 
@@ -320,7 +321,7 @@ export async function getGhostKillerStats(
   const userCountMap = new Map<string, number>();
 
   for (const booking of noShowBookings || []) {
-    const dateStr = new Date(booking.updated_at).toISOString().split('T')[0];
+    const dateStr = parseDbDate(booking.updated_at).toISOString().split('T')[0];
     byDayMap.set(dateStr, (byDayMap.get(dateStr) || 0) + 1);
     userCountMap.set(booking.user_id, (userCountMap.get(booking.user_id) || 0) + 1);
   }

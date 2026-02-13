@@ -68,17 +68,17 @@ export function RescheduleModal({
       // Handle both Booking (startTime/endTime) and BookingEvent (start/end) types
       const startTimeValue = (booking as any).startTime || (booking as any).start;
       const endTimeValue = (booking as any).endTime || (booking as any).end;
-      
+
       const bookingStart = new Date(startTimeValue);
       const bookingEnd = new Date(endTimeValue);
-      
+
       // Validate dates before formatting
       if (isNaN(bookingStart.getTime()) || isNaN(bookingEnd.getTime())) {
         console.error('Invalid booking dates:', { startTimeValue, endTimeValue });
         setError("Invalid booking dates");
         return;
       }
-      
+
       setDate(bookingStart);
       setStartTime(format(bookingStart, "HH:mm"));
       setEndTime(format(bookingEnd, "HH:mm"));
@@ -95,7 +95,7 @@ export function RescheduleModal({
     // Validate end time is after start time
     const startMinutes = parseInt(startTime.split(":")[0]) * 60 + parseInt(startTime.split(":")[1]);
     const endMinutes = parseInt(endTime.split(":")[0]) * 60 + parseInt(endTime.split(":")[1]);
-    
+
     if (endMinutes <= startMinutes) {
       setError("End time must be after start time");
       return;
@@ -105,7 +105,7 @@ export function RescheduleModal({
     const [startHour, startMin] = startTime.split(":").map(Number);
     const bookingStart = new Date(date);
     bookingStart.setHours(startHour, startMin, 0, 0);
-    
+
     if (bookingStart <= new Date()) {
       setError("Booking must be scheduled for a future time");
       return;
@@ -119,7 +119,7 @@ export function RescheduleModal({
       const day = String(dateObj.getDate()).padStart(2, "0");
       const hoursStr = String(hours).padStart(2, "0");
       const minutesStr = String(minutes).padStart(2, "0");
-      return `${year}-${month}-${day}T${hoursStr}:${minutesStr}:00.000Z`;
+      return `${year}-${month}-${day}T${hoursStr}:${minutesStr}:00`;
     };
 
     const newStartTime = formatLocalAsISO(date, startTime);
@@ -127,7 +127,7 @@ export function RescheduleModal({
 
     setIsSubmitting(true);
     setError("");
-    
+
     try {
       await onReschedule(booking.id, newStartTime, newEndTime);
       onClose();

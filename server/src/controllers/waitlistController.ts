@@ -10,6 +10,7 @@ import { Response } from 'express';
 import { waitlistService } from '../services/waitlistService.js';
 import { asyncHandler, type AuthenticatedRequest } from '../middleware/index.js';
 import { HTTP_STATUS } from '../config/constants.js';
+import { istToUtc } from '../utils/dateUtils.js';
 
 /**
  * Waitlist Controller
@@ -34,8 +35,8 @@ export const waitlistController = {
         const result = await waitlistService.joinWaitlist(
             authReq.user.userId,
             roomId,
-            new Date(startTime),
-            new Date(endTime)
+            startTime,
+            endTime
         );
 
         res.status(HTTP_STATUS.CREATED).json({

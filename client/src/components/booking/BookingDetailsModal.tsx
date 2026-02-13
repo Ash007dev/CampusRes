@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { formatTimeInIst } from "@/lib/dateUtils";
 import type { BookingEvent } from "./BookingCalendar";
 
 interface BookingDetailsModalProps {
@@ -196,7 +197,7 @@ export function BookingDetailsModal({
                     {format(startTime, "EEEE, MMMM d, yyyy")}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {format(startTime, "h:mm a")} - {format(endTime, "h:mm a")} ({duration}h)
+                    {formatTimeInIst(startTime)} - {formatTimeInIst(endTime)} ({duration}h)
                   </p>
                 </div>
               </div>

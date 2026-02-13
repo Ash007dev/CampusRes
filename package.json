@@ -13,11 +13,16 @@
     "docker:down": "docker-compose down",
     "db:generate": "pnpm --filter @campus/server prisma:generate",
     "db:push": "pnpm --filter @campus/server exec prisma db push",
-    "db:seed": "pnpm --filter @campus/server exec prisma db seed"
+    "db:seed": "pnpm --filter @campus/server exec prisma db seed",
+    "test:epic3": "npm run test:epic3 --prefix server"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "author": "Campus Resource Engine Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.95.3",
+    "lucide-react": "^0.563.0"
+  }
 }

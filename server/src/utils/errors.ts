@@ -104,7 +104,7 @@ export class UserNotFoundError extends AppError {
     super(
       userId ? `User ${userId} not found` : 'User not found',
       HTTP_STATUS.NOT_FOUND,
-      ERROR_CODES.AUTH_INVALID_CREDENTIALS
+      ERROR_CODES.USER_NOT_FOUND
     );
   }
 }
@@ -114,7 +114,7 @@ export class EmailAlreadyExistsError extends AppError {
     super(
       email ? `Email ${email} is already registered` : 'Email already registered',
       HTTP_STATUS.CONFLICT,
-      ERROR_CODES.AUTH_INVALID_CREDENTIALS
+      ERROR_CODES.USER_EMAIL_EXISTS
     );
   }
 }

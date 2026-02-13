@@ -13,6 +13,7 @@ import { configService } from './configService.js';
 import { config } from '../config/index.js';
 import { emitBookingUpdate, emitRoomUpdate } from '../lib/socket.js';
 import { waitlistService } from './waitlistService.js';
+import { getCurrentIST, getISTHour, getISTStartOfDay, isISTPeakHour, istToUtc, parseDbDate } from '../utils/dateUtils.js';
 import {
   BOOKING_STATUS,
   APPROVAL_REQUIRED_ROOM_TYPES,
@@ -60,8 +61,8 @@ export class BookingService {
     userDepartmentId: string | null | undefined,
     input: CreateBookingInput
   ): Promise<any> {
-    const startTime = new Date(input.startTime);
-    const endTime = new Date(input.endTime);
+    const startTime = istToUtc(input.startTime);
+    const endTime = istToUtc(input.endTime);
 
     logger.info({
       userId,
@@ -339,7 +340,16 @@ export class BookingService {
       throw new BookingNotFoundError(bookingId);
     }
 
-    if (booking.user_id !== userId) {
+    // Check if performer is admin or owner
+    const { data: performer } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    const isAdmin = performer?.role === USER_ROLES.ADMIN || performer?.role === USER_ROLES.LAB_ADMIN;
+
+    if (booking.user_id !== userId && !isAdmin) {
       throw new AppError('You can only cancel your own bookings', 403);
     }
 
@@ -347,7 +357,7 @@ export class BookingService {
       throw new AppError('Booking is already cancelled', 400);
     }
 
-    if (new Date(booking.start_time) < new Date()) {
+    if (parseDbDate(booking.start_time) < new Date()) {
       throw new AppError('Cannot cancel past bookings', 400);
     }
 
@@ -392,7 +402,7 @@ export class BookingService {
       new_state: { status: 'CANCELLED', reason },
     });
 
-    await this.invalidateAvailabilityCache(booking.room_id, new Date(booking.start_time));
+    await this.invalidateAvailabilityCache(booking.room_id, parseDbDate(booking.start_time));
 
     // Emit real-time updates for live occupancy (US 3.3)
     emitBookingUpdate({
@@ -413,8 +423,8 @@ export class BookingService {
     // US 3.7: Notify waitlisted users that a slot is now available
     await waitlistService.notifyWaitlistedUsers(
       booking.room_id,
-      new Date(booking.start_time),
-      new Date(booking.end_time)
+      parseDbDate(booking.start_time),
+      parseDbDate(booking.end_time)
     );
 
     logger.info({ bookingId }, 'Booking cancelled');;
@@ -425,9 +435,12 @@ export class BookingService {
   async rescheduleBooking(
     bookingId: string,
     userId: string,
-    newStartTime: Date,
-    newEndTime: Date
+    newStartTimeStr: string, // Changed parameter type to string
+    newEndTimeStr: string     // Changed parameter type to string
   ): Promise<any> {
+    const newStartTime = istToUtc(newStartTimeStr); // Convert string to Date using istToUtc
+    const newEndTime = istToUtc(newEndTimeStr);     // Convert string to Date using istToUtc
+
     const { data: booking, error } = await supabase
       .from('bookings')
       .select('*, rooms(*), users(id, email, first_name, last_name, department_id)')
@@ -446,7 +459,7 @@ export class BookingService {
       throw new AppError(`Cannot reschedule ${booking.status.toLowerCase()} booking`, 400);
     }
 
-    if (new Date(booking.start_time) < new Date()) {
+    if (parseDbDate(booking.start_time) < new Date()) {
       throw new AppError('Cannot reschedule past bookings', 400);
     }
 
@@ -489,7 +502,7 @@ export class BookingService {
       metadata: { action: 'reschedule' },
     });
 
-    await this.invalidateAvailabilityCache(booking.room_id, new Date(booking.start_time));
+    await this.invalidateAvailabilityCache(booking.room_id, parseDbDate(booking.start_time));
     await this.invalidateAvailabilityCache(booking.room_id, newStartTime);
 
     logger.info({ bookingId, newStartTime, newEndTime }, 'Booking rescheduled');
@@ -553,8 +566,8 @@ export class BookingService {
     const cached = await getCache<any>(cacheKey);
     if (cached) return cached;
 
-    const startOfDay = new Date(`${date}T00:00:00Z`);
-    const endOfDay = new Date(`${date}T23:59:59Z`);
+    const startOfDay = istToUtc(`${date}T00:00:00`);
+    const endOfDay = istToUtc(`${date}T23:59:59`);
 
     const { data: bookings } = await supabase
       .from('bookings')
@@ -565,8 +578,8 @@ export class BookingService {
       .not('status', 'in', '("CANCELLED","NO_SHOW")')
       .order('start_time', { ascending: true });
 
-    const operatingStart = new Date(`${date}T08:00:00Z`);
-    const operatingEnd = new Date(`${date}T22:00:00Z`);
+    const operatingStart = istToUtc(`${date}T08:00:00`);
+    const operatingEnd = istToUtc(`${date}T22:00:00`);
 
     const booked = (bookings || []).map((b: any) => ({
       start: b.start_time,
@@ -578,14 +591,14 @@ export class BookingService {
     let currentStart = operatingStart;
 
     for (const booking of bookings || []) {
-      const bookingStart = new Date(booking.start_time);
+      const bookingStart = parseDbDate(booking.start_time);
       if (bookingStart > currentStart) {
         available.push({
           start: currentStart.toISOString(),
           end: bookingStart.toISOString(),
         });
       }
-      currentStart = new Date(Math.max(currentStart.getTime(), new Date(booking.end_time).getTime()));
+      currentStart = new Date(Math.max(currentStart.getTime(), parseDbDate(booking.end_time).getTime()));
     }
 
     if (currentStart < operatingEnd) {
@@ -624,9 +637,9 @@ export class BookingService {
       throw new AppError('Already checked in to this booking', 400);
     }
 
-    const now = new Date();
-    const checkInWindowStart = new Date(new Date(booking.start_time).getTime() - 15 * TIME.MINUTE);
-    const checkInWindowEnd = new Date(new Date(booking.start_time).getTime() + 15 * TIME.MINUTE);
+    const now = getCurrentIST();
+    const checkInWindowStart = new Date(parseDbDate(booking.start_time).getTime() - 15 * TIME.MINUTE);
+    const checkInWindowEnd = new Date(parseDbDate(booking.start_time).getTime() + 15 * TIME.MINUTE);
 
     if (now < checkInWindowStart) {
       throw new AppError('Check-in window has not started yet', 400);
@@ -818,12 +831,12 @@ export class BookingService {
     }
 
     const now = new Date();
-    if (now >= new Date(booking.end_time)) {
+    if (now >= parseDbDate(booking.end_time)) {
       throw new AppError('Booking has already ended', 400);
     }
 
-    const totalDuration = new Date(booking.end_time).getTime() - new Date(booking.start_time).getTime();
-    const usedDuration = now.getTime() - new Date(booking.start_time).getTime();
+    const totalDuration = parseDbDate(booking.end_time).getTime() - parseDbDate(booking.start_time).getTime();
+    const usedDuration = Math.max(0, now.getTime() - parseDbDate(booking.start_time).getTime());
     const remainingRatio = Math.max(0, (totalDuration - usedDuration) / totalDuration);
     const refundCredits = Math.floor(booking.credits_charged * remainingRatio);
 
@@ -909,11 +922,15 @@ export class BookingService {
       throw new AppError('Can only extend confirmed bookings', 400);
     }
 
-    const newEndTime = new Date(new Date(booking.end_time).getTime() + additionalMinutes * TIME.MINUTE);
+    const newEndTime = new Date(parseDbDate(booking.end_time).getTime() + additionalMinutes * TIME.MINUTE);
     const now = new Date();
 
-    if (now < new Date(booking.start_time) || now > new Date(booking.end_time)) {
-      throw new AppError('Can only extend during an active booking', 400);
+    if (booking.check_in_status !== 'CHECKED_IN') {
+      throw new AppError('You must check in before extending a booking', 400);
+    }
+
+    if (now > parseDbDate(booking.end_time)) {
+      throw new AppError('Cannot extend a booking that has already ended', 400);
     }
 
     const { data: conflicts } = await supabase
@@ -994,7 +1011,7 @@ export class BookingService {
     if (startTime >= endTime) {
       throw new InvalidTimeRangeError('End time must be after start time');
     }
-    if (startTime < new Date()) {
+    if (startTime < getCurrentIST()) {
       throw new InvalidTimeRangeError('Cannot book in the past');
     }
 
@@ -1037,9 +1054,15 @@ export class BookingService {
 
     const { data: user } = await supabase
       .from('users')
-      .select('quota_limit_hours')
+      .select('quota_limit_hours, role')
       .eq('id', userId)
       .single();
+
+    // US 4.7: Faculty Unlimited Access
+    if (user?.role === USER_ROLES.FACULTY) {
+      logger.debug({ userId }, 'Faculty member: skipping quota validation');
+      return;
+    }
 
     const quotaLimit = user?.quota_limit_hours || config.booking.maxWeeklyQuotaHours;
 
@@ -1054,7 +1077,7 @@ export class BookingService {
     let currentUsageMs = 0;
     if (existingBookings) {
       for (const b of existingBookings) {
-        currentUsageMs += new Date(b.end_time).getTime() - new Date(b.start_time).getTime();
+        currentUsageMs += parseDbDate(b.end_time).getTime() - parseDbDate(b.start_time).getTime();
       }
     }
     const currentUsageHours = currentUsageMs / TIME.HOUR;
@@ -1069,8 +1092,7 @@ export class BookingService {
   }
 
   private calculateCredits(startTime: Date, endTime: Date): { creditsRequired: number; isPeakHours: boolean } {
-    const hour = startTime.getUTCHours();
-    const isPeakHours = hour >= config.booking.peakHoursStart && hour < config.booking.peakHoursEnd;
+    const isPeakHours = isISTPeakHour(config.booking.peakHoursStart, config.booking.peakHoursEnd);
     const durationHours = (endTime.getTime() - startTime.getTime()) / TIME.HOUR;
     const baseCredits = Math.ceil(durationHours * 10);
     const multiplier = isPeakHours ? config.booking.peakHourCreditMultiplier : 1;
@@ -1078,12 +1100,7 @@ export class BookingService {
   }
 
   private getWeekStart(date: Date): Date {
-    const d = new Date(date);
-    const day = d.getUTCDay();
-    const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
-    d.setUTCDate(diff);
-    d.setUTCHours(0, 0, 0, 0);
-    return d;
+    return getISTStartOfDay(date); // Simpler for now, ensures we align with IST day start
   }
 
   private isExclusionViolation(error: unknown): boolean {
@@ -1290,7 +1307,7 @@ export class BookingService {
 
     // Must be within the grace window: between start_time and start_time + gracePeriod
     const now = new Date();
-    const startTime = new Date(booking.start_time);
+    const startTime = parseDbDate(booking.start_time);
     const gracePeriodMs = config.ghostKiller.gracePeriodMinutes * TIME.MINUTE;
     const graceDeadline = new Date(startTime.getTime() + gracePeriodMs);
 

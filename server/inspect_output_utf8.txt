@@ -1,0 +1,69 @@
+﻿Departments: [
+  {
+    "id": "cmkcom1f0000014kz1tmgn2ch",
+    "name": "Computer Science",
+    "code": "CS"
+  },
+  {
+    "id": "cmkcom2mc000114kz4n6ytom5",
+    "name": "Electrical Engineering",
+    "code": "EE"
+  },
+  {
+    "id": "cmkcom39t000214kzcp1rmwti",
+    "name": "Mechanical Engineering",
+    "code": "ME"
+  },
+  {
+    "id": "cmkedhp0n000014m3lwxt6br1",
+    "name": "Computer Science & Engineering",
+    "code": "CSE"
+  },
+  {
+    "id": "cmkedhpz2000114m3isey9u6v",
+    "name": "Electronics & Communication Engineering",
+    "code": "ECE"
+  },
+  {
+    "id": "cmkedhqi0000214m34zcuog7o",
+    "name": "Electrical & Electronics Engineering",
+    "code": "EEE"
+  },
+  {
+    "id": "cmkedhrog000414m3y8khs5rk",
+    "name": "Administration",
+    "code": "ADMIN"
+  }
+]
+Users sample: [
+  {
+    "id": "cmkcom5oo000814kzjpt561tu",
+    "email": "labadmin@university.edu",
+    "first_name": "Lab",
+    "department_id": "cmkcom1f0000014kz1tmgn2ch"
+  },
+  {
+    "id": "cmkcom6sl000c14kz2jfnthh9",
+    "email": "student2@university.edu",
+    "first_name": "Alice",
+    "department_id": "cmkcom2mc000114kz4n6ytom5"
+  },
+  {
+    "id": "cmkcom68j000a14kz0s9nsb4a",
+    "email": "student1@university.edu",
+    "first_name": "John",
+    "department_id": "cmkcom1f0000014kz1tmgn2ch"
+  },
+  {
+    "id": "cmkcom4y0000614kzcjxiuet7",
+    "email": "professor@university.edu",
+    "first_name": "Jane",
+    "department_id": "cmkcom1f0000014kz1tmgn2ch"
+  },
+  {
+    "id": "cmkctam9d0004g19cr77dhuac",
+    "email": "newuser@university.edu",
+    "first_name": "New",
+    "department_id": null
+  }
+]

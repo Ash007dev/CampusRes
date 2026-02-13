@@ -4,8 +4,12 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'node',
-        include: ['src/__tests__/**/*.test.ts'],
-        setupFiles: ['src/__tests__/setup/globalSetup.ts'],
+        include: ['src/**/*.test.ts'],
+        coverage: {
+            provider: 'v8',
+            reporter: ['text', 'json', 'html'],
+        },
+        setupFiles: ['./src/__tests__/setup.ts', 'src/__tests__/setup/globalSetup.ts'],
         testTimeout: 30000, // 30s — Supabase calls can be slow
         hookTimeout: 30000,
         sequence: {

@@ -7,6 +7,7 @@ import { CalendarIcon, Clock, Repeat, AlertCircle, CheckCircle, Loader2, User, C
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Dialog,
   DialogContent,
@@ -204,10 +205,52 @@ export function BookingModal({
         setConfirmedBooking(result?.data || null);
         setIsSuccess(true);
         setIsSubmitting(false);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to create booking"
-        );
+      } catch (err: any) {
+        // Enhanced error logging to avoid "[object Object]" display
+        console.error('[BookingModal] Booking submission failed');
+
+        // Log error details in a structured way
+        if (err?.response) {
+          console.error('[BookingModal] Response Status:', err.response.status);
+          console.error('[BookingModal] Response Data:', JSON.stringify(err.response.data, null, 2));
+        }
+        if (err?.message) {
+          console.error('[BookingModal] Error Message:', err.message);
+        }
+        if (err?.config?.url) {
+          console.error('[BookingModal] Request URL:', err.config.url);
+        }
+
+        // Extract user-friendly error message from various possible error formats
+        let errorMessage = 'Failed to create booking. Please try again.';
+
+        // Priority 1: Check if it's already an Error with a message
+        if (err instanceof Error && err.message) {
+          errorMessage = err.message;
+        }
+        // Priority 2: Check axios response error structure
+        else if (err?.response?.data?.error?.message) {
+          errorMessage = err.response.data.error.message;
+        }
+        // Priority 3: Check for direct message in response data
+        else if (err?.response?.data?.message) {
+          errorMessage = err.response.data.message;
+        }
+        // Priority 4: Check if error is a string
+        else if (typeof err === 'string') {
+          errorMessage = err;
+        }
+        // Priority 5: Check for validation errors
+        else if (err?.response?.data?.error?.details) {
+          const details = err.response.data.error.details;
+          const firstErrorKey = Object.keys(details)[0];
+          if (firstErrorKey && Array.isArray(details[firstErrorKey]) && details[firstErrorKey][0]) {
+            errorMessage = `${details[firstErrorKey][0]}`;
+          }
+        }
+
+        console.error('[BookingModal] Displaying error to user:', errorMessage);
+        setError(errorMessage);
         setIsSubmitting(false);
       }
     },
