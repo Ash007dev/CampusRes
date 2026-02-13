@@ -42,6 +42,7 @@ import { bookingsApi, type Booking } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 import { QRScanner } from "@/components/booking/QRScanner";
 import { RescheduleModal } from "@/components/booking/RescheduleModal";
+import { formatTimeInIst } from "@/lib/dateUtils";
 
 const STATUS_COLORS: Record<string, string> = {
     CONFIRMED: "bg-green-500",
@@ -86,7 +87,19 @@ export default function BookingsPage() {
     const fetchBookings = useCallback(async () => {
         try {
             const response = await bookingsApi.getMyBookings();
-            setBookings(response.data.data || []);
+            const bookingsData = response.data.data || [];
+
+            // Debug: Log the first booking's time data
+            if (bookingsData.length > 0) {
+                console.log('[DEBUG] First booking raw data:', {
+                    startTime: bookingsData[0].startTime,
+                    endTime: bookingsData[0].endTime,
+                    parsedStart: new Date(bookingsData[0].startTime),
+                    parsedEnd: new Date(bookingsData[0].endTime),
+                });
+            }
+
+            setBookings(bookingsData);
         } catch (error) {
             console.error("Failed to fetch bookings:", error);
             toast({
@@ -490,7 +503,7 @@ export default function BookingsPage() {
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <Clock className="h-4 w-4" />
-                                                        {isValidDate ? `${format(startTime, "HH:mm")} - ${format(endTime, "HH:mm")}` : "--:-- - --:--"}
+                                                        {isValidDate ? `${formatTimeInIst(booking.startTime)} - ${formatTimeInIst(booking.endTime)}` : "--:-- - --:--"}
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <MapPin className="h-4 w-4" />

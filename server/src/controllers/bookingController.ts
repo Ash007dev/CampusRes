@@ -93,6 +93,30 @@ export const bookingController = {
   }),
 
   /**
+   * Helper to format booking timestamps with 'Z' suffix for UTC
+   */
+  formatBookingResponse: (booking: any) => {
+    if (!booking) return booking;
+
+    // Ensure all timestamp fields have 'Z' suffix for UTC
+    const formatTimestamp = (timestamp: string | null) => {
+      if (!timestamp) return timestamp;
+      // If timestamp doesn't end with 'Z', add it
+      return timestamp.endsWith('Z') ? timestamp : `${timestamp}Z`;
+    };
+
+    return {
+      ...booking,
+      startTime: formatTimestamp(booking.start_time || booking.startTime),
+      endTime: formatTimestamp(booking.end_time || booking.endTime),
+      createdAt: formatTimestamp(booking.created_at || booking.createdAt),
+      updatedAt: formatTimestamp(booking.updated_at || booking.updatedAt),
+      checkedInAt: formatTimestamp(booking.checked_in_at || booking.checkedInAt),
+      cancelledAt: formatTimestamp(booking.cancelled_at || booking.cancelledAt),
+    };
+  },
+
+  /**
    * Get current user's bookings
    * GET /api/v1/bookings/my
    */
@@ -108,9 +132,12 @@ export const bookingController = {
       limit: query.limit,
     });
 
+    // Format all booking timestamps
+    const formattedBookings = result.bookings.map(bookingController.formatBookingResponse);
+
     res.json({
       success: true,
-      data: result.bookings,
+      data: formattedBookings,
       meta: {
         total: result.total,
         page: query.page || 1,
@@ -328,9 +355,12 @@ export const bookingController = {
       limit: 500, // Get more bookings for calendar view
     });
 
+    // Format all booking timestamps
+    const formattedBookings = result.bookings.map(bookingController.formatBookingResponse);
+
     res.json({
       success: true,
-      data: result.bookings,
+      data: formattedBookings,
       meta: {
         total: result.total,
       },
