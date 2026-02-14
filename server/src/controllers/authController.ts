@@ -82,8 +82,8 @@ export const authController = {
     const deviceFingerprint = req.headers['x-device-fingerprint'] as string | undefined;
     const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || req.socket.remoteAddress;
 
-    const result = await authService.verifyLoginOtp({ 
-      sessionId: idToUse, 
+    const result = await authService.verifyLoginOtp({
+      sessionId: idToUse,
       otp,
       deviceFingerprint,
       ipAddress,
@@ -258,6 +258,93 @@ export const authController = {
     res.json({
       success: true,
       message: 'User role updated successfully',
+    });
+  }),
+
+  /**
+   * Forgot Password - Step 1: Request password reset OTP
+   * POST /api/v1/auth/forgot-password
+   */
+  forgotPassword: asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'Email is required', code: 'AUTH_4001' },
+      });
+      return;
+    }
+
+    const result = await authService.forgotPassword(email);
+
+    res.json({
+      success: true,
+      data: result,
+      message: result.message,
+    });
+  }),
+
+  /**
+   * Forgot Password - Step 2: Verify OTP
+   * POST /api/v1/auth/verify-reset-otp
+   */
+  verifyResetOtp: asyncHandler(async (req: Request, res: Response) => {
+    const { sessionId, otp } = req.body;
+
+    if (!sessionId || !otp) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'sessionId and otp are required', code: 'AUTH_4004' },
+      });
+      return;
+    }
+
+    const result = await authService.verifyForgotPasswordOtp(sessionId, otp);
+
+    res.json({
+      success: true,
+      data: result,
+      message: result.message,
+    });
+  }),
+
+  /**
+   * Forgot Password - Step 3: Reset password
+   * POST /api/v1/auth/reset-password
+   */
+  resetPassword: asyncHandler(async (req: Request, res: Response) => {
+    const { resetToken, newPassword, confirmPassword } = req.body;
+
+    if (!resetToken || !newPassword) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'Reset token and new password are required', code: 'AUTH_4001' },
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'Password must be at least 8 characters', code: 'AUTH_4002' },
+      });
+      return;
+    }
+
+    if (confirmPassword && newPassword !== confirmPassword) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'Passwords do not match', code: 'AUTH_4005' },
+      });
+      return;
+    }
+
+    await authService.resetPassword(resetToken, newPassword);
+
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully. You can now login with your new password.',
     });
   }),
 };

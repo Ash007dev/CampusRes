@@ -188,6 +188,86 @@ router.put('/preferences', authenticate, authController.updatePreferences);
 
 /**
  * =============================================================================
+ * FORGOT PASSWORD ROUTES
+ * =============================================================================
+ */
+
+/**
+ * @openapi
+ * /api/v1/auth/forgot-password:
+ *   post:
+ *     summary: Request password reset OTP
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: OTP sent to email
+ */
+router.post('/forgot-password', authRateLimiter, authController.forgotPassword);
+
+/**
+ * @openapi
+ * /api/v1/auth/verify-reset-otp:
+ *   post:
+ *     summary: Verify password reset OTP
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [sessionId, otp]
+ *             properties:
+ *               sessionId:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OTP verified, reset token returned
+ */
+router.post('/verify-reset-otp', authRateLimiter, authController.verifyResetOtp);
+
+/**
+ * @openapi
+ * /api/v1/auth/reset-password:
+ *   post:
+ *     summary: Reset password using reset token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [resetToken, newPassword, confirmPassword]
+ *             properties:
+ *               resetToken:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *               confirmPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ */
+router.post('/reset-password', authRateLimiter, authController.resetPassword);
+
+/**
+ * =============================================================================
  * ADMIN ROUTES - User Management (US 5.4)
  * =============================================================================
  */

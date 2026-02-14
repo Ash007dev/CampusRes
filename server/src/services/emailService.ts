@@ -255,6 +255,115 @@ ${isApproved ? 'Please remember to check in using the QR code at the room.' : ''
 }
 
 /**
+ * Send OTP email for password reset
+ */
+export async function sendPasswordResetOtpEmail(
+  email: string,
+  otp: string,
+  userName: string
+): Promise<boolean> {
+  const subject = 'Password Reset Code - Campus Resource Engine';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .card { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .logo { font-size: 24px; font-weight: bold; color: #1a1a1a; }
+        .otp-box { background: linear-gradient(135deg, #f97316 0%, #ef4444 100%); border-radius: 10px; padding: 25px; text-align: center; margin: 30px 0; }
+        .otp-code { font-size: 36px; font-weight: bold; letter-spacing: 8px; color: white; }
+        .message { color: #666; line-height: 1.6; margin-bottom: 20px; }
+        .footer { text-align: center; color: #999; font-size: 12px; margin-top: 30px; }
+        .warning { background: #fee2e2; border: 1px solid #ef4444; border-radius: 8px; padding: 15px; margin-top: 20px; font-size: 14px; color: #991b1b; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="card">
+          <div class="header">
+            <div class="logo">🏛️ Campus Resource Engine</div>
+          </div>
+          
+          <p class="message">Hello <strong>${userName}</strong>,</p>
+          
+          <p class="message">We received a request to reset your password. Use the following code to proceed:</p>
+          
+          <div class="otp-box">
+            <div class="otp-code">${otp}</div>
+          </div>
+          
+          <p class="message">This code will expire in <strong>5 minutes</strong>.</p>
+          
+          <div class="warning">
+            🔒 If you did not request a password reset, please ignore this email and ensure your account is secure.
+          </div>
+          
+          <div class="footer">
+            <p>This is an automated message from Campus Resource Engine.</p>
+            <p>Please do not reply to this email.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const textContent = `
+Hello ${userName},
+
+We received a request to reset your password.
+
+Your password reset code is: ${otp}
+
+This code will expire in 5 minutes.
+
+If you did not request a password reset, please ignore this email.
+
+- Campus Resource Engine
+  `;
+
+  try {
+    if (config.nodeEnv === 'development') {
+      logger.info({ email, otp }, '📧 Password Reset OTP for development testing');
+      console.log('\n');
+      console.log('╔════════════════════════════════════════════════════════════╗');
+      console.log('║              🔐 PASSWORD RESET OTP CODE                   ║');
+      console.log('╠════════════════════════════════════════════════════════════╣');
+      console.log(`║  Email: ${email.padEnd(48)} ║`);
+      console.log(`║  OTP Code: ${otp.padEnd(45)} ║`);
+      console.log('╠════════════════════════════════════════════════════════════╣');
+      console.log('║  ⚠️  Copy the OTP code above and paste it in your app      ║');
+      console.log('╚════════════════════════════════════════════════════════════╝');
+      console.log('\n');
+    }
+
+    if (!config.email.user || !config.email.password) {
+      logger.warn({ email }, 'SMTP not configured, skipping email send. OTP logged above for testing.');
+      return true;
+    }
+
+    await getTransporter().sendMail({
+      from: `"${config.email.fromName}" <${config.email.fromEmail}>`,
+      to: email,
+      subject,
+      text: textContent,
+      html: htmlContent,
+    });
+
+    logger.info({ email }, 'Password reset OTP email sent successfully');
+    return true;
+  } catch (error) {
+    logger.error({ email, error }, 'Failed to send password reset OTP email');
+    return false;
+  }
+}
+
+/**
  * Verify SMTP connection
  */
 export async function verifyEmailConnection(): Promise<boolean> {
@@ -274,6 +383,7 @@ export async function verifyEmailConnection(): Promise<boolean> {
 
 export const emailService = {
   sendOtpEmail,
+  sendPasswordResetOtpEmail,
   sendBookingStatusEmail,
   verifyEmailConnection,
 };
