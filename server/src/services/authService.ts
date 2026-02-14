@@ -107,7 +107,7 @@ export class AuthService {
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: input.email,
       password: input.password,
-      email_confirm: false, // Require email confirmation for security
+      email_confirm: true, // Auto-confirm so users can login immediately
       user_metadata: {
         first_name: input.firstName,
         last_name: input.lastName,
