@@ -186,6 +186,16 @@ export const authApi = {
     theme?: 'light' | 'dark' | 'system';
   }) =>
     api.put<ApiResponse<{ success: boolean }>>('/auth/preferences', preferences),
+
+  // Forgot Password flow
+  forgotPassword: (email: string) =>
+    api.post<ApiResponse<{ sessionId: string; email: string; message: string; expiresIn: number }>>('/auth/forgot-password', { email }),
+
+  verifyResetOtp: (sessionId: string, otp: string) =>
+    api.post<ApiResponse<{ resetToken: string; message: string }>>('/auth/verify-reset-otp', { sessionId, otp }),
+
+  resetPassword: (resetToken: string, newPassword: string, confirmPassword: string) =>
+    api.post<ApiResponse<{ success: boolean }>>('/auth/reset-password', { resetToken, newPassword, confirmPassword }),
 };
 
 // Bookings

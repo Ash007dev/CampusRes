@@ -12,6 +12,7 @@ import { config } from '../config/index.js';
 import { logger } from '../config/logger.js';
 import { TIME } from '../config/constants.js';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import {
   InvalidCredentialsError,
   UserNotFoundError,
@@ -75,6 +76,18 @@ function generateRandomOtp(length: number = 6): string {
     otp += Math.floor(Math.random() * 10).toString();
   }
   return otp;
+}
+
+// In-memory store for password reset tokens (maps resetToken -> { userId, expiresAt })
+const passwordResetTokens = new Map<string, { userId: string; expiresAt: number }>();
+
+function cleanExpiredResetTokens(): void {
+  const now = Date.now();
+  for (const [key, value] of passwordResetTokens.entries()) {
+    if (value.expiresAt < now) {
+      passwordResetTokens.delete(key);
+    }
+  }
 }
 
 /**
@@ -888,6 +901,224 @@ export class AuthService {
     });
 
     logger.info({ userId, newRole, adminUserId }, 'User role updated');
+  }
+
+  // =========================================================================
+  // FORGOT PASSWORD FLOW
+  // =========================================================================
+
+  /**
+   * Step 1: Request password reset - validate email and send OTP
+   */
+  async forgotPassword(email: string): Promise<{
+    sessionId: string;
+    email: string;
+    message: string;
+    expiresIn: number;
+  }> {
+    logger.info({ email }, 'Password reset requested');
+
+    // Look up user by email
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (userError || !user) {
+      // Don't reveal if email exists - return generic success
+      logger.warn({ email }, 'Password reset requested for non-existent email');
+      throw new AppError('If an account with that email exists, a reset code has been sent.', 200);
+    }
+
+    if (!user.is_active) {
+      throw new AppError('Account is deactivated', 403);
+    }
+
+    // Clean up any existing reset OTP sessions for this user
+    await supabase
+      .from('otp_sessions')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('is_verified', false);
+
+    // Generate OTP and hash it
+    const otp = generateRandomOtp(6);
+    const otpHash = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(Date.now() + config.otp.expirySeconds * 1000);
+
+    // Create OTP session in database
+    const { data: otpSession, error: otpError } = await supabase
+      .from('otp_sessions')
+      .insert({
+        user_id: user.id,
+        email: user.email,
+        otp_hash: otpHash,
+        expires_at: expiresAt.toISOString(),
+        attempts: 0,
+        max_attempts: 3,
+        is_verified: false,
+        is_locked: false,
+      })
+      .select('id')
+      .single();
+
+    if (otpError || !otpSession) {
+      logger.error({ error: otpError }, 'Failed to create password reset OTP session');
+      throw new AppError('Failed to initiate password reset', 500);
+    }
+
+    // Send password reset OTP email
+    const userName = `${user.first_name} ${user.last_name}`;
+    console.log(`[AuthService] 📧 Sending password reset OTP to ${email}: ${otp}`);
+
+    try {
+      await emailService.sendPasswordResetOtpEmail(email, otp, userName);
+      console.log(`[AuthService] ✅ Password reset OTP sent successfully`);
+    } catch (emailError) {
+      console.log(`[AuthService] ⚠️ Email service unavailable - OTP: ${otp}`);
+      logger.warn({ error: emailError }, 'Email service unavailable for password reset');
+    }
+
+    logger.info({ email, sessionId: otpSession.id }, 'Password reset OTP session created');
+
+    return {
+      sessionId: otpSession.id,
+      email: user.email,
+      message: 'Password reset code has been sent to your email address',
+      expiresIn: config.otp.expirySeconds,
+    };
+  }
+
+  /**
+   * Step 2: Verify OTP for password reset
+   */
+  async verifyForgotPasswordOtp(sessionId: string, otp: string): Promise<{
+    resetToken: string;
+    message: string;
+  }> {
+    logger.info({ sessionId }, 'Verifying password reset OTP');
+
+    // Get OTP session from database
+    const { data: otpSession, error: sessionError } = await supabase
+      .from('otp_sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .single();
+
+    if (sessionError || !otpSession) {
+      logger.warn({ sessionId }, 'Password reset OTP session not found');
+      throw new AppError('Invalid or expired reset session', 400);
+    }
+
+    // Check if session is locked
+    if (otpSession.is_locked) {
+      throw new AppError('Too many failed attempts. Please request a new code.', 403);
+    }
+
+    // Check if session expired
+    if (new Date(otpSession.expires_at) < new Date()) {
+      await supabase.from('otp_sessions').delete().eq('id', sessionId);
+      throw new AppError('Reset code has expired. Please request a new one.', 400);
+    }
+
+    // Check if already verified
+    if (otpSession.is_verified) {
+      throw new AppError('Reset code already used', 400);
+    }
+
+    // Verify OTP hash
+    const isValidOtp = await bcrypt.compare(otp, otpSession.otp_hash);
+
+    if (!isValidOtp) {
+      const newAttempts = otpSession.attempts + 1;
+      const updateData: any = { attempts: newAttempts };
+
+      if (newAttempts >= otpSession.max_attempts) {
+        updateData.is_locked = true;
+      }
+
+      await supabase.from('otp_sessions').update(updateData).eq('id', sessionId);
+
+      const remainingAttempts = Math.max(0, otpSession.max_attempts - newAttempts);
+      throw new AppError(
+        `Invalid code. ${remainingAttempts} attempt(s) remaining.`,
+        400
+      );
+    }
+
+    // OTP is valid - mark session as verified
+    await supabase
+      .from('otp_sessions')
+      .update({
+        is_verified: true,
+        verified_at: new Date().toISOString(),
+      })
+      .eq('id', sessionId);
+
+    // Generate a temporary reset token
+    const resetToken = crypto.randomUUID();
+    cleanExpiredResetTokens();
+    passwordResetTokens.set(resetToken, {
+      userId: otpSession.user_id,
+      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+    });
+
+    logger.info({ sessionId, userId: otpSession.user_id }, 'Password reset OTP verified successfully');
+
+    return {
+      resetToken,
+      message: 'Code verified successfully. You can now set a new password.',
+    };
+  }
+
+  /**
+   * Step 3: Reset password using reset token
+   */
+  async resetPassword(resetToken: string, newPassword: string): Promise<void> {
+    logger.info('Password reset attempt');
+
+    // Validate reset token
+    cleanExpiredResetTokens();
+    const tokenData = passwordResetTokens.get(resetToken);
+
+    if (!tokenData) {
+      throw new AppError('Invalid or expired reset token. Please start the process again.', 400);
+    }
+
+    if (tokenData.expiresAt < Date.now()) {
+      passwordResetTokens.delete(resetToken);
+      throw new AppError('Reset token has expired. Please start the process again.', 400);
+    }
+
+    // Validate password
+    if (newPassword.length < 8) {
+      throw new AppError('New password must be at least 8 characters', 400);
+    }
+
+    // Update password using Supabase admin API
+    const { error: updateError } = await supabase.auth.admin.updateUserById(tokenData.userId, {
+      password: newPassword,
+    });
+
+    if (updateError) {
+      logger.error({ error: updateError, userId: tokenData.userId }, 'Failed to reset password');
+      throw new AppError('Failed to reset password', 500);
+    }
+
+    // Delete the reset token (one-time use)
+    passwordResetTokens.delete(resetToken);
+
+    // Audit log
+    await supabase.from('audit_logs').insert({
+      action: 'UPDATE',
+      entity_type: 'user',
+      entity_id: tokenData.userId,
+      performed_by_id: tokenData.userId,
+      metadata: { action: 'password_reset' },
+    });
+
+    logger.info({ userId: tokenData.userId }, 'Password reset successfully');
   }
 }
 
