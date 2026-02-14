@@ -11,7 +11,7 @@ import { supabase } from '../lib/supabase.js';
 import { logger } from '../config/logger.js';
 import { configService } from './configService.js';
 import { config } from '../config/index.js';
-import { emitBookingUpdate, emitRoomUpdate } from '../lib/socket.js';
+import { emitBookingUpdate, emitRoomUpdate, sendNotification } from '../lib/socket.js';
 import { waitlistService } from './waitlistService.js';
 import { getCurrentIST, getISTHour, getISTStartOfDay, isISTPeakHour, istToUtc, parseDbDate } from '../utils/dateUtils.js';
 import {
@@ -427,7 +427,36 @@ export class BookingService {
       parseDbDate(booking.end_time)
     );
 
-    logger.info({ bookingId }, 'Booking cancelled');;
+    // Epic 6 US 6: Notify booking owner when admin cancels their booking
+    if (isAdmin && booking.user_id !== userId) {
+      const { data: bookingOwner } = await supabase
+        .from('users')
+        .select('email, first_name, last_name')
+        .eq('id', booking.user_id)
+        .single();
+
+      if (bookingOwner) {
+        const ownerName = `${bookingOwner.first_name} ${bookingOwner.last_name}`;
+        const roomName = booking.rooms?.name || 'Room';
+
+        // Send cancellation email (fire-and-forget)
+        emailService.sendBookingCancellationEmail(bookingOwner.email, ownerName, {
+          roomName,
+          startTime: booking.start_time,
+          endTime: booking.end_time,
+          reason: reason || undefined,
+        }).catch(err => logger.error({ err }, 'Failed to send admin cancellation email'));
+
+        // Send real-time socket notification
+        sendNotification(
+          booking.user_id,
+          `Your booking for ${roomName} on ${new Date(booking.start_time).toLocaleString()} has been cancelled by an administrator.${reason ? ` Reason: ${reason}` : ''}`,
+          'warning'
+        );
+      }
+    }
+
+    logger.info({ bookingId }, 'Booking cancelled');
 
     return updated;
   }

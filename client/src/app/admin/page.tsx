@@ -38,10 +38,14 @@ import {
   Home,
   Wrench,
   MessageSquare,
+  Send,
+  Megaphone,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -120,7 +124,7 @@ interface Booking {
   user?: { name: string; email: string };
 }
 
-type AdminTab = "overview" | "users" | "rooms" | "bookings" | "approvals" | "audit_logs" | "analytics" | "settings";
+type AdminTab = "overview" | "users" | "rooms" | "bookings" | "approvals" | "audit_logs" | "analytics" | "broadcast" | "settings";
 
 // Sidebar navigation
 const navItems: { id: AdminTab; label: string; icon: React.ElementType }[] = [
@@ -130,6 +134,7 @@ const navItems: { id: AdminTab; label: string; icon: React.ElementType }[] = [
   { id: "bookings", label: "Bookings", icon: Calendar },
   { id: "approvals", label: "Approvals", icon: CheckCircle },
   { id: "audit_logs", label: "Audit Logs", icon: Activity },
+  { id: "broadcast", label: "Broadcast", icon: Megaphone },
   { id: "analytics", label: "Analytics", icon: Activity },
   { id: "settings", label: "Settings", icon: Settings },
 ];
@@ -162,6 +167,9 @@ export default function AdminPage() {
   const [isFeedbackReviewOpen, setIsFeedbackReviewOpen] = useState(false);
   const [isSystemConfigOpen, setIsSystemConfigOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>('');
+  const [broadcastSubject, setBroadcastSubject] = useState('');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [isSendingBroadcast, setIsSendingBroadcast] = useState(false);
   const { toast } = useToast();
 
   // Load user from localStorage
@@ -1207,6 +1215,123 @@ export default function AdminPage() {
                   </CardContent>
                 </Card>
               </div>
+            </motion.div>
+          )}
+
+          {/* Broadcast Tab */}
+          {activeTab === "broadcast" && (
+            <motion.div
+              key="broadcast"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="max-w-2xl mx-auto"
+            >
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-lg bg-blue-500/10">
+                      <Megaphone className="h-6 w-6 text-blue-500" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl">Send Broadcast Email</CardTitle>
+                      <CardDescription>Send an email notification to all registered users</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Subject */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Subject *</label>
+                    <Input
+                      placeholder="e.g. Campus Closure Notice, Maintenance Update..."
+                      value={broadcastSubject}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBroadcastSubject(e.target.value)}
+                      maxLength={200}
+                      disabled={isSendingBroadcast}
+                    />
+                  </div>
+
+                  {/* Message */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Message / Reason *</label>
+                    <Textarea
+                      placeholder="Enter the broadcast message with the reason for this notification..."
+                      value={broadcastMessage}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBroadcastMessage(e.target.value)}
+                      rows={6}
+                      maxLength={1000}
+                      disabled={isSendingBroadcast}
+                      className="resize-none"
+                    />
+                    <p className="text-xs text-muted-foreground text-right">
+                      {broadcastMessage.length} / 1000 characters
+                    </p>
+                  </div>
+
+                  {/* Warning */}
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-amber-600 dark:text-amber-400">This will email all users</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          The broadcast will be sent to every registered user in the system. Please double-check your message before sending.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Send Button */}
+                  <Button
+                    className="w-full gap-2"
+                    size="lg"
+                    disabled={!broadcastSubject.trim() || !broadcastMessage.trim() || isSendingBroadcast}
+                    onClick={async () => {
+                      const confirmed = window.confirm(
+                        `Are you sure you want to send this broadcast email to ALL users?\n\nSubject: ${broadcastSubject}\nMessage: ${broadcastMessage.substring(0, 100)}${broadcastMessage.length > 100 ? '...' : ''}`
+                      );
+                      if (!confirmed) return;
+
+                      setIsSendingBroadcast(true);
+                      try {
+                        const res = await adminApi.sendBroadcast({
+                          subject: broadcastSubject,
+                          message: broadcastMessage,
+                        });
+                        const data = res.data.data as any;
+                        toast({
+                          title: 'Broadcast Sent \u2713',
+                          description: `Email sent to ${data?.recipientCount || 'all'} users (${data?.successCount || 0} successful, ${data?.failCount || 0} failed).`,
+                        });
+                        setBroadcastSubject('');
+                        setBroadcastMessage('');
+                      } catch (error: any) {
+                        toast({
+                          title: 'Broadcast Failed',
+                          description: error.message || 'Failed to send broadcast email.',
+                          variant: 'destructive',
+                        });
+                      } finally {
+                        setIsSendingBroadcast(false);
+                      }
+                    }}
+                  >
+                    {isSendingBroadcast ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Sending to all users...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4" />
+                        Send Broadcast
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
             </motion.div>
           )}
         </AnimatePresence>

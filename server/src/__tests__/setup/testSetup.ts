@@ -87,6 +87,18 @@ export async function getAdminToken(): Promise<string> {
 
     adminToken = authData.session.access_token;
     process.env.TEST_ADMIN_TOKEN = adminToken;
+
+    // Ensure the test user has ADMIN role in public.users table
+    // (prevents 403 errors when the DB row role doesn't match)
+    const { error: roleError } = await supabase
+        .from('users')
+        .update({ role: 'ADMIN' })
+        .eq('id', authData.user.id);
+
+    if (roleError) {
+        console.warn(`Warning: could not set ADMIN role for test user: ${roleError.message}`);
+    }
+
     return adminToken;
 }
 

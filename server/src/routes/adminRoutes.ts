@@ -38,4 +38,15 @@ router.get('/stats', adminController.getStats);
  */
 router.get('/audit-logs', adminController.getAuditLogs);
 
+/**
+ * @openapi
+ * /api/v1/admin/broadcast:
+ *   post:
+ *     summary: Send broadcast email to all users
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/broadcast', adminController.sendBroadcast);
+
 export default router;
