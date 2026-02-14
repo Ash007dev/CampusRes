@@ -72,6 +72,12 @@ const configSchema = z.object({
     cronSchedule: z.string().default('*/5 * * * *'), // Every 5 minutes
   }),
 
+  // Booking Reminder Configuration
+  reminder: z.object({
+    minutesBefore: z.coerce.number().default(5),
+    cronSchedule: z.string().default('*/1 * * * *'), // Every 1 minute
+  }),
+
   // Booking Configuration
   booking: z.object({
     maxWeeklyQuotaHours: z.coerce.number().default(10),
@@ -144,6 +150,10 @@ function loadConfig() {
       gracePeriodMinutes: process.env.GHOST_KILLER_GRACE_PERIOD_MINUTES,
       reputationPenalty: process.env.GHOST_KILLER_REPUTATION_PENALTY,
       cronSchedule: process.env.GHOST_KILLER_CRON_SCHEDULE,
+    },
+    reminder: {
+      minutesBefore: process.env.REMINDER_MINUTES_BEFORE,
+      cronSchedule: process.env.REMINDER_CRON_SCHEDULE,
     },
     booking: {
       maxWeeklyQuotaHours: process.env.MAX_WEEKLY_QUOTA_HOURS,

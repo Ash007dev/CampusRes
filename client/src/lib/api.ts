@@ -106,7 +106,7 @@ api.interceptors.response.use(
 
     let errorMessage = 'An unexpected error occurred';
 
-    if (data?.error?.message) {
+    if (data?.error?.message && typeof data.error.message === 'string') {
       errorMessage = data.error.message;
 
       // If there are validation details, try to make the message more specific
@@ -117,6 +117,13 @@ api.interceptors.response.use(
           errorMessage = `${details[firstErrorKey][0]}`;
         }
       }
+    } else if (data?.error?.message && typeof data.error.message === 'object') {
+      // Handle cases where message is an object (e.g. BookingConflictError with alternatives)
+      errorMessage = data.error.code
+        ? `${data.error.code}: Request failed`
+        : 'This time slot is unavailable. Please try a different time.';
+    } else if (data?.message && typeof data.message === 'string') {
+      errorMessage = data.message;
     } else if (error.message) {
       errorMessage = error.message;
     }
@@ -376,6 +383,10 @@ export const adminApi = {
   // Get audit logs (US 4.9)
   getAuditLogs: (params?: { page?: number; limit?: number; userId?: string; action?: string }) =>
     api.get<ApiResponse<any[]>>('/admin/audit-logs', { params }),
+
+  // Send broadcast email to all users (US 2)
+  sendBroadcast: (data: { subject: string; message: string }) =>
+    api.post<ApiResponse<{ recipientCount: number; successCount: number; failCount: number }>>('/admin/broadcast', data),
 };
 
 // Holiday API (US 5.5)

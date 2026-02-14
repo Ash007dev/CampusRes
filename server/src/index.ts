@@ -15,6 +15,7 @@ import { testConnection, disconnect } from './lib/supabase.js';
 import { disconnectRedis } from './lib/redis.js';
 import { initSocketServer } from './lib/socket.js';
 import { scheduleGhostKiller } from './jobs/ghostKiller.js';
+import { scheduleBookingReminder } from './jobs/bookingReminder.js';
 import type { Server } from 'http';
 
 // Track server instance for graceful shutdown
@@ -60,6 +61,10 @@ async function startServer(): Promise<void> {
     } else {
       logger.info('👻 Ghost Killer disabled in development (set ENABLE_GHOST_KILLER=true to enable)');
     }
+
+    // Schedule Booking Reminder cron job
+    scheduleBookingReminder();
+    logger.info('⏰ Booking Reminder cron job enabled');
 
     // Setup graceful shutdown handlers
     setupGracefulShutdown();

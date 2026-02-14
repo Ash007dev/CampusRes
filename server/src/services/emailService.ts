@@ -364,6 +364,353 @@ If you did not request a password reset, please ignore this email.
 }
 
 /**
+ * Send booking cancellation notification email (Admin cancelled user's booking)
+ */
+export async function sendBookingCancellationEmail(
+  email: string,
+  userName: string,
+  bookingDetails: {
+    roomName: string;
+    startTime: string;
+    endTime: string;
+    reason?: string;
+    cancelledBy?: string;
+  }
+): Promise<boolean> {
+  const subject = `Booking Cancelled by Administrator - ${bookingDetails.roomName}`;
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .card { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .logo { font-size: 24px; font-weight: bold; color: #1a1a1a; }
+        .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; color: white; font-weight: bold; font-size: 14px; margin: 20px 0; background-color: #ef4444; }
+        .details-box { background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0; border: 1px solid #e2e8f0; }
+        .detail-item { margin-bottom: 8px; font-size: 14px; }
+        .detail-label { font-weight: bold; color: #64748b; width: 100px; display: inline-block; }
+        .message { color: #334155; line-height: 1.6; }
+        .footer { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 30px; }
+        .action-box { background: #eff6ff; border: 1px solid #3b82f6; border-radius: 8px; padding: 15px; margin-top: 20px; font-size: 14px; color: #1e40af; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="card">
+          <div class="header">
+            <div class="logo">🏛️ Campus Resource Engine</div>
+          </div>
+          
+          <p class="message">Hello <strong>${userName}</strong>,</p>
+          
+          <p class="message">Your booking for <strong>${bookingDetails.roomName}</strong> has been <strong>cancelled by an administrator</strong>.</p>
+          
+          <div style="text-align: center;">
+            <div class="status-badge">CANCELLED BY ADMIN</div>
+          </div>
+          
+          <div class="details-box">
+            <div class="detail-item"><span class="detail-label">Room:</span> <span>${bookingDetails.roomName}</span></div>
+            <div class="detail-item"><span class="detail-label">Start:</span> <span>${new Date(bookingDetails.startTime).toLocaleString()}</span></div>
+            <div class="detail-item"><span class="detail-label">End:</span> <span>${new Date(bookingDetails.endTime).toLocaleString()}</span></div>
+            ${bookingDetails.reason ? `<div class="detail-item"><span class="detail-label">Reason:</span> <span>${bookingDetails.reason}</span></div>` : ''}
+          </div>
+          
+          <div class="action-box">
+            💡 Your credits have been refunded. You can book another room from the dashboard.
+          </div>
+          
+          <div class="footer">
+            <p>This is an automated message from Campus Resource Engine.</p>
+            <p>Please do not reply to this email.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const textContent = `
+Hello ${userName},
+
+Your booking for ${bookingDetails.roomName} has been CANCELLED by an administrator.
+
+Booking Details:
+- Room: ${bookingDetails.roomName}
+- Start: ${new Date(bookingDetails.startTime).toLocaleString()}
+- End: ${new Date(bookingDetails.endTime).toLocaleString()}
+${bookingDetails.reason ? `- Reason: ${bookingDetails.reason}` : ''}
+
+Your credits have been refunded. You can book another room from the dashboard.
+
+- Campus Resource Engine
+  `;
+
+  try {
+    if (config.nodeEnv === 'development') {
+      logger.info({ email, roomName: bookingDetails.roomName, reason: bookingDetails.reason }, '📧 Admin Cancellation email logged for development');
+      console.log('\n');
+      console.log('╔════════════════════════════════════════════════════════════╗');
+      console.log('║            ❌ ADMIN BOOKING CANCELLATION                   ║');
+      console.log('╠════════════════════════════════════════════════════════════╣');
+      console.log(`║  To: ${email.padEnd(51)} ║`);
+      console.log(`║  Room: ${(bookingDetails.roomName || '').padEnd(49)} ║`);
+      console.log(`║  Reason: ${(bookingDetails.reason || 'No reason provided').padEnd(47)} ║`);
+      console.log('╚════════════════════════════════════════════════════════════╝');
+      console.log('\n');
+    }
+
+    if (!config.email.user || !config.email.password) {
+      return true;
+    }
+
+    await getTransporter().sendMail({
+      from: `"${config.email.fromName}" <${config.email.fromEmail}>`,
+      to: email,
+      subject,
+      text: textContent,
+      html: htmlContent,
+    });
+
+    return true;
+  } catch (error) {
+    logger.error({ email, error }, 'Failed to send booking cancellation email');
+    return false;
+  }
+}
+
+/**
+ * Send booking reminder email (5 minutes before booking starts)
+ */
+export async function sendBookingReminderEmail(
+  email: string,
+  userName: string,
+  bookingDetails: {
+    bookingId: string;
+    roomName: string;
+    roomCode?: string;
+    startTime: string;
+    endTime: string;
+  }
+): Promise<boolean> {
+  const subject = `⏰ Reminder: Your booking starts soon - ${bookingDetails.roomName}`;
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .card { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .logo { font-size: 24px; font-weight: bold; color: #1a1a1a; }
+        .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; color: white; font-weight: bold; font-size: 14px; margin: 20px 0; background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); }
+        .details-box { background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0; border: 1px solid #e2e8f0; }
+        .detail-item { margin-bottom: 8px; font-size: 14px; }
+        .detail-label { font-weight: bold; color: #64748b; width: 100px; display: inline-block; }
+        .message { color: #334155; line-height: 1.6; }
+        .footer { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 30px; }
+        .checkin-box { background: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; padding: 15px; margin-top: 20px; font-size: 14px; color: #065f46; text-align: center; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="card">
+          <div class="header">
+            <div class="logo">🏛️ Campus Resource Engine</div>
+          </div>
+          
+          <p class="message">Hello <strong>${userName}</strong>,</p>
+          
+          <p class="message">Your booking is starting in <strong>5 minutes</strong>! Please head to the room and check in using the QR code.</p>
+          
+          <div style="text-align: center;">
+            <div class="status-badge">⏰ STARTS SOON</div>
+          </div>
+          
+          <div class="details-box">
+            <div class="detail-item"><span class="detail-label">Room:</span> <span>${bookingDetails.roomName}${bookingDetails.roomCode ? ` (${bookingDetails.roomCode})` : ''}</span></div>
+            <div class="detail-item"><span class="detail-label">Start:</span> <span>${new Date(bookingDetails.startTime).toLocaleString()}</span></div>
+            <div class="detail-item"><span class="detail-label">End:</span> <span>${new Date(bookingDetails.endTime).toLocaleString()}</span></div>
+            <div class="detail-item"><span class="detail-label">Booking ID:</span> <span>${bookingDetails.bookingId}</span></div>
+          </div>
+          
+          <div class="checkin-box">
+            📱 <strong>Scan the QR code at the room to check in.</strong><br>
+            You have a 15-minute grace period after the start time.
+          </div>
+          
+          <div class="footer">
+            <p>This is an automated message from Campus Resource Engine.</p>
+            <p>Please do not reply to this email.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const textContent = `
+Hello ${userName},
+
+Your booking is starting in 5 minutes! Please head to the room and check in.
+
+Booking Details:
+- Room: ${bookingDetails.roomName}${bookingDetails.roomCode ? ` (${bookingDetails.roomCode})` : ''}
+- Start: ${new Date(bookingDetails.startTime).toLocaleString()}
+- End: ${new Date(bookingDetails.endTime).toLocaleString()}
+- Booking ID: ${bookingDetails.bookingId}
+
+Scan the QR code at the room to check in. You have a 15-minute grace period.
+
+- Campus Resource Engine
+  `;
+
+  try {
+    if (config.nodeEnv === 'development') {
+      logger.info({ email, roomName: bookingDetails.roomName, bookingId: bookingDetails.bookingId }, '📧 Booking Reminder email logged for development');
+      console.log('\n');
+      console.log('╔════════════════════════════════════════════════════════════╗');
+      console.log('║            ⏰ BOOKING REMINDER                             ║');
+      console.log('╠════════════════════════════════════════════════════════════╣');
+      console.log(`║  To: ${email.padEnd(51)} ║`);
+      console.log(`║  Room: ${(bookingDetails.roomName || '').padEnd(49)} ║`);
+      console.log(`║  Starts: ${new Date(bookingDetails.startTime).toLocaleString().padEnd(47)} ║`);
+      console.log('╠════════════════════════════════════════════════════════════╣');
+      console.log('║  📱 Remember to scan QR code to check in!                 ║');
+      console.log('╚════════════════════════════════════════════════════════════╝');
+      console.log('\n');
+    }
+
+    if (!config.email.user || !config.email.password) {
+      return true;
+    }
+
+    await getTransporter().sendMail({
+      from: `"${config.email.fromName}" <${config.email.fromEmail}>`,
+      to: email,
+      subject,
+      text: textContent,
+      html: htmlContent,
+    });
+
+    return true;
+  } catch (error) {
+    logger.error({ email, error }, 'Failed to send booking reminder email');
+    return false;
+  }
+}
+
+/**
+ * Send broadcast email from admin to a user
+ */
+export async function sendBroadcastEmail(
+  email: string,
+  userName: string,
+  broadcastDetails: {
+    subject: string;
+    message: string;
+  }
+): Promise<boolean> {
+  const subject = `📢 ${broadcastDetails.subject} - CampusRes`;
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .card { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .logo { font-size: 24px; font-weight: bold; color: #1a1a1a; }
+        .badge { display: inline-block; padding: 8px 16px; border-radius: 20px; color: white; font-weight: bold; font-size: 14px; margin: 20px 0; background-color: #3b82f6; }
+        .message-box { background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #3b82f6; }
+        .message-text { color: #334155; line-height: 1.8; font-size: 15px; white-space: pre-wrap; }
+        .footer { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 30px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="card">
+          <div class="header">
+            <div class="logo">🏛️ Campus Resource Engine</div>
+          </div>
+          
+          <p style="color: #334155; line-height: 1.6;">Hello <strong>${userName}</strong>,</p>
+          
+          <div style="text-align: center;">
+            <div class="badge">📢 ADMIN BROADCAST</div>
+          </div>
+          
+          <div class="message-box">
+            <p class="message-text">${broadcastDetails.message}</p>
+          </div>
+          
+          <div class="footer">
+            <p>This is an official broadcast from the CampusRes administration.</p>
+            <p>Please do not reply to this email.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const textContent = `
+Hello ${userName},
+
+--- ADMIN BROADCAST ---
+${broadcastDetails.subject}
+
+${broadcastDetails.message}
+
+- CampusRes Administration
+  `;
+
+  try {
+    if (config.nodeEnv === 'development') {
+      logger.info({ email, subject: broadcastDetails.subject }, '📢 Broadcast email logged for development');
+      console.log('\n');
+      console.log('╔════════════════════════════════════════════════════════════╗');
+      console.log('║            📢 ADMIN BROADCAST EMAIL                        ║');
+      console.log('╠════════════════════════════════════════════════════════════╣');
+      console.log(`║  To: ${email.padEnd(51)} ║`);
+      console.log(`║  Subject: ${broadcastDetails.subject.substring(0, 46).padEnd(46)} ║`);
+      console.log('╠════════════════════════════════════════════════════════════╣');
+      console.log(`║  ${broadcastDetails.message.substring(0, 55).padEnd(55)} ║`);
+      console.log('╚════════════════════════════════════════════════════════════╝');
+      console.log('\n');
+    }
+
+    if (!config.email.user || !config.email.password) {
+      return true;
+    }
+
+    await getTransporter().sendMail({
+      from: `"${config.email.fromName}" <${config.email.fromEmail}>`,
+      to: email,
+      subject,
+      text: textContent,
+      html: htmlContent,
+    });
+
+    return true;
+  } catch (error) {
+    logger.error({ email, error }, 'Failed to send broadcast email');
+    return false;
+  }
+}
+
+/**
  * Verify SMTP connection
  */
 export async function verifyEmailConnection(): Promise<boolean> {
@@ -385,5 +732,8 @@ export const emailService = {
   sendOtpEmail,
   sendPasswordResetOtpEmail,
   sendBookingStatusEmail,
+  sendBookingCancellationEmail,
+  sendBookingReminderEmail,
+  sendBroadcastEmail,
   verifyEmailConnection,
 };
