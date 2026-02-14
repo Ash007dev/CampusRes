@@ -13,6 +13,7 @@ export interface User {
   email: string;
   role: "STUDENT" | "FACULTY" | "ADMIN" | "LAB_ADMIN";
   departmentId?: string;
+  departmentName?: string;
   reputationScore: number;
   avatarUrl?: string;
 }
@@ -80,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: apiUser.email,
             role: apiUser.role,
             departmentId: apiUser.departmentId,
+            departmentName: apiUser.departmentName,
             reputationScore: apiUser.reputationScore,
           };
           setUser(userData);
@@ -173,6 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: apiUser.email,
         role: apiUser.role,
         departmentId: apiUser.departmentId,
+        departmentName: apiUser.departmentName,
         reputationScore: apiUser.reputationScore || 0,
       };
       console.log("[Auth] Mapped user data:", userData);
@@ -234,6 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: apiUser.email,
         role: apiUser.role,
         departmentId: apiUser.departmentId,
+        departmentName: apiUser.departmentName,
         reputationScore: apiUser.reputationScore,
       };
       setUser(userData);

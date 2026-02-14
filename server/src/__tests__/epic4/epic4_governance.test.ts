@@ -65,7 +65,7 @@ vi.mock('../../services/configService.js', () => ({
 
 // We need to import constants and helper types
 import { QuotaExceededError } from '../../utils/errors.js';
-import { bookingService } from '../bookingService.js';
+import { bookingService } from '../../services/bookingService.js';
 
 describe('Epic 4: Governance, Fairness & Approval Workflows', () => {
     const userId = 'user-uuid';

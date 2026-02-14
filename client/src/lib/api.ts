@@ -424,6 +424,7 @@ export interface User {
   lastName: string;
   role: 'STUDENT' | 'FACULTY' | 'LAB_ADMIN' | 'ADMIN';
   departmentId: string;
+  departmentName?: string;
   quotaLimitHours: number;
   reputationScore: number;
   creditsBalance: number;
