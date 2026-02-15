@@ -86,9 +86,9 @@ const getEventStyle = (event: BookingEvent) => {
     // My bookings: Dark with bright white text
     return {
       ...baseStyle,
-      backgroundColor: "#0a0a0a",
+      backgroundColor: "#A4123F", // Maroon
       color: "#ffffff",
-      borderColor: "#262626",
+      borderColor: "#800e30",
       fontWeight: "600",
     };
   }
@@ -99,17 +99,17 @@ const getEventStyle = (event: BookingEvent) => {
       // Others' bookings: Medium gray with white text
       return {
         ...baseStyle,
-        backgroundColor: "#404040",
+        backgroundColor: "#630b26", // Darker Maroon
         color: "#ffffff",
-        borderColor: "#525252",
+        borderColor: "#4a081c",
       };
     case "PENDING":
       // Pending: Light gray with dark text
       return {
         ...baseStyle,
-        backgroundColor: "#d4d4d4",
-        color: "#0a0a0a",
-        borderColor: "#a3a3a3",
+        backgroundColor: "#f5d0d8", // Light Maroon
+        color: "#800e30", // Dark Maroon Text
+        borderColor: "#e8b8c6",
         fontWeight: "600",
       };
     case "CANCELLED":
@@ -125,9 +125,9 @@ const getEventStyle = (event: BookingEvent) => {
       // Completed: Outlined style
       return {
         ...baseStyle,
-        backgroundColor: "#fafafa",
-        color: "#525252",
-        borderColor: "#a3a3a3",
+        backgroundColor: "#fdf2f5", // Very Light Maroon
+        color: "#a4123f", // Maroon Text
+        borderColor: "#e8b8c6",
         borderStyle: "dashed",
         borderWidth: "2px",
       };
@@ -270,7 +270,7 @@ export function BookingCalendar({
       if (slotDate < now) {
         return {
           style: {
-            backgroundColor: "#f8fafc",
+            backgroundColor: "#fff0f5", // Lavender Blush (Faint Maroon/Pink)
           },
         };
       }
@@ -320,19 +320,19 @@ export function BookingCalendar({
       {/* Legend - Black/white with grayscale colors */}
       <div className="mb-4 flex flex-wrap gap-4 pb-4 border-b border-border">
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#1a1a1a" }} />
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#A4123F" }} />
           <span className="text-xs font-medium">My Booking</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#525252" }} />
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#630b26" }} />
           <span className="text-xs font-medium">Booked</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#a3a3a3" }} />
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#f5d0d8" }} />
           <span className="text-xs font-medium">Pending</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded border-2 border-dashed" style={{ borderColor: "#d4d4d4" }} />
+          <div className="h-3 w-3 rounded border-2 border-dashed" style={{ borderColor: "#e8b8c6", backgroundColor: "#fdf2f5" }} />
           <span className="text-xs font-medium">Completed</span>
         </div>
         <div className="flex items-center gap-2">

@@ -37,7 +37,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { roomsApi, bookingsApi, type Room } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 import { BookingModal, type BookingFormData } from "@/components/booking/BookingModal";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+// import { ThemeToggle } from "@/components/ui/theme-toggle"; // Removed
 import { SubmitFeedbackModal } from "@/components/feedback/SubmitFeedbackModal";
 
 const AMENITY_ICONS: Record<string, React.ElementType> = {
@@ -194,7 +194,7 @@ export default function RoomDetailsPage() {
                         Back
                     </Button>
                     <h1 className="text-xl font-semibold">Room Details</h1>
-                    <ThemeToggle />
+                    {/* <ThemeToggle /> */}
                 </div>
             </header>
 
@@ -257,8 +257,8 @@ export default function RoomDetailsPage() {
                                     </div>
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-2">
-                                    <Button 
-                                        size="lg" 
+                                    <Button
+                                        size="lg"
                                         onClick={() => setIsBookingModalOpen(true)}
                                         disabled={room.isMaintenance}
                                     >

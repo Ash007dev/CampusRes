@@ -9,8 +9,8 @@ import {
     User,
     Bell,
     Mail,
-    Moon,
-    Sun,
+    // Moon, // Removed
+    // Sun, // Removed
     Shield,
     Key,
     Trash2,
@@ -52,14 +52,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useTheme } from "next-themes";
+// import { ThemeToggle } from "@/components/ui/theme-toggle"; // Removed
+// import { useTheme } from "next-themes"; // Removed
 
 export default function SettingsPage() {
     const router = useRouter();
     const { user, isLoading, logout, isInitialized } = useAuth();
     const { toast } = useToast();
-    const { theme, setTheme } = useTheme();
+    // const { theme, setTheme } = useTheme(); // Removed
 
     // Settings state
     const [pushNotifications, setPushNotifications] = useState(true);
@@ -93,7 +93,7 @@ export default function SettingsPage() {
             await authApi.updatePreferences({
                 emailNotifications: emailNotifications,
                 smsNotifications: pushNotifications,
-                theme: (theme as 'light' | 'dark' | 'system') || 'system',
+                // theme: (theme as 'light' | 'dark' | 'system') || 'system', // Removed
             });
             toast({
                 title: "Settings Saved",
@@ -195,7 +195,7 @@ export default function SettingsPage() {
                         Back to Profile
                     </Button>
                     <h1 className="text-xl font-semibold">Settings</h1>
-                    <ThemeToggle />
+                    {/* <ThemeToggle /> */}
                 </div>
             </header>
 
@@ -207,71 +207,7 @@ export default function SettingsPage() {
                     className="space-y-6"
                 >
                     {/* Appearance */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Palette className="h-5 w-5" />
-                                Appearance
-                            </CardTitle>
-                            <CardDescription>
-                                Customize how the app looks and feels
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="rounded-lg bg-primary/10 p-2">
-                                        {theme === "dark" ? (
-                                            <Moon className="h-4 w-4 text-primary" />
-                                        ) : (
-                                            <Sun className="h-4 w-4 text-primary" />
-                                        )}
-                                    </div>
-                                    <div>
-                                        <Label className="font-medium">Theme</Label>
-                                        <p className="text-xs text-muted-foreground">
-                                            Choose your preferred color scheme
-                                        </p>
-                                    </div>
-                                </div>
-                                <Select value={theme} onValueChange={setTheme}>
-                                    <SelectTrigger className="w-32">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="light">Light</SelectItem>
-                                        <SelectItem value="dark">Dark</SelectItem>
-                                        <SelectItem value="system">System</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <Separator />
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="rounded-lg bg-primary/10 p-2">
-                                        <Globe className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <div>
-                                        <Label className="font-medium">Language</Label>
-                                        <p className="text-xs text-muted-foreground">
-                                            Select your preferred language
-                                        </p>
-                                    </div>
-                                </div>
-                                <Select value={language} onValueChange={setLanguage}>
-                                    <SelectTrigger className="w-32">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="en">English</SelectItem>
-                                        <SelectItem value="es">Español</SelectItem>
-                                        <SelectItem value="fr">Français</SelectItem>
-                                        <SelectItem value="hi">हिंदी</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    {/* Appearance Section Removed */}
 
                     {/* Notifications */}
                     <Card>
