@@ -57,6 +57,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { roomsApi, bookingsApi, authApi, waitlistApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { SlotInfo } from "react-big-calendar";
+import { utcToIstShifted, getCurrentIST } from "@/lib/dateUtils";
 
 // Types
 interface DashboardUser {
@@ -189,12 +190,14 @@ export default function DashboardPage() {
 
       // Transform bookings to calendar events
       const userId = user?.id;
+      // ...
+
       setBookings(
         bookingsData.map((booking: any) => ({
           id: booking.id,
           title: booking.title || booking.description || "Booking",
-          start: new Date(booking.startTime),
-          end: new Date(booking.endTime),
+          start: utcToIstShifted(booking.startTime),
+          end: utcToIstShifted(booking.endTime),
           roomId: booking.roomId,
           roomName: booking.room?.name || booking.rooms?.name || "Room",
           status: booking.status,
@@ -347,7 +350,7 @@ export default function DashboardPage() {
     setNotifyingRoomId(room.id);
     try {
       // Join waitlist for the next hour slot
-      const now = new Date();
+      const now = getCurrentIST();
       const startTime = new Date(now);
       startTime.setMinutes(0, 0, 0); // Round to hour
       startTime.setHours(startTime.getHours() + 1); // Next hour
@@ -626,7 +629,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-background border">
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Upcoming</p>
-                    <p className="text-lg font-bold">{bookings.filter(b => new Date(b.start) > new Date()).length}</p>
+                    <p className="text-lg font-bold">{bookings.filter(b => b.start > getCurrentIST()).length}</p>
                   </div>
                   <Calendar className="h-5 w-5 text-foreground" />
                 </div>

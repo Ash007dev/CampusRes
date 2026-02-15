@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
+import { formatDateTimeInIst } from "@/lib/dateUtils";
 import {
     ChevronLeft,
     Users,
@@ -116,12 +117,11 @@ export default function RoomDetailsPage() {
                 startTime: startDateTime.toISOString(),
                 endTime: endDateTime.toISOString(),
                 title: data.purpose,
-                description: data.purpose,
             });
 
             toast({
                 title: "Booking Successful!",
-                description: `You have booked ${room?.name} for ${format(startDateTime, "PPP")}`,
+                description: `You have booked ${room?.name} for ${formatDateTimeInIst(startDateTime.toISOString())}`,
             });
 
             setIsBookingModalOpen(false);
@@ -257,8 +257,8 @@ export default function RoomDetailsPage() {
                                     </div>
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-2">
-                                    <Button 
-                                        size="lg" 
+                                    <Button
+                                        size="lg"
                                         onClick={() => setIsBookingModalOpen(true)}
                                         disabled={room.isMaintenance}
                                     >

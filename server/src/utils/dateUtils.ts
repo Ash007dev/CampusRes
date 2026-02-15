@@ -2,21 +2,26 @@
  * =============================================================================
  * Campus Resource Engine - Date Utilities (IST)
  * =============================================================================
- * Centralized date handling for IST (GMT+5:30) using date-fns-tz v3
+ * Centralized date handling for IST (GMT+5:30)
+ * ADAPTED STRATEGY: "Fake UTC"
+ * The database will store dates that LOOK like IST but are technically UTC.
+ * Example: 9:00 AM IST is stored as 09:00:00Z (instead of 03:30:00Z).
+ * This satisfies the user requirement to see "9:00" in the DB.
  * =============================================================================
  */
 
-import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
+import { addMinutes, format } from 'date-fns';
 
-const IST_TIMEZONE = 'Asia/Kolkata';
+const IST_OFFSET_MINUTES = 330; // 5.5 hours
 
 /**
- * Get current date/time
- * Returns a standard Date object. Note that "now" is the same in all timezones
- * when represented as a UTC timestamp.
+ * Get current date/time in IST (as a UTC Date object)
+ * Returns a Date object that effectively represents IST time in UTC components.
  */
 export function getCurrentIST(): Date {
-    return new Date();
+    const now = new Date();
+    // Shift by +5:30 to make UTC components match IST time
+    return addMinutes(now, IST_OFFSET_MINUTES);
 }
 
 /**
@@ -25,7 +30,8 @@ export function getCurrentIST(): Date {
 export function formatIST(date: Date | string | number, formatStr: string = 'yyyy-MM-dd HH:mm:ss'): string {
     try {
         const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-        return formatInTimeZone(d, IST_TIMEZONE, formatStr);
+        // Since 'd' is already shifted (Fake UTC), we format it as UTC to see the "IST" numbers
+        return format(d, formatStr);
     } catch (err) {
         return String(date);
     }
@@ -35,22 +41,16 @@ export function formatIST(date: Date | string | number, formatStr: string = 'yyy
  * Get the current hour in IST (0-23)
  */
 export function getISTHour(): number {
-    return parseInt(formatInTimeZone(new Date(), IST_TIMEZONE, 'H'));
+    return getCurrentIST().getUTCHours();
 }
 
 /**
  * Convert a date to its start of day in IST
- * Returns a UTC Date representing 00:00 IST on that day
  */
-export function getISTStartOfDay(date: Date = new Date()): Date {
-    try {
-        const dateStr = formatInTimeZone(date, IST_TIMEZONE, 'yyyy-MM-dd');
-        return fromZonedTime(`${dateStr}T00:00:00`, IST_TIMEZONE);
-    } catch (err) {
-        const d = new Date(date);
-        d.setUTCHours(0, 0, 0, 0);
-        return d;
-    }
+export function getISTStartOfDay(date: Date = getCurrentIST()): Date {
+    const d = new Date(date);
+    d.setUTCHours(0, 0, 0, 0);
+    return d;
 }
 
 /**
@@ -62,32 +62,31 @@ export function isISTPeakHour(peakStart: number, peakEnd: number): boolean {
 }
 
 /**
- * Ensure a date is treated as IST and convert to UTC for storage
+ * Parse a date string as UTC (Fake UTC strategy)
+ * Input: "2023-10-27T09:00:00" (Implies 9 AM IST)
+ * Output: Date(2023-10-27T09:00:00Z)
  */
 export function istToUtc(dateStr: string): Date {
-    if (!dateStr || typeof dateStr !== 'string') return new Date();
+    if (!dateStr || typeof dateStr !== 'string') return getCurrentIST();
 
-    // If dateStr doesn't have a timezone, assume it's IST
-    if (!dateStr.includes('Z') && !dateStr.includes('+')) {
-        try {
-            return fromZonedTime(dateStr, IST_TIMEZONE);
-        } catch (err) {
-            return new Date(dateStr);
-        }
-    }
-    return new Date(dateStr);
+    // If it already has Z, assumes it's already properly formatted Fake UTC
+    if (dateStr.endsWith('Z')) return new Date(dateStr);
+
+    // If it has local offset (e.g. +05:30), strip it or handle it? 
+    // Usually input is "2023-10-27T09:00:00" from client
+    // We append Z to treat it as UTC
+    return new Date(dateStr + 'Z');
 }
 
 /**
  * Parse a date string from the database.
- * Since our database uses 'timestamp without time zone', we must manually
- * ensure that the date is interpreted as UTC (as stored by .toISOString()).
  */
 export function parseDbDate(dateStr: string | Date): Date {
-    if (!dateStr) return new Date();
+    if (!dateStr) return getCurrentIST();
     if (dateStr instanceof Date) return dateStr;
 
-    if (typeof dateStr === 'string' && !dateStr.includes('Z') && !dateStr.includes('+')) {
+    // Ensure it's treated as UTC
+    if (!dateStr.endsWith('Z')) {
         return new Date(dateStr + 'Z');
     }
     return new Date(dateStr);

@@ -158,9 +158,21 @@ export function BookingCalendar({
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const { toast } = useToast();
 
-  // Helper to format date as YYYY-MM-DD
+  // Helper to format date as YYYY-MM-DD in IST
   const formatDateString = (d: Date): string => {
-    return d.toISOString().split('T')[0];
+    // API expects YYYY-MM-DD. Using local time might be off by a day if early morning/late night.
+    // Ideally we want the date in IST.
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    };
+    const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(d);
+    // en-CA is YYYY-MM-DD.
+    // But formatToParts is safer.
+    // Or just use the simple split trick on a toLocaleString('sv-SE', { timeZone: 'Asia/Kolkata' }) which is YYYY-MM-DD
+    return d.toLocaleString('sv-SE', { timeZone: 'Asia/Kolkata' }).split(' ')[0];
   };
 
   // Fetch holidays when month changes
@@ -316,7 +328,7 @@ export function BookingCalendar({
   }
 
   return (
-    <div className={cn("h-[600px] rounded-lg border border-border bg-card p-4", className)}>
+    <div className={cn("h-[600px] overflow-y-auto rounded-lg border border-border bg-card p-4", className)}>
       {/* Legend - Black/white with grayscale colors */}
       <div className="mb-4 flex flex-wrap gap-4 pb-4 border-b border-border">
         <div className="flex items-center gap-2">
@@ -367,7 +379,7 @@ export function BookingCalendar({
         views={["month", "week", "day", "agenda"]}
         popup
         className="booking-calendar"
-        style={{ height: "calc(100% - 60px)" }}
+        style={{ height: "850px" }}
       />
 
       {/* Custom styles */}
@@ -451,7 +463,6 @@ export function BookingCalendar({
         .booking-calendar .rbc-month-view {
           border-color: hsl(var(--border));
           border-radius: 8px;
-          overflow: hidden;
         }
 
         .booking-calendar .rbc-time-content,

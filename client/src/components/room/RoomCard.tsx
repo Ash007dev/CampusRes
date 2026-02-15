@@ -28,6 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { formatTimeInIst } from "@/lib/dateUtils";
 import type { AvailabilityStatus } from "@/lib/api";
 
 // Types
@@ -208,10 +209,7 @@ export function RoomCard({
               <div className="mb-3 flex items-center gap-1 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4" />
                 <span>
-                  Next: {new Date(room.nextAvailable).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  Next: {formatTimeInIst(room.nextAvailable)}
                 </span>
               </div>
             )}

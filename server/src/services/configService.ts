@@ -292,23 +292,19 @@ export const configService = {
   async isWithinCampusHours(startTime: Date, endTime: Date): Promise<boolean> {
     const constraints = await this.getBookingTimeConstraints();
 
-    // Use IST hours for comparison with campus times
-    const formatInTimeZone = (date: Date, fmt: string) =>
-      new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour12: false, hour: 'numeric' }).format(date);
-    const getISTMinutes = (date: Date) => {
-      const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Kolkata',
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: false
-      }).formatToParts(date);
-      const h = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
-      const m = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+    // ADAPTED strategy: "Fake UTC"
+    // The dates passed in (startTime, endTime) are already shifted so that their UTC components
+    // match the IST time. E.g. 15:00 IST is represented as 15:00 Z.
+    // So we just read the UTC components directly. DO NOT shift again to Asia/Kolkata.
+
+    const getMinutes = (date: Date) => {
+      const h = date.getUTCHours();
+      const m = date.getUTCMinutes();
       return h * 60 + m;
     };
 
-    const startMinutes = getISTMinutes(startTime);
-    const endMinutes = getISTMinutes(endTime);
+    const startMinutes = getMinutes(startTime);
+    const endMinutes = getMinutes(endTime);
 
     const [openHour, openMinute] = constraints.campusOpenTime.split(':').map(Number);
     const [closeHour, closeMinute] = constraints.campusCloseTime.split(':').map(Number);

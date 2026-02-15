@@ -178,7 +178,7 @@ export class BookingService {
       const initialStatus = requiresApproval ? BOOKING_STATUS.PENDING_APPROVAL : BOOKING_STATUS.CONFIRMED;
 
       // Create booking
-      const now = new Date().toISOString();
+      const now = getCurrentIST().toISOString();
       const bookingId = crypto.randomUUID();
       const { data: newBooking, error: bookingError } = await supabase
         .from('bookings')
@@ -715,8 +715,10 @@ export class BookingService {
     }
 
     const now = getCurrentIST();
-    const checkInWindowStart = new Date(parseDbDate(booking.start_time).getTime() - 15 * TIME.MINUTE);
-    const checkInWindowEnd = new Date(parseDbDate(booking.start_time).getTime() + 15 * TIME.MINUTE);
+    // Check-in window logic adjusted for Fake UTC
+    const bookingStart = parseDbDate(booking.start_time);
+    const checkInWindowStart = new Date(bookingStart.getTime() - 15 * TIME.MINUTE);
+    const checkInWindowEnd = new Date(bookingStart.getTime() + 15 * TIME.MINUTE);
 
     if (now < checkInWindowStart) {
       throw new AppError('Check-in window has not started yet', 400);
