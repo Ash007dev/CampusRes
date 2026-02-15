@@ -134,9 +134,9 @@ const getEventStyle = (event: BookingEvent) => {
     default:
       return {
         ...baseStyle,
-        backgroundColor: "#404040",
+        backgroundColor: "#630b26", // Darker Maroon (Same as Confirmed)
         color: "#ffffff",
-        borderColor: "#525252",
+        borderColor: "#4a081c",
       };
   }
 };
