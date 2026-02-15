@@ -527,25 +527,33 @@ export default function DashboardPage() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/profile")}>
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
+                <DropdownMenuItem asChild>
+                  <a href="/profile" onClick={(e) => { e.preventDefault(); router.push("/profile"); }}>
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </a>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/bookings")}>
-                  <Calendar className="mr-2 h-4 w-4" />
-                  My Bookings
+                <DropdownMenuItem asChild>
+                  <a href="/bookings" onClick={(e) => { e.preventDefault(); router.push("/bookings"); }}>
+                    <Calendar className="mr-2 h-4 w-4" />
+                    My Bookings
+                  </a>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/settings")}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                <DropdownMenuItem asChild>
+                  <a href="/settings" onClick={(e) => { e.preventDefault(); router.push("/settings"); }}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </a>
                 </DropdownMenuItem>
                 {/* Admin Panel - Only visible for ADMIN users */}
                 {currentUser?.role === "ADMIN" && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => router.push("/admin")}>
-                      <Settings className="mr-2 h-4 w-4" />
-                      Admin Panel
+                    <DropdownMenuItem asChild>
+                      <a href="/admin" onClick={(e) => { e.preventDefault(); router.push("/admin"); }}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        Admin Panel
+                      </a>
                     </DropdownMenuItem>
                   </>
                 )}

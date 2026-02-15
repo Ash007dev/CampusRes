@@ -103,34 +103,66 @@ api.interceptors.response.use(
 
     // Transform error for consistent handling
     const data = error.response?.data as any;
+    const status = error.response?.status;
 
     let errorMessage = 'An unexpected error occurred';
+    let errorCode: string | undefined;
+    let errorDetails: any | undefined;
 
-    if (data?.error?.message && typeof data.error.message === 'string') {
-      errorMessage = data.error.message;
+    if (data?.error) {
+      // Handle structured error object from server
+      if (typeof data.error === 'string') {
+        errorMessage = data.error;
+      } else {
+        errorMessage = data.error.message || errorMessage;
+        errorCode = data.error.code;
+        errorDetails = data.error.details;
 
-      // If there are validation details, try to make the message more specific
-      if (data.error.details) {
-        const details = data.error.details;
-        const firstErrorKey = Object.keys(details)[0];
-        if (firstErrorKey && Array.isArray(details[firstErrorKey]) && details[firstErrorKey][0]) {
-          errorMessage = `${details[firstErrorKey][0]}`;
+        // If there are validation details, try to make the message more specific
+        // But keep the details for the UI to use (e.g. conflict alternatives)
+        if (errorDetails && !errorDetails.alternatives) {
+          const firstErrorKey = Object.keys(errorDetails)[0];
+          if (firstErrorKey && Array.isArray(errorDetails[firstErrorKey]) && errorDetails[firstErrorKey][0]) {
+            // Only override message for validation errors, not for business logic errors like conflicts
+            // that might have their own useful messages
+            if (errorCode === 'VALIDATION_ERROR') {
+              errorMessage = `${errorDetails[firstErrorKey][0]}`;
+            }
+          }
         }
       }
-    } else if (data?.error?.message && typeof data.error.message === 'object') {
-      // Handle cases where message is an object (e.g. BookingConflictError with alternatives)
-      errorMessage = data.error.code
-        ? `${data.error.code}: Request failed`
-        : 'This time slot is unavailable. Please try a different time.';
-    } else if (data?.message && typeof data.message === 'string') {
+    } else if (data?.message) {
+      // Handle simple message response
       errorMessage = data.message;
     } else if (error.message) {
+      // Handle axios error message
       errorMessage = error.message;
     }
 
-    return Promise.reject(new Error(errorMessage));
+    // Return the custom ApiError with all details
+    return Promise.reject(new ApiError(errorMessage, errorCode, errorDetails, status));
   }
 );
+
+/**
+ * ApiError class to preserve server error details
+ */
+export class ApiError extends Error {
+  public code?: string;
+  public details?: any;
+  public status?: number;
+
+  constructor(message: string, code?: string, details?: any, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.details = details;
+    this.status = status;
+
+    // Maintain prototype chain
+    Object.setPrototypeOf(this, ApiError.prototype);
+  }
+}
 
 /**
  * API Response type
@@ -139,6 +171,11 @@ export interface ApiResponse<T> {
   success: boolean;
   data: T;
   message?: string;
+  error?: {
+    message: string;
+    code?: string;
+    details?: any;
+  };
   meta?: {
     total: number;
     page: number;

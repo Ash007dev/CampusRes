@@ -34,7 +34,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { Room } from "@/components/room/RoomCard";
+import { type Room } from "@/components/room/RoomCard";
+import { type ApiError } from "@/lib/api";
 
 // Validation schema
 // Generate time slots from 6 AM to 10 PM
@@ -126,6 +127,7 @@ export function BookingModal({
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const [copiedId, setCopiedId] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [alternatives, setAlternatives] = useState<Array<Record<string, any>>>([]);
 
   // Get default future time
   const defaultTime = getNextAvailableTime();
@@ -206,56 +208,64 @@ export function BookingModal({
         setIsSuccess(true);
         setIsSubmitting(false);
       } catch (err: any) {
-        // Enhanced error logging to avoid "[object Object]" display
-        console.error('[BookingModal] Booking submission failed');
-
-        // Log error details in a structured way
-        if (err?.response) {
-          console.error('[BookingModal] Response Status:', err.response.status);
-          console.error('[BookingModal] Response Data:', JSON.stringify(err.response.data, null, 2));
-        }
-        if (err?.message) {
-          console.error('[BookingModal] Error Message:', err.message);
-        }
-        if (err?.config?.url) {
-          console.error('[BookingModal] Request URL:', err.config.url);
-        }
-
-        // Extract user-friendly error message from various possible error formats
+        console.error('[BookingModal] Booking submission failed', err);
         let errorMessage = 'Failed to create booking. Please try again.';
 
-        // Priority 1: Check if it's already an Error with a message
-        if (err instanceof Error && err.message) {
+        // Handle ApiError with structured details
+        if (err.name === 'ApiError') {
+          const apiError = err as ApiError;
+
+          // Check for alternatives in details (BookingConflictError)
+          if (apiError.details?.alternatives && Array.isArray(apiError.details.alternatives)) {
+            // Server may return {start, end} or {startTime, endTime} — normalize
+            setAlternatives(apiError.details.alternatives);
+            errorMessage = apiError.message || "This time slot is unavailable. Here are some alternatives:";
+          }
+
+          // Check for other details
+          else if (apiError.message) {
+            errorMessage = apiError.message;
+          }
+        }
+        // Fallback for standard Error 
+        else if (err instanceof Error) {
           errorMessage = err.message;
         }
-        // Priority 2: Check axios response error structure
-        else if (err?.response?.data?.error?.message) {
-          errorMessage = err.response.data.error.message;
-        }
-        // Priority 3: Check for direct message in response data
-        else if (err?.response?.data?.message) {
-          errorMessage = err.response.data.message;
-        }
-        // Priority 4: Check if error is a string
+        // Fallback for string
         else if (typeof err === 'string') {
           errorMessage = err;
         }
-        // Priority 5: Check for validation errors
-        else if (err?.response?.data?.error?.details) {
-          const details = err.response.data.error.details;
-          const firstErrorKey = Object.keys(details)[0];
-          if (firstErrorKey && Array.isArray(details[firstErrorKey]) && details[firstErrorKey][0]) {
-            errorMessage = `${details[firstErrorKey][0]}`;
-          }
+
+        // Avoid [object Object] at all costs
+        if (typeof errorMessage === 'object') {
+          console.error('[BookingModal] Error message is an object:', errorMessage);
+          errorMessage = JSON.stringify(errorMessage);
         }
 
-        console.error('[BookingModal] Displaying error to user:', errorMessage);
         setError(errorMessage);
         setIsSubmitting(false);
       }
     },
     [onSubmit]
   );
+
+  // Handle selecting an alternative slot
+  const handleSelectAlternative = useCallback((slot: Record<string, any>) => {
+    // Server may return {start, end} or {startTime, endTime} — handle both
+    const startRaw = slot.startTime || slot.start;
+    const endRaw = slot.endTime || slot.end;
+    const start = new Date(startRaw);
+    const end = new Date(endRaw);
+
+    if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+      setValue("startTime", format(start, "HH:mm"));
+      setValue("endTime", format(end, "HH:mm"));
+    }
+
+    // Clear error and alternatives
+    setError(null);
+    setAlternatives([]);
+  }, [setValue]);
 
   // Handle modal close
   const handleClose = useCallback(() => {
@@ -265,6 +275,7 @@ export function BookingModal({
       setIsSuccess(false);
       setConfirmedBooking(null);
       setCopiedId(false);
+      setAlternatives([]);
       onClose();
     }
   }, [reset, onClose, isSubmitting]);
@@ -366,9 +377,55 @@ export function BookingModal({
 
           {/* Error Alert */}
           {error && (
-            <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4" />
-              {error}
+            <div className="flex flex-col gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                <span className="font-semibold">{error}</span>
+              </div>
+
+              {/* Suggested Alternatives */}
+              {alternatives.length > 0 && (
+                <div className="mt-2 pl-6">
+                  <p className="mb-2 text-xs font-medium text-destructive/80">
+                    Suggested available slots:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {alternatives.slice(0, 3).map((slot, index) => {
+                      let start: Date;
+                      let end: Date;
+
+                      try {
+                        // Server may return {start, end} or {startTime, endTime}
+                        const startRaw = slot.startTime || slot.start;
+                        const endRaw = slot.endTime || slot.end;
+                        start = new Date(startRaw);
+                        end = new Date(endRaw);
+
+                        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                          return null;
+                        }
+                      } catch (e) {
+                        return null;
+                      }
+
+                      const label = `${format(start, "HH:mm")} - ${format(end, "HH:mm")}`;
+
+                      return (
+                        <Button
+                          key={index}
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          className="h-7 border-destructive/30 bg-background text-xs hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => handleSelectAlternative(slot)}
+                        >
+                          {label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
