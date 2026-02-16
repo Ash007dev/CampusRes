@@ -560,6 +560,9 @@ export class BookingService {
     const { page = 1, limit = 20 } = options;
     const skip = (page - 1) * limit;
 
+    // First, auto-complete any finished bookings
+    await this.autoCompleteFinishedBookings(userId);
+
     let query = supabase
       .from('bookings')
       .select('*, rooms(*), users(id, email, first_name, last_name, department_id)', { count: 'exact' })
@@ -584,6 +587,51 @@ export class BookingService {
     }
 
     return { bookings: data || [], total: count || 0 };
+  }
+
+  /**
+   * Auto-complete bookings that have passed their end time and were checked in
+   * This ensures bookings show as COMPLETED (blue) instead of CONFIRMED (green)
+   */
+  private async autoCompleteFinishedBookings(userId?: string): Promise<void> {
+    try {
+      const now = getCurrentIST();
+
+      // Build query to find bookings that should be marked as complete
+      let query = supabase
+        .from('bookings')
+        .select('id, end_time, status, check_in_status')
+        .eq('status', 'CONFIRMED')
+        .eq('check_in_status', 'CHECKED_IN')
+        .lte('end_time', now.toISOString());
+
+      // If userId provided, only update that user's bookings
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
+
+      const { data: finishedBookings } = await query;
+
+      if (!finishedBookings || finishedBookings.length === 0) {
+        return;
+      }
+
+      // Update all finished bookings to COMPLETED status
+      const bookingIds = finishedBookings.map(b => b.id);
+
+      await supabase
+        .from('bookings')
+        .update({ status: 'COMPLETED' })
+        .in('id', bookingIds);
+
+      logger.debug(
+        { count: bookingIds.length, userId },
+        'Auto-completed finished bookings'
+      );
+    } catch (error) {
+      logger.error({ error }, 'Failed to auto-complete finished bookings');
+      // Don't throw - this is a background operation
+    }
   }
 
   async getRoomAvailability(roomId: string, date: string): Promise<{
@@ -814,6 +862,9 @@ export class BookingService {
   async getAllBookings(options: { status?: string; startDate?: Date; endDate?: Date; page?: number; limit?: number } = {}): Promise<{ bookings: any[]; total: number }> {
     const { page = 1, limit = 50 } = options;
     const skip = (page - 1) * limit;
+
+    // Auto-complete finished bookings for everyone
+    await this.autoCompleteFinishedBookings();
 
     let query = supabase
       .from('bookings')
