@@ -43,9 +43,31 @@ export const adminController = {
             entityType: entityType as string,
         });
 
+        // Helper to ensure UTC
+        const formatTimestamp = (ts: string | null | undefined) => {
+            if (!ts) return ts;
+            return ts.endsWith('Z') ? ts : `${ts}Z`;
+        };
+
+        const formattedLogs = result.logs.map((log: any) => {
+            const formattedLog = {
+                ...log,
+                created_at: formatTimestamp(log.created_at),
+            };
+
+            if (formattedLog.booking) {
+                formattedLog.booking = {
+                    ...formattedLog.booking,
+                    startTime: formatTimestamp(formattedLog.booking.startTime),
+                    endTime: formatTimestamp(formattedLog.booking.endTime),
+                };
+            }
+            return formattedLog;
+        });
+
         res.json({
             success: true,
-            data: result.logs,
+            data: formattedLogs,
             meta: {
                 total: result.total,
                 page: page ? parseInt(page as string) : 1,

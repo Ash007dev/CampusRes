@@ -30,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { formatTimeInIst } from "@/lib/dateUtils";
+import { formatTimeInIst, utcToIstShifted, getCurrentIST } from "@/lib/dateUtils";
 import type { BookingEvent } from "./BookingCalendar";
 
 interface BookingDetailsModalProps {
@@ -121,8 +121,12 @@ export function BookingDetailsModal({
   const startTime = booking.start as Date;
   const endTime = booking.end as Date;
   const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60) * 10) / 10;
-  const isUpcoming = startTime > new Date();
-  const isNow = startTime <= new Date() && endTime >= new Date();
+
+  // Use getCurrentIST() directly to get the "Fake UTC" object representing local time
+  const nowShifted = getCurrentIST();
+
+  const isUpcoming = startTime > nowShifted;
+  const isNow = startTime <= nowShifted && endTime >= nowShifted;
   const isCheckedIn = booking.checkInStatus === "CHECKED_IN";
 
   const userInitials = booking.userName
@@ -197,7 +201,7 @@ export function BookingDetailsModal({
                     {format(startTime, "EEEE, MMMM d, yyyy")}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {formatTimeInIst(startTime)} - {formatTimeInIst(endTime)} ({duration}h)
+                    {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")} ({duration}h)
                   </p>
                 </div>
               </div>

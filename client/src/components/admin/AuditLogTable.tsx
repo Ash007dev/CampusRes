@@ -17,6 +17,7 @@ import {
     MapPin,
     AlertCircle
 } from "lucide-react";
+import { formatDateTimeInIst, formatTimeInIst } from "@/lib/dateUtils";
 import { adminApi, bookingsApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -179,7 +180,7 @@ export function AuditLogTable() {
                         <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                         <div>
                             <p className="font-medium">
-                                {format(new Date(booking.startTime), "MMM d, yyyy HH:mm")} - {format(new Date(booking.endTime), "HH:mm")}
+                                {formatDateTimeInIst(booking.startTime)} - {formatTimeInIst(booking.endTime)}
                             </p>
                             {booking.purpose && <p className="text-muted-foreground">{booking.purpose}</p>}
                         </div>
@@ -320,7 +321,7 @@ export function AuditLogTable() {
                                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                                         {log.createdAt ? (() => {
                                             try {
-                                                return format(new Date(log.createdAt), "MMM d, HH:mm:ss");
+                                                return formatDateTimeInIst(log.createdAt);
                                             } catch (e) {
                                                 return "Invalid Date";
                                             }

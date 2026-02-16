@@ -41,7 +41,7 @@ export const bookingController = {
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
-      data: booking,
+      data: bookingController.formatBookingResponse(booking),
       message: booking.status === 'PENDING_APPROVAL'
         ? 'Booking submitted for approval'
         : 'Booking confirmed successfully',
@@ -64,7 +64,7 @@ export const bookingController = {
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
-      data: bookings,
+      data: bookings.map(bookingController.formatBookingResponse),
       message: `Created ${bookings.length} recurring bookings`,
     });
   }),
@@ -88,7 +88,7 @@ export const bookingController = {
 
     res.json({
       success: true,
-      data: booking,
+      data: bookingController.formatBookingResponse(booking),
     });
   }),
 
@@ -164,7 +164,7 @@ export const bookingController = {
 
     res.json({
       success: true,
-      data: booking,
+      data: bookingController.formatBookingResponse(booking),
       message: 'Booking cancelled successfully',
     });
   }),
@@ -203,7 +203,7 @@ export const bookingController = {
 
     res.json({
       success: true,
-      data: booking,
+      data: bookingController.formatBookingResponse(booking),
       message: 'Successfully checked in to booking',
     });
   }),
@@ -226,7 +226,7 @@ export const bookingController = {
 
     res.json({
       success: true,
-      data: booking,
+      data: bookingController.formatBookingResponse(booking),
       message: approved ? 'Booking approved successfully' : 'Booking rejected',
     });
   }),
@@ -237,10 +237,11 @@ export const bookingController = {
    */
   getPendingApprovals: asyncHandler(async (req, res: Response) => {
     const bookings = await bookingService.getPendingApprovals();
+    const formattedBookings = bookings.map(bookingController.formatBookingResponse);
 
     res.json({
       success: true,
-      data: bookings,
+      data: formattedBookings,
     });
   }),
 
@@ -259,9 +260,11 @@ export const bookingController = {
       limit: query.limit,
     });
 
+    const formattedBookings = result.bookings.map(bookingController.formatBookingResponse);
+
     res.json({
       success: true,
-      data: result.bookings,
+      data: formattedBookings,
       meta: {
         total: result.total,
         page: query.page || 1,
@@ -283,7 +286,7 @@ export const bookingController = {
 
     res.json({
       success: true,
-      data: booking,
+      data: bookingController.formatBookingResponse(booking),
       message: 'Successfully checked out early',
     });
   }),
@@ -305,7 +308,7 @@ export const bookingController = {
 
     res.json({
       success: true,
-      data: booking,
+      data: bookingController.formatBookingResponse(booking),
       message: `Booking extended by ${additionalMinutes} minutes`,
     });
   }),
@@ -336,7 +339,7 @@ export const bookingController = {
 
     res.json({
       success: true,
-      data: booking,
+      data: bookingController.formatBookingResponse(booking),
       message: 'Booking rescheduled successfully',
     });
   }),
@@ -473,7 +476,7 @@ export const bookingController = {
 
     res.json({
       success: true,
-      data: booking,
+      data: bookingController.formatBookingResponse(booking),
       message: 'Booking marked as running late. You have an additional 15 minutes to check in.',
     });
   }),

@@ -158,9 +158,21 @@ export function BookingCalendar({
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const { toast } = useToast();
 
-  // Helper to format date as YYYY-MM-DD
+  // Helper to format date as YYYY-MM-DD in IST
   const formatDateString = (d: Date): string => {
-    return d.toISOString().split('T')[0];
+    // API expects YYYY-MM-DD. Using local time might be off by a day if early morning/late night.
+    // Ideally we want the date in IST.
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    };
+    const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(d);
+    // en-CA is YYYY-MM-DD.
+    // But formatToParts is safer.
+    // Or just use the simple split trick on a toLocaleString('sv-SE', { timeZone: 'Asia/Kolkata' }) which is YYYY-MM-DD
+    return d.toLocaleString('sv-SE', { timeZone: 'Asia/Kolkata' }).split(' ')[0];
   };
 
   // Fetch holidays when month changes

@@ -25,6 +25,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+
 } from "@/components/ui/popover";
 import {
   Select,
@@ -36,6 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 import { type Room } from "@/components/room/RoomCard";
 import { type ApiError } from "@/lib/api";
+import { getISTHour, getCurrentIST } from "@/lib/dateUtils";
 
 // Validation schema
 // Generate time slots from 6 AM to 10 PM
@@ -53,9 +55,28 @@ const generateTimeSlots = () => {
 const TIME_SLOTS = generateTimeSlots();
 
 // Get next available time slot (at least 1 hour from now)
+// Uses Fake UTC (IST) for consistent client-side defaults
 const getNextAvailableTime = () => {
-  const now = new Date();
-  const nextHour = now.getHours() + 1;
+  // getCurrentIST() returns a Date object where .getHours() (in UTC env) or .getUTCHours() 
+  // is the IST hour.
+  // Since we are in a "Fake UTC" strategy, we can treating the Date object as if it is local.
+  // BUT: The browser will interpret new Date() as local. 
+  // getCurrentIST() returns a shifted date. 
+  // If real time is 9 AM IST. getCurrentIST() returns 2:30 PM (Fake).
+  // NO. getCurrentIST() returns real time + 5.5h.
+
+  // Let's stick to simple: use system time and shift if needed or just use consistent utils.
+  // Actually, for the simplified "Fake UTC" strategy, the frontend keeps things simple:
+  // We want the default time to be "Next Hour" in IST.
+
+  const now = getCurrentIST();
+  // now is a Date object representing IST.
+  // If it's 9:00 IST, now (as ISO) says ...09:00Z.
+  // So .getUTCHours() is 9.
+
+  const currentHour = now.getUTCHours();
+
+  const nextHour = currentHour + 1;
   // If it's past 9PM, default to next day 9AM
   if (nextHour >= 22) {
     return { hour: 9, date: new Date(now.getTime() + 24 * 60 * 60 * 1000) };
@@ -89,7 +110,7 @@ const bookingSchema = baseBookingSchema.refine(
 ).refine(
   (data) => {
     // Check if booking is in the future
-    const now = new Date();
+    const now = getCurrentIST();
     const [startHour, startMin] = data.startTime.split(":").map(Number);
     const bookingStart = new Date(data.date);
     bookingStart.setHours(startHour, startMin, 0, 0);
@@ -161,7 +182,7 @@ export function BookingModal({
       ).refine(
         (data) => {
           // Check if booking is in the future
-          const now = new Date();
+          const now = getCurrentIST();
           const [startHour, startMin] = data.startTime.split(":").map(Number);
           const bookingStart = new Date(data.date);
           bookingStart.setHours(startHour, startMin, 0, 0);
