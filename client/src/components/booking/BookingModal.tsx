@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useState, useCallback } from "react";
 import { format, addHours } from "date-fns";
-import { CalendarIcon, Clock, Repeat, AlertCircle, CheckCircle, Loader2, User, Copy, Check } from "lucide-react";
+import { CalendarIcon, Clock, Repeat, AlertCircle, CheckCircle, Loader2, User, Copy, Check, Bell } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -35,7 +35,8 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { type Room } from "@/components/room/RoomCard";
-import { type ApiError } from "@/lib/api";
+import { type ApiError, waitlistApi } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 
 // Validation schema
 // Generate time slots from 6 AM to 10 PM
@@ -128,6 +129,10 @@ export function BookingModal({
   const [copiedId, setCopiedId] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [alternatives, setAlternatives] = useState<Array<Record<string, any>>>([]);
+  const [isBookingConflict, setIsBookingConflict] = useState(false);
+  const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
+  const [hasJoinedWaitlist, setHasJoinedWaitlist] = useState(false);
+  const { toast } = useToast();
 
   // Get default future time
   const defaultTime = getNextAvailableTime();
@@ -200,6 +205,8 @@ export function BookingModal({
       setIsSubmitting(true);
       setError(null);
       setIsSuccess(false);
+      setIsBookingConflict(false);
+      setAlternatives([]);
 
       try {
         const result = await onSubmit(data); // data already includes roomId
@@ -210,6 +217,7 @@ export function BookingModal({
       } catch (err: any) {
         console.error('[BookingModal] Booking submission failed', err);
         let errorMessage = 'Failed to create booking. Please try again.';
+        let isConflict = false;
 
         // Handle ApiError with structured details
         if (err.name === 'ApiError') {
@@ -220,8 +228,17 @@ export function BookingModal({
             // Server may return {start, end} or {startTime, endTime} — normalize
             setAlternatives(apiError.details.alternatives);
             errorMessage = apiError.message || "This time slot is unavailable. Here are some alternatives:";
+            isConflict = true;
           }
-
+          // Check if error message indicates a conflict
+          else if (apiError.message && (
+            apiError.message.toLowerCase().includes('conflict') ||
+            apiError.message.toLowerCase().includes('already booked') ||
+            apiError.message.toLowerCase().includes('not available')
+          )) {
+            errorMessage = apiError.message;
+            isConflict = true;
+          }
           // Check for other details
           else if (apiError.message) {
             errorMessage = apiError.message;
@@ -230,6 +247,12 @@ export function BookingModal({
         // Fallback for standard Error 
         else if (err instanceof Error) {
           errorMessage = err.message;
+          // Check for conflict keywords in standard error messages too
+          if (errorMessage.toLowerCase().includes('conflict') ||
+            errorMessage.toLowerCase().includes('already booked') ||
+            errorMessage.toLowerCase().includes('not available')) {
+            isConflict = true;
+          }
         }
         // Fallback for string
         else if (typeof err === 'string') {
@@ -243,6 +266,7 @@ export function BookingModal({
         }
 
         setError(errorMessage);
+        setIsBookingConflict(isConflict);
         setIsSubmitting(false);
       }
     },
@@ -265,7 +289,61 @@ export function BookingModal({
     // Clear error and alternatives
     setError(null);
     setAlternatives([]);
+    setIsBookingConflict(false);
   }, [setValue]);
+
+  // Handle joining waitlist when slot is occupied
+  const handleJoinWaitlist = useCallback(async () => {
+    if (!watchRoomId || !watchDate) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a room and date first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsJoiningWaitlist(true);
+    try {
+      const dateObj = new Date(watchDate);
+      const [startHour, startMin] = watch("startTime").split(":").map(Number);
+      const [endHour, endMin] = watch("endTime").split(":").map(Number);
+
+      const startDateTime = new Date(dateObj);
+      startDateTime.setHours(startHour, startMin, 0, 0);
+
+      const endDateTime = new Date(dateObj);
+      endDateTime.setHours(endHour, endMin, 0, 0);
+
+      const response = await waitlistApi.join(
+        watchRoomId,
+        startDateTime.toISOString(),
+        endDateTime.toISOString()
+      );
+
+      setHasJoinedWaitlist(true);
+      setError(null);
+      setIsBookingConflict(false);
+
+      toast({
+        title: "Added to Waitlist ✓",
+        description: `You're #${response.data.data?.position || 1} in line. We'll notify you when this slot becomes available!`,
+      });
+
+      // Close modal after a brief delay
+      setTimeout(() => {
+        handleClose();
+      }, 2000);
+    } catch (err: any) {
+      toast({
+        title: "Waitlist Failed",
+        description: err.message || "Unable to join waitlist. You may already be on it.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsJoiningWaitlist(false);
+    }
+  }, [watchRoomId, watchDate, watch, toast]);
 
   // Handle modal close
   const handleClose = useCallback(() => {
@@ -276,6 +354,9 @@ export function BookingModal({
       setConfirmedBooking(null);
       setCopiedId(false);
       setAlternatives([]);
+      setIsBookingConflict(false);
+      setHasJoinedWaitlist(false);
+      setIsJoiningWaitlist(false);
       onClose();
     }
   }, [reset, onClose, isSubmitting]);
@@ -424,6 +505,35 @@ export function BookingModal({
                       );
                     })}
                   </div>
+                </div>
+              )}
+
+              {/* Join Waitlist Button - shown when booking conflict detected */}
+              {isBookingConflict && !hasJoinedWaitlist && (
+                <div className="mt-3 pt-3 border-t border-destructive/20">
+                  <p className="mb-2 text-xs font-medium text-destructive/80">
+                    Or join the waitlist to be notified when this slot becomes available:
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-blue-500/50 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                    onClick={handleJoinWaitlist}
+                    disabled={isJoiningWaitlist}
+                  >
+                    {isJoiningWaitlist ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Joining Waitlist...
+                      </>
+                    ) : (
+                      <>
+                        <Bell className="mr-2 h-4 w-4" />
+                        Join Waitlist
+                      </>
+                    )}
+                  </Button>
                 </div>
               )}
             </div>
