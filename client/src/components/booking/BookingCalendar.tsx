@@ -328,7 +328,7 @@ export function BookingCalendar({
   }
 
   return (
-    <div className={cn("h-[600px] rounded-lg border border-border bg-card p-4", className)}>
+    <div className={cn("h-[600px] overflow-y-auto rounded-lg border border-border bg-card p-4", className)}>
       {/* Legend - Black/white with grayscale colors */}
       <div className="mb-4 flex flex-wrap gap-4 pb-4 border-b border-border">
         <div className="flex items-center gap-2">
@@ -379,7 +379,7 @@ export function BookingCalendar({
         views={["month", "week", "day", "agenda"]}
         popup
         className="booking-calendar"
-        style={{ height: "calc(100% - 60px)" }}
+        style={{ height: "850px" }}
       />
 
       {/* Custom styles */}
@@ -463,7 +463,6 @@ export function BookingCalendar({
         .booking-calendar .rbc-month-view {
           border-color: hsl(var(--border));
           border-radius: 8px;
-          overflow: hidden;
         }
 
         .booking-calendar .rbc-time-content,
