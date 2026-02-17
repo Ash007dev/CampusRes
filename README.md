@@ -84,7 +84,7 @@ Our application is built on a modern, type-safe stack designed for performance a
 We employ a rigorous testing methodology to ensure system reliability and fairness logic.
 
 - **Unit Testing (Vitest):** Focused on core logic modules (e.g., Credit calculation, Reputation penalties).
-- **Integration Testing:** Verifies the interaction between controllers, services, and the database.
+- **Integration Testing (Supertest):** Verifies the interaction between controllers, services, and the database using Supertest for HTTP assertions.
 - **Epic-Based Test Suites:**
     - `test:epic3`: Validates smart allocation, waitlist promotion, and conflict resolution.
     - `test:epic5`: Validates the "Ghost Killer" integrity logic and cron job execution.
