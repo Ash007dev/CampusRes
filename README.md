@@ -1,143 +1,145 @@
-# Campus Resource Engine (CRE)
+# Campus Resource Engine - Intelligent Study Room Booking
 
-A comprehensive, real-time platform designed to optimize the allocation and utilization of campus resources (study rooms, labs, equipment) through intelligent scheduling, fair usage policies, and automated integrity checks.
+## Project Overview
 
----
+Campus Resource Engine (CRE) is a comprehensive resource management application designed to optimize the allocation and utilization of shared campus spaces (study rooms, labs, equipment) through intelligent scheduling and integrity checks. The platform connects students and faculty with available resources using a real-time availability engine that prioritizes fair access, significantly reducing "ghost bookings" and waste.
 
-## 📌 Project Overview & Problem Statement
+Unlike traditional booking calendars, CRE integrates **active integrity enforcement** (Ghost Killer system), **real-time waitlist automation**, and **reputation tracking** directly into the core user experience. The system is built on a responsive, event-driven architecture that ensures seamless synchronization between all users without manual refreshing.
 
-### The Problem
-University campuses often face significant inefficiencies in resource management:
-- **"Ghost Bookings":** Students reserve rooms but never show up, wasting valuable space.
-- **Unfair Allocation:** Resources are monopolized by a few, leaving others without access.
-- **Administrative Burden:** Manual tracking and conflict resolution consume staff time.
-- **Lack of Visibility:** Students struggle to find available spaces in real-time.
+## Core Value Proposition
 
-### The Solution: Campus Resource Engine
-CRE addresses these challenges with a **credit-based booking system** powered by real-time data and automated enforcement mechanisms. It ensures equitable access, maximizes utilization through waitlist automaton, and disincentivizes misuse via reputation scoring.
+What sets CRE apart is its dedicated focus on "operational integrity" combined with robust technical execution of fair allocation:
 
----
+1.  **Ghost Killer Integrity System**: Our proprietary cron-based logic identifies "ghost bookings" (no-shows) using QR code check-in validation. It automatically cancels abandoned slots after 15 minutes and penalizes the user's reputation score.
+2.  **Smart Waitlist Automation**: When a slot opens up (via cancellation or ghost-kill), the system instantly promotes the next eligible user from the waitlist based on priority rules, sending immediate notifications via WebSocket and Email.
+3.  **Credit-Based Fairness**: Resources are distributed equitably using a strict weekly credit quota system (e.g., 15 hours/week), preventing monopoly by power users while allowing flexibility for genuine needs.
+4.  **Real-Time Data Sync**: Utilizing Socket.io technology, resource availability (Booked, Available, Maintenance) is synchronized instantly across all connected clients, eliminating double-booking conflicts.
 
-## 🚀 Key Features
+## Technology Stack
 
-### 🔐 1. Advanced Authentication & Security
-- **Secure Access:** Supabase Auth integration with JWT handling.
-- **Multi-Factor Authentication (MFA):** Enhanced security for all users.
-- **Role-Based Access Control (RBAC):** Granular permissions for Students, Faculty, and Administrators.
-- **Profile Management:** User profiles with department mapping and reputation tracking.
+The project utilizes a modern, type-safe architecture with specific enhancements for real-time capabilities and reliability.
 
-### 📅 2. Smart Booking & Scheduling
-- **Real-Time Availability:** Instant checking of room/resource status.
-- **Conflict Detection:** automated prevention of double-booking.
-- **Credit Logic:** Weekly quota system (e.g., 10 hours/week) ensures fair distribution.
-- **QR Code Check-in:** Verifies physical presence to confirm bookings.
+### Frontend
+-   **Framework**: Next.js 14 (React 18)
+-   **Language**: TypeScript
+-   **Styling**: Tailwind CSS + Radix UI for accessible, utility-first design
+-   **State Management**: Zustand (Global Store) + React Query (Server State)
+-   **Real-Time**: Socket.io Client for live events
+-   **Visualization**: Recharts for admin analytics
 
-### ⏳ 3. Intelligent Waitlist Management
-- **Automated Promotion:** Waitlisted users are automatically promoted when a slot opens.
-- **Priority Logic:** Promotions consider reputation scores and booking history.
-- **Instant Notifications:** Users are alerted immediately via email and real-time socket events.
+### Backend (Server)
+-   **Runtime**: Node.js
+-   **Framework**: Express.js
+-   **Database**: PostgreSQL (via Supabase)
+-   **Real-Time Communication**: Socket.io Server for bidirectional event handling
+-   **Authentication**: Supabase Auth (JWT + RBAC Middleware)
+-   **Job Processing**: BullMQ / Node-Cron for scheduled integrity checks
 
-### 👻 4. "Ghost Killer" Integrity System
-- **Automated No-Show Detection:** Cron jobs identify bookings where users failed to check in.
-- **Dynamic Penalties:** Automatically cancels "ghost" bookings, frees up the slot, deducts reputation points.
-- **Ban Logic:** Repeat offenders (3+ no-shows) face temporary account suspension.
+### DevOps & Tools
+-   **Version Control**: Git
+-   **Package Management**: npm
+-   **Validation**: Zod (Schema Validation)
 
-### 📊 5. Administrative Control Center
-- **Comprehensive Dashboard:** Visual analytics for resource usage, peak times, and user activity.
-- **Audit Logging:** Full traceability of all system actions (Login, Booking, Cancellation, System Cron).
-- **User Management:** Tools to adjust credits, manage bans, and oversee roles.
-- **Broadcast System:** Send mass announcements to all users.
+### Testing Frameworks
+We employ a comprehensive testing strategy to ensure reliability:
+-   **Unit Testing**: Vitest (for core logic modules like credit calculation and reputation penalties)
+-   **Integration Testing**: Supertest (for validating API endpoints and controller-service interactions)
+-   **Environment**: Cloud-based Supabase instance for realistic DB testing
 
----
+## Key Features & User Stories (Epics)
 
-## 🛠️ Technology Stack
+The development of CRE was organized into five major Epics, each addressing specific user needs:
 
-Our application is built on a modern, type-safe stack designed for performance and scalability.
+### Epic 1: Secure Foundation & Identity
+-   **As a user**, I can securely log in using Supabase Auth so that my identity is protected.
+-   **As a system**, I enforce Role-Based Access Control (RBAC) to ensure only authorized users (Admins) can modify system configurations.
+-   **As a student**, I can view my profile with my current credit balance and reputation score.
 
-### Client-Side
-- **Framework:** Next.js 14 (React 18)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS + Radix UI (Headless components)
-- **State Management:** Zustand + React Query
-- **Real-Time:** Socket.IO Client
-- **Visualization:** Recharts for analytics
+### Epic 2: Seamless Discovery
+-   **As a student**, I can filter rooms by capacity, amenities (Whiteboard, TV), and date to find the perfect study space.
+-   **As a student**, I can view real-time availability grids that update instantly without refreshing the page.
+-   **As a system**, I prevent double-bookings by locking slots the moment they are reserved.
 
-### Server-Side
-- **Runtime:** Node.js
-- **Framework:** Express.js
-- **Language:** TypeScript
-- **Database:** PostgreSQL (via Supabase)
-- **Real-Time:** Socket.IO Server
-- **Authentication:** Supabase Auth
-- **Validation:** Zod
-- **Job Processing:** BullMQ / Node-Cron (for Ghost Killer)
+### Epic 3: Fair Access & Allocation
+-   **As a student**, I can join a waitlist for a fully booked room and get notified if it becomes available.
+-   **As a system**, I enforce a weekly booking limit (e.g., 15 credits) to ensure fair usage for all students.
+-   **As a student**, I am automatically promoted from the waitlist when a slot opens up.
 
-### DevOps & Tooling
-- **Testing:** Vitest (Unit & Integration), Jest
-- **Linting:** ESLint + Prettier
-- **Documentation:** Swagger / OpenAPI
+### Epic 4: Insight & Control (Admin)
+-   **As an admin**, I can view comprehensive analytics on room utilization, peak hours, and cancellation rates.
+-   **As an admin**, I can manage user accounts, manually adjust credits, or ban users for repeated policy violations.
+-   **As a system**, I log every critical action (Booking, Cancellation, Check-in) to an immutable audit log for transparency.
 
----
+### Epic 5: Operational Integrity (Ghost Killer)
+-   **As a system**, I automatically mark bookings as "User Checked In" when they scan the room's QR code.
+-   **As a system**, I run a background job every 5 minutes to identify "Ghost Bookings" (past start time with no check-in).
+-   **As a system**, I automatically cancel ghost bookings and deduct reputation points to discourage waste.
+-   **As a user**, my booking is protected for the first 15 minutes before being released to others.
 
-## 🧪 Testing Strategy
+## Execution Strategy
 
-We employ a rigorous testing methodology to ensure system reliability and fairness logic.
+The project execution followed an agile methodology with iterative development and rigorous testing:
 
-- **Unit Testing (Vitest):** Focused on core logic modules (e.g., Credit calculation, Reputation penalties).
-- **Integration Testing (Supertest):** Verifies the interaction between controllers, services, and the database using Supertest for HTTP assertions.
-- **Epic-Based Test Suites:**
-    - `test:epic3`: Validates smart allocation, waitlist promotion, and conflict resolution.
-    - `test:epic5`: Validates the "Ghost Killer" integrity logic and cron job execution.
-- **End-to-End Formatting:** Verified API responses match client expectations (e.g., CamelCase mapping).
+1.  **Architecture Design**: Established a clear separation of concerns. The Frontend handles UI/UX and optimistic updates, while the Backend enforces business rules and data integrity.
+2.  **Real-Time Implementation**: Implemented a WebSocket layer (`socket.ts`) to broadcast critical events (`SLOT_UPDATE`, `BOOKING_CONFIRMED`) to all connected clients, ensuring the schedule grid is always accurate.
+3.  **Integrity Logic**: Developed the "Ghost Killer" cron job (`ghostKiller.ts`) which queries the database for stale bookings and processes cancellations transactionally.
+4.  **State Recovery**: Engineered robust error handling in the frontend to gracefully handle network failures and retry failed requests.
+5.  **Quality Assurance**: Integrated `vitest` and `supertest` to validate 100% of the critical path logic (Booking, Waitlist Promotion, Ghost Killing) before deployment.
 
----
-
-## 📖 User Epics
-
-The development was driven by key User Epics to ensure user-centric value delivery:
-
-1.  **"Secure Foundation" (Epic 1):** As a user, I want secure, role-based access so my data and privileges are protected.
-2.  **"Seamless Discovery" (Epic 2):** As a student, I want to easily find and book available rooms that fit my schedule.
-3.  **"Fair Access" (Epic 3):** As a student, I want a fair chance to get a room via waitlists and credit limits, so resources aren't hoarded.
-4.  **"Operational Integrity" (Epic 5 - Ghost Killer):** As an admin, I want the system to automatically penalize no-shows so that wasted time slots are minimized.
-5.  **"Insight & Control" (Epic 4):** As an admin, I want visibility into system usage and the ability to intervene when necessary.
-
----
-
-## ⚡ What Makes CRE Stand Out?
-
-1.  **Active fairness enforcement:** Unlike passive booking tools, CRE actively penalizes misuse (No-Shows) and rewards good behavior (Reputation).
-2.  **Automated Optimization:** The "Ghost Killer" feature proactively recovers wasted inventory without human intervention.
-3.  **Real-Time Sync:** Socket.IO integration ensures that availability visuals are accurate to the millisecond across all connected clients.
-4.  **Auditability:** Every significant action is logged, creating a transparent environment for dispute resolution.
-
----
-
-## 🏃‍♂️ Execution & Setup
+## Installation & Setup
 
 ### Prerequisites
-- Node.js (v18+)
-- Supabase Account & Project
+-   Node.js (v18 or higher)
+-   npm (v9 or higher)
+-   Supabase Project (PostgreSQL)
 
 ### Steps
 1.  **Clone the Repository**
-2.  **Install Dependencies:**
     ```bash
-    cd client && npm install
-    cd ../server && npm install
+    git clone https://github.com/Ash007dev/CampusRes.git
+    cd CampusRes
     ```
-3.  **Environment Setup:**
-    - Configure `.env` in `client` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-    - Configure `.env` in `server` with `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `PORT`.
-4.  **Run Development Servers:**
+
+2.  **Install Dependencies**
+    Frontend:
     ```bash
-    # Terminal 1 (Server)
-    cd server && npm run dev
-
-    # Terminal 2 (Client)
-    cd client && npm run dev
+    cd client
+    npm install
     ```
-5.  **Access:** Open `http://localhost:3000` to view the application.
+    Backend:
+    ```bash
+    cd ../server
+    npm install
+    ```
 
----
+3.  **Environment Configuration**
+    Create a `.env` file in **server** directory:
+    ```
+    PORT=3001
+    SUPABASE_URL=your_supabase_url
+    SUPABASE_SERVICE_KEY=your_supabase_service_key
+    ```
+    Create a `.env.local` file in **client** directory:
+    ```
+    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+    NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
+    NEXT_PUBLIC_SOCKET_URL=http://localhost:3001
+    ```
 
+4.  **Running the Application**
+    Start the Backend (from `server` directory):
+    ```bash
+    npm run dev
+    ```
+    Start the Frontend (from `client` directory):
+    ```bash
+    npm run dev
+    ```
+
+5.  **Running Tests**
+    To execute the test suite:
+    ```bash
+    cd server
+    npm test
+    ```
