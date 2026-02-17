@@ -14,6 +14,7 @@ import { config } from '../config/index.js';
 import { logger } from '../config/logger.js';
 import { emitBookingUpdate, emitRoomUpdate } from '../lib/socket.js';
 import { parseDbDate } from '../utils/dateUtils.js';
+import { logAudit } from '../utils/auditLogger.js';
 
 const SYSTEM_USER_ID = 'system-ghost-killer';
 
@@ -205,7 +206,7 @@ async function processGhostBooking(booking: any): Promise<void> {
     .eq('id', booking.user_id);
 
   // 5. Create audit log entry
-  await supabase.from('audit_logs').insert({
+  await logAudit({
     action: 'GHOST_KILL',
     entity_type: 'booking',
     entity_id: booking.id,
@@ -225,7 +226,7 @@ async function processGhostBooking(booking: any): Promise<void> {
       blocked: shouldBlock,
       blocked_until: blockedUntil,
     },
-    metadata: {
+    details: {
       automatedBy: 'ghost-killer-cron',
       room_code: booking.rooms?.code,
       room_name: booking.rooms?.name,

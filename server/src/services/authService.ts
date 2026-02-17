@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabase.js';
 import { config } from '../config/index.js';
 import { logger } from '../config/logger.js';
 import { TIME } from '../config/constants.js';
+import { logAudit } from '../utils/auditLogger.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import {
@@ -190,7 +191,7 @@ export class AuthService {
     }
 
     // Audit log
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'CREATE',
       entity_type: 'user',
       entity_id: user.id,
@@ -476,12 +477,12 @@ export class AuthService {
       .eq('id', user.id);
 
     // Audit log
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'LOGIN',
       entity_type: 'user',
       entity_id: user.id,
       performed_by_id: user.id,
-      metadata: { mfa_verified: true, device_fingerprint: deviceFingerprint, ip_address: ipAddress },
+      details: { mfa_verified: true, device_fingerprint: deviceFingerprint, ip_address: ipAddress },
     });
 
     logger.info({ userId: user.id, email: user.email }, 'Login successful with MFA verification');
@@ -564,7 +565,7 @@ export class AuthService {
       .eq('id', user.id);
 
     // Audit log
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'LOGIN',
       entity_type: 'user',
       entity_id: user.id,
@@ -892,12 +893,12 @@ export class AuthService {
     }
 
     // Audit log
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'UPDATE',
       entity_type: 'user',
       entity_id: userId,
       performed_by_id: adminUserId,
-      metadata: { action: 'role_change', new_role: newRole },
+      details: { action: 'role_change', new_role: newRole },
     });
 
     logger.info({ userId, newRole, adminUserId }, 'User role updated');
@@ -1110,12 +1111,12 @@ export class AuthService {
     passwordResetTokens.delete(resetToken);
 
     // Audit log
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'UPDATE',
       entity_type: 'user',
       entity_id: tokenData.userId,
       performed_by_id: tokenData.userId,
-      metadata: { action: 'password_reset' },
+      details: { action: 'password_reset' },
     });
 
     logger.info({ userId: tokenData.userId }, 'Password reset successfully');

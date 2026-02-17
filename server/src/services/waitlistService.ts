@@ -8,6 +8,7 @@
  */
 
 import { supabase } from '../lib/supabase.js';
+import { logAudit } from '../utils/auditLogger.js';
 import { logger } from '../config/logger.js';
 import { AppError } from '../utils/errors.js';
 import { emitWaitlistUpdate } from '../lib/socket.js';
@@ -55,7 +56,7 @@ export class WaitlistService {
 
         const position = await this.getPosition(entry.id);
 
-        await supabase.from('audit_logs').insert({
+        await logAudit({
             action: 'CREATE',
             entity_type: 'waitlist',
             entity_id: entry.id,

@@ -13,6 +13,7 @@ import { configService } from './configService.js';
 import { config } from '../config/index.js';
 import { emitBookingUpdate, emitRoomUpdate, sendNotification } from '../lib/socket.js';
 import { waitlistService } from './waitlistService.js';
+import { logAudit } from '../utils/auditLogger.js';
 import { getCurrentIST, getISTHour, getISTStartOfDay, isISTPeakHour, istToUtc, parseDbDate } from '../utils/dateUtils.js';
 import {
   BOOKING_STATUS,
@@ -226,7 +227,7 @@ export class BookingService {
       }
 
       // Audit log
-      await supabase.from('audit_logs').insert({
+      await logAudit({
         action: 'CREATE',
         entity_type: 'booking',
         entity_id: newBooking.id,
@@ -393,7 +394,7 @@ export class BookingService {
       }
     }
 
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'CANCEL',
       entity_type: 'booking',
       entity_id: bookingId,
@@ -521,14 +522,14 @@ export class BookingService {
       throw new AppError('Failed to reschedule booking', 500);
     }
 
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'UPDATE',
       entity_type: 'booking',
       entity_id: bookingId,
       performed_by_id: userId,
       previous_state: { start_time: booking.start_time, end_time: booking.end_time },
       new_state: { start_time: newStartTime.toISOString(), end_time: newEndTime.toISOString() },
-      metadata: { action: 'reschedule' },
+      details: { action: 'reschedule' },
     });
 
     await this.invalidateAvailabilityCache(booking.room_id, parseDbDate(booking.start_time));
@@ -742,7 +743,7 @@ export class BookingService {
       throw new AppError('Failed to check in', 500);
     }
 
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'CHECK_IN',
       entity_type: 'booking',
       entity_id: bookingId,
@@ -822,7 +823,7 @@ export class BookingService {
       }
     }
 
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: approved ? 'APPROVE' : 'REJECT',
       entity_type: 'booking',
       entity_id: bookingId,
@@ -951,7 +952,7 @@ export class BookingService {
       }
     }
 
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'UPDATE',
       entity_type: 'booking',
       entity_id: bookingId,
@@ -1057,7 +1058,7 @@ export class BookingService {
       .update({ credits_balance: (booking.users as any).credits_balance - additionalCredits })
       .eq('id', userId);
 
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'UPDATE',
       entity_type: 'booking',
       entity_id: bookingId,
