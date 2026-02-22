@@ -18,10 +18,10 @@ import { config, isDevelopment } from './index.js';
  */
 const baseConfig: LoggerOptions = {
   level: config.logLevel,
-  
+
   // Add timestamp to all logs
   timestamp: pino.stdTimeFunctions.isoTime,
-  
+
   // Base context for all logs
   base: {
     service: 'campus-resource-engine',
@@ -33,7 +33,7 @@ const baseConfig: LoggerOptions = {
   serializers: {
     // Sanitize error objects
     err: pino.stdSerializers.err,
-    
+
     // Sanitize request objects (remove sensitive headers)
     req: (req) => ({
       method: req.method,
@@ -84,8 +84,9 @@ const devTransport: TransportSingleOptions = {
   target: 'pino-pretty',
   options: {
     colorize: true,
-    translateTime: 'SYS:standard',
+    translateTime: 'SYS:HH:MM:ss',
     ignore: 'pid,hostname,service,version,env',
+    singleLine: true,
   },
 };
 

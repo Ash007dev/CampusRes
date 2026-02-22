@@ -46,13 +46,15 @@ async function startServer(): Promise<void> {
 
     // Start HTTP server
     server.listen(config.port, () => {
-      logger.info({
-        port: config.port,
-        environment: config.nodeEnv,
-        apiVersion: config.apiVersion,
-      }, `✅ Server running on http://localhost:${config.port}`);
-
-      logger.info(`📚 API Documentation: http://localhost:${config.port}/api-docs`);
+      logger.info('='.repeat(60));
+      logger.info('  Campus Resource Engine - Server Started');
+      logger.info('='.repeat(60));
+      logger.info(`  Port:          ${config.port}`);
+      logger.info(`  Environment:   ${config.nodeEnv}`);
+      logger.info(`  API Version:   ${config.apiVersion}`);
+      logger.info(`  API Base:      http://localhost:${config.port}/api/${config.apiVersion}`);
+      logger.info(`  API Docs:      http://localhost:${config.port}/api-docs`);
+      logger.info('='.repeat(60));
     });
 
     // Schedule Ghost Killer cron job

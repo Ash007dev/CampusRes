@@ -39,7 +39,7 @@ export async function executeGhostKiller(): Promise<GhostKillerStats> {
     duration: 0,
   };
 
-  logger.info('🔍 Ghost Killer: Starting check for no-show bookings...');
+  logger.debug('Ghost Killer: Checking for no-show bookings...');
 
   try {
     const gracePeriodMs = config.ghostKiller.gracePeriodMinutes * 60 * 1000;
@@ -92,7 +92,7 @@ export async function executeGhostKiller(): Promise<GhostKillerStats> {
     stats.bookingsFound = ghostBookings.length;
 
     if (stats.bookingsFound === 0) {
-      logger.info('👻 Ghost Killer: No ghost bookings found. All clear!');
+      logger.debug('Ghost Killer: No ghost bookings found. All clear.');
       stats.duration = Date.now() - startTime;
       return stats;
     }
