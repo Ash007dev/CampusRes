@@ -35,6 +35,8 @@ const globalForRedis = globalThis as unknown as {
  */
 function createRedisClient(): RedisType | null {
   try {
+    let hasLoggedUnavailable = false;
+
     const client = new Redis({
       host: config.redis.host,
       port: config.redis.port,
@@ -46,7 +48,10 @@ function createRedisClient(): RedisType | null {
       maxRetriesPerRequest: 1,
       retryStrategy: (times) => {
         if (times > 3) {
-          logger.warn('Redis unavailable - running without cache');
+          if (!hasLoggedUnavailable) {
+            logger.warn(`Redis unavailable at ${config.redis.host}:${config.redis.port} - running without cache`);
+            hasLoggedUnavailable = true;
+          }
           return null; // Stop retrying
         }
         return Math.min(times * 500, 2000);
@@ -59,15 +64,15 @@ function createRedisClient(): RedisType | null {
 
     // Event handlers
     client.on('connect', () => {
-      logger.info('Redis client connecting...');
+      logger.info(`Redis connected at ${config.redis.host}:${config.redis.port}`);
     });
 
     client.on('ready', () => {
-      logger.info('✅ Redis client ready');
+      logger.info('Redis client ready');
     });
 
-    client.on('error', (error) => {
-      logger.debug({ error }, 'Redis client error (optional service)');
+    client.on('error', () => {
+      // Silenced — retryStrategy handles logging
     });
 
     client.on('close', () => {
@@ -76,7 +81,10 @@ function createRedisClient(): RedisType | null {
 
     // Try to connect but don't block
     client.connect().catch(() => {
-      logger.warn('Redis not available - caching disabled');
+      if (!hasLoggedUnavailable) {
+        logger.warn(`Redis not available at ${config.redis.host}:${config.redis.port} - caching disabled`);
+        hasLoggedUnavailable = true;
+      }
     });
 
     return client;

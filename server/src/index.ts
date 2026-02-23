@@ -12,7 +12,7 @@ import { createApp } from './app.js';
 import { config, isDevelopment } from './config/index.js';
 import { logger } from './config/logger.js';
 import { testConnection, disconnect } from './lib/supabase.js';
-import { disconnectRedis } from './lib/redis.js';
+import { disconnectRedis, isRedisHealthy } from './lib/redis.js';
 import { initSocketServer } from './lib/socket.js';
 import { scheduleGhostKiller } from './jobs/ghostKiller.js';
 import { scheduleBookingReminder } from './jobs/bookingReminder.js';
@@ -45,13 +45,17 @@ async function startServer(): Promise<void> {
     logger.info('🔌 Socket.io server initialized');
 
     // Start HTTP server
-    server.listen(config.port, () => {
+    server.listen(config.port, async () => {
+      const redisOk = await isRedisHealthy();
       logger.info('='.repeat(60));
       logger.info('  Campus Resource Engine - Server Started');
       logger.info('='.repeat(60));
       logger.info(`  Port:          ${config.port}`);
       logger.info(`  Environment:   ${config.nodeEnv}`);
       logger.info(`  API Version:   ${config.apiVersion}`);
+      logger.info(`  Database:      Connected (Supabase)`);
+      logger.info(`  Redis:         ${redisOk ? 'Connected' : 'Unavailable (using fallbacks)'}`);
+      logger.info(`  Socket.io:     Initialized`);
       logger.info(`  API Base:      http://localhost:${config.port}/api/${config.apiVersion}`);
       logger.info(`  API Docs:      http://localhost:${config.port}/api-docs`);
       logger.info('='.repeat(60));
