@@ -44,6 +44,12 @@ async function startServer(): Promise<void> {
     initSocketServer(server);
     logger.info('🔌 Socket.io server initialized');
 
+    // Schedule cron jobs
+    scheduleGhostKiller();
+
+    // Schedule Booking Reminder cron job
+    scheduleBookingReminder();
+
     // Start HTTP server
     server.listen(config.port, async () => {
       const redisOk = await isRedisHealthy();
@@ -56,21 +62,12 @@ async function startServer(): Promise<void> {
       logger.info(`  Database:      Connected (Supabase)`);
       logger.info(`  Redis:         ${redisOk ? 'Connected' : 'Unavailable (using fallbacks)'}`);
       logger.info(`  Socket.io:     Initialized`);
+      logger.info(`  Ghost Killer:  Active (every ${config.ghostKiller.cronSchedule})`);
+      logger.info(`  Reminders:     Active (every ${config.reminder.cronSchedule})`);
       logger.info(`  API Base:      http://localhost:${config.port}/api/${config.apiVersion}`);
       logger.info(`  API Docs:      http://localhost:${config.port}/api-docs`);
       logger.info('='.repeat(60));
     });
-
-    // Schedule Ghost Killer cron job
-    if (!isDevelopment || process.env.ENABLE_GHOST_KILLER === 'true') {
-      scheduleGhostKiller();
-    } else {
-      logger.info('👻 Ghost Killer disabled in development (set ENABLE_GHOST_KILLER=true to enable)');
-    }
-
-    // Schedule Booking Reminder cron job
-    scheduleBookingReminder();
-    logger.info('⏰ Booking Reminder cron job enabled');
 
     // Setup graceful shutdown handlers
     setupGracefulShutdown();
