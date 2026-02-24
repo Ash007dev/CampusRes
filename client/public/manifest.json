@@ -1,0 +1,69 @@
+{
+    "name": "Campus Resource Engine",
+    "short_name": "CampusRes",
+    "description": "Intelligent Campus Resource Reservation System - Book rooms, labs, and auditoriums on the go.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0f172a",
+    "theme_color": "#1e40af",
+    "orientation": "any",
+    "scope": "/",
+    "icons": [
+        {
+            "src": "/icons/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/icons/icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "categories": [
+        "education",
+        "productivity",
+        "utilities"
+    ],
+    "screenshots": [],
+    "shortcuts": [
+        {
+            "name": "My Bookings",
+            "short_name": "Bookings",
+            "url": "/bookings",
+            "description": "View your upcoming bookings"
+        },
+        {
+            "name": "Browse Rooms",
+            "short_name": "Rooms",
+            "url": "/rooms",
+            "description": "Browse available rooms"
+        },
+        {
+            "name": "Dashboard",
+            "short_name": "Dashboard",
+            "url": "/dashboard",
+            "description": "View your dashboard"
+        }
+    ]
+}
