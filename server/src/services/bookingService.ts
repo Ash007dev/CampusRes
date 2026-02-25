@@ -976,6 +976,13 @@ export class BookingService {
       roomName: booking.rooms?.name || 'Room',
     });
 
+    // US 3.7: Notify waitlisted users that the slot is now available (early checkout freed the room)
+    await waitlistService.notifyWaitlistedUsers(
+      booking.room_id,
+      parseDbDate(booking.start_time),
+      parseDbDate(booking.end_time)
+    );
+
     return { ...updated, refundedCredits: refundCredits };
   }
 

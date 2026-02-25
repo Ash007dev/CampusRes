@@ -336,6 +336,7 @@ export class RoomService {
     availabilityStatus: 'AVAILABLE' | 'PENDING_CHECKIN' | 'OCCUPIED';
     currentBooking?: {
       id: string;
+      startTime: string;
       endTime: string;
       checkInStatus: string;
     };
@@ -399,6 +400,7 @@ export class RoomService {
         }
         currentBooking = {
           id: activeBooking.id,
+          startTime: activeBooking.start_time,
           endTime: activeBooking.end_time,
           checkInStatus: activeBooking.check_in_status,
         };

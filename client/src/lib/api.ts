@@ -351,6 +351,7 @@ export interface RoomWithAvailability extends Room {
   availabilityStatus: AvailabilityStatus;
   currentBooking?: {
     id: string;
+    startTime: string;
     endTime: string;
     checkInStatus: string;
   };
