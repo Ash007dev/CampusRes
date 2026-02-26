@@ -47,9 +47,15 @@ prisma/
 .env.debug
 
 # Generated docs & temp files
+*TESTING*.md
+*TEST_REPORT*.md
+WALKTHROUGH.md
+SECURITY_FIXES.md
 API_ENDPOINTS.md
-EPIC5_TESTING_EXPLANATION.md
 auth_files.txt
 oauth_debug.txt
+*.tmp.md
+debug-*.md
+temp-*.md
 *.txt
 !README.txt
