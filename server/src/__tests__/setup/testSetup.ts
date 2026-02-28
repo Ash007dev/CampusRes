@@ -8,6 +8,7 @@
  */
 
 import supertest from 'supertest';
+import type { Test } from 'supertest';
 import { createApp } from '../../app.js';
 import type { Application } from 'express';
 
@@ -105,7 +106,7 @@ export async function getAdminToken(): Promise<string> {
 /**
  * Make an authenticated GET request
  */
-export async function authGet(path: string) {
+export async function authGet(path: string): Promise<Test> {
     const token = await getAdminToken();
     return request().get(path).set('Authorization', `Bearer ${token}`);
 }
@@ -113,7 +114,7 @@ export async function authGet(path: string) {
 /**
  * Make an authenticated POST request
  */
-export async function authPost(path: string, body?: object) {
+export async function authPost(path: string, body?: object): Promise<Test> {
     const token = await getAdminToken();
     const req = request().post(path).set('Authorization', `Bearer ${token}`);
     if (body) req.send(body);
@@ -123,7 +124,7 @@ export async function authPost(path: string, body?: object) {
 /**
  * Make an authenticated PATCH request
  */
-export async function authPatch(path: string, body?: object) {
+export async function authPatch(path: string, body?: object): Promise<Test> {
     const token = await getAdminToken();
     const req = request().patch(path).set('Authorization', `Bearer ${token}`);
     if (body) req.send(body);
@@ -133,7 +134,7 @@ export async function authPatch(path: string, body?: object) {
 /**
  * Make an authenticated DELETE request
  */
-export async function authDelete(path: string) {
+export async function authDelete(path: string): Promise<Test> {
     const token = await getAdminToken();
     return request().delete(path).set('Authorization', `Bearer ${token}`);
 }

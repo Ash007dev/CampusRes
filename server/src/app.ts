@@ -36,6 +36,12 @@ export function createApp(): Application {
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Request-ID');
     res.header('Access-Control-Allow-Credentials', 'true');
 
+    // Prevent aggressive browser caching that causes the hard-refresh requirement
+    res.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.header('Pragma', 'no-cache');
+    res.header('Expires', '0');
+    res.header('Surrogate-Control', 'no-store');
+
     if (req.method === 'OPTIONS') {
       return res.sendStatus(200);
     }
