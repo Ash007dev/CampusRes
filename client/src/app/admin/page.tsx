@@ -80,6 +80,7 @@ import { FeedbackReviewModal } from "@/components/admin/FeedbackReviewModal";
 import { SystemConfigModal } from "@/components/admin/SystemConfigModal";
 import { BookingApprovals } from "@/components/admin/BookingApprovals";
 import { AuditLogTable } from "@/components/admin/AuditLogTable";
+import { AddUserModal } from "@/components/admin/AddUserModal";
 
 // Types
 interface Stats {
@@ -159,6 +160,7 @@ export default function AdminPage() {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
   const [isAddRoomModalOpen, setIsAddRoomModalOpen] = useState(false);
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [selectedRoomForAmenities, setSelectedRoomForAmenities] = useState<any>(null);
   const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
   const [isHolidayCalendarOpen, setIsHolidayCalendarOpen] = useState(false);
@@ -272,6 +274,20 @@ export default function AdminPage() {
       await fetchData(true); // Refresh data
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : "Failed to create room");
+    }
+  };
+
+  // Handle creating user
+  const handleCreateUser = async (data: any) => {
+    try {
+      await adminApi.createUser(data);
+      toast({
+        title: "Success",
+        description: "User created successfully",
+      });
+      await fetchData(true); // Refresh data
+    } catch (error: any) {
+      throw new Error(error?.response?.data?.error?.message || error.message || "Failed to create user");
     }
   };
 
@@ -694,7 +710,7 @@ export default function AdminPage() {
                         <Download className="mr-2 h-4 w-4" />
                         Export
                       </Button>
-                      <Button>
+                      <Button onClick={() => setIsAddUserModalOpen(true)}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add User
                       </Button>
@@ -1338,6 +1354,11 @@ export default function AdminPage() {
       </main>
 
       {/* Modals */}
+      <AddUserModal
+        isOpen={isAddUserModalOpen}
+        onClose={() => setIsAddUserModalOpen(false)}
+        onSubmit={handleCreateUser}
+      />
       <AddRoomModal
         isOpen={isAddRoomModalOpen}
         onClose={() => setIsAddRoomModalOpen(false)}

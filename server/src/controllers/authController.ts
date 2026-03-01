@@ -237,6 +237,34 @@ export const authController = {
   }),
 
   /**
+   * Create user (Admin only) - US 5.4
+   * POST /api/v1/auth/users
+   */
+  adminCreateUser: asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { email, firstName, lastName, role, departmentId, departmentCode, password } = req.body;
+
+    if (!email || !firstName || !lastName || !role) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'Email, first name, last name, and role are required', code: 'AUTH_4004' },
+      });
+      return;
+    }
+
+    const result = await authService.adminCreateUser(
+      { email, firstName, lastName, role, departmentId, departmentCode, password },
+      authReq.user.userId
+    );
+
+    res.status(HTTP_STATUS.CREATED).json({
+      success: true,
+      data: result,
+      message: 'User created successfully',
+    });
+  }),
+
+  /**
    * Update user role (Admin only) - US 5.4
    * PATCH /api/v1/auth/users/:id/role
    */

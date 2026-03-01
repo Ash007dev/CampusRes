@@ -300,8 +300,36 @@ router.post('/reset-password', authRateLimiter, authController.resetPassword);
  *     responses:
  *       200:
  *         description: List of users
+ *   post:
+ *     summary: Create a user (Admin)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password, role]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *               role:
+ *                 type: string
+ *                 enum: [user, admin]
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       409:
+ *         description: Email already registered
  */
 router.get('/users', authenticate, authorize(['ADMIN']), authController.getAllUsers);
+router.post('/users', authenticate, authorize(['ADMIN']), authController.adminCreateUser);
 
 /**
  * @openapi

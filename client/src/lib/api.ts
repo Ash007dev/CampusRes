@@ -386,6 +386,10 @@ export const adminApi = {
   getUsers: (params?: { page?: number; limit?: number; role?: string; search?: string }) =>
     api.get<ApiResponse<User[]>>('/auth/users', { params }),
 
+  // Create a user (Admin only)
+  createUser: (data: { email: string; firstName: string; lastName: string; role: string; departmentId?: string; password?: string }) =>
+    api.post<ApiResponse<{ user: User; tempPassword?: string }>>('/auth/users', data),
+
   // Get dashboard stats
   getStats: () =>
     api.get<ApiResponse<{
