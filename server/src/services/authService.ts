@@ -605,6 +605,41 @@ export class AuthService {
   }
 
   /**
+   * Delete user (Admin only)
+   */
+  async adminDeleteUser(userId: string, adminId: string) {
+    // Audit log before deletion
+    await logAudit({
+      action: 'DELETE',
+      entity_type: 'user',
+      entity_id: userId,
+      performed_by_id: adminId,
+      new_state: { status: 'DELETED' },
+    });
+
+    // Delete public user profile (cascading might handle this, but let's be explicit)
+    const { error: dbError } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
+
+    if (dbError) {
+      logger.error({ error: dbError }, 'Failed to delete public user record');
+      throw new AppError('Failed to delete user profile', 500);
+    }
+
+    // Delete auth user from Supabase admin API
+    const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+
+    if (authError) {
+      logger.error({ error: authError }, 'Failed to delete auth user via admin API');
+      throw new AppError('Failed to permanently delete user account', 500);
+    }
+
+    return { success: true };
+  }
+
+  /**
    * Legacy login method (non-MFA) - kept for backward compatibility
    * Use initiateLogin + verifyLoginOtp for MFA flow
    */

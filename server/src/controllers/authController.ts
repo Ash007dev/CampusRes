@@ -283,9 +283,42 @@ export const authController = {
 
     await authService.updateUserRole(id, role, authReq.user.userId);
 
-    res.json({
+    res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'User role updated successfully',
+    });
+  }),
+
+  /**
+   * Delete user (Admin only) - US 5.4
+   * DELETE /api/v1/auth/users/:id
+   */
+  adminDeleteUser: asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    if (!id) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'User ID is required', code: 'AUTH_4004' },
+      });
+      return;
+    }
+
+    // Prevent self-deletion
+    if (id === authReq.user.userId) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'Cannot delete your own admin account', code: 'AUTH_4000' },
+      });
+      return;
+    }
+
+    await authService.adminDeleteUser(id, authReq.user.userId);
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'User deleted successfully',
     });
   }),
 

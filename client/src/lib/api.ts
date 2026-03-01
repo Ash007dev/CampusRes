@@ -390,6 +390,9 @@ export const adminApi = {
   createUser: (data: { email: string; firstName: string; lastName: string; role: string; departmentId?: string; password?: string }) =>
     api.post<ApiResponse<{ user: User; tempPassword?: string }>>('/auth/users', data),
 
+  // Delete a user (Admin only)
+  deleteUser: (userId: string) => api.delete<ApiResponse<null>>(`/auth/users/${userId}`),
+
   // Get dashboard stats
   getStats: () =>
     api.get<ApiResponse<{

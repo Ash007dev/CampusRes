@@ -81,6 +81,7 @@ import { SystemConfigModal } from "@/components/admin/SystemConfigModal";
 import { BookingApprovals } from "@/components/admin/BookingApprovals";
 import { AuditLogTable } from "@/components/admin/AuditLogTable";
 import { AddUserModal } from "@/components/admin/AddUserModal";
+import { ViewUserDetailsModal } from "@/components/admin/ViewUserDetailsModal";
 
 // Types
 interface Stats {
@@ -161,6 +162,8 @@ export default function AdminPage() {
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
   const [isAddRoomModalOpen, setIsAddRoomModalOpen] = useState(false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [isViewUserModalOpen, setIsViewUserModalOpen] = useState(false);
+  const [selectedUserForView, setSelectedUserForView] = useState<AdminUser | null>(null);
   const [selectedRoomForAmenities, setSelectedRoomForAmenities] = useState<any>(null);
   const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
   const [isHolidayCalendarOpen, setIsHolidayCalendarOpen] = useState(false);
@@ -288,6 +291,36 @@ export default function AdminPage() {
       await fetchData(true); // Refresh data
     } catch (error: any) {
       throw new Error(error?.response?.data?.error?.message || error.message || "Failed to create user");
+    }
+  };
+
+  // Handle viewing a user
+  const handleViewUser = (user: AdminUser) => {
+    setSelectedUserForView(user);
+    setIsViewUserModalOpen(true);
+  };
+
+  // Handle deleting a user
+  const handleDeleteUser = async (user: AdminUser) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete the user ${user.name} (${user.email})? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await adminApi.deleteUser(user.id);
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
+      });
+      await fetchData(true);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.error?.message || error.message || "Failed to delete user",
+        variant: "destructive",
+      });
     }
   };
 
@@ -806,13 +839,13 @@ export default function AdminPage() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleViewUser(u)}>
                                       <Eye className="mr-2 h-4 w-4" />
                                       View Details
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                      <Pencil className="mr-2 h-4 w-4" />
-                                      Edit
+                                    <DropdownMenuItem onClick={() => handleDeleteUser(u)} className="text-destructive focus:text-destructive">
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete User
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuSub>
@@ -1358,6 +1391,11 @@ export default function AdminPage() {
         isOpen={isAddUserModalOpen}
         onClose={() => setIsAddUserModalOpen(false)}
         onSubmit={handleCreateUser}
+      />
+      <ViewUserDetailsModal
+        user={selectedUserForView}
+        isOpen={isViewUserModalOpen}
+        onClose={() => setIsViewUserModalOpen(false)}
       />
       <AddRoomModal
         isOpen={isAddRoomModalOpen}

@@ -342,4 +342,28 @@ router.post('/users', authenticate, authorize(['ADMIN']), authController.adminCr
  */
 router.patch('/users/:id/role', authenticate, authorize(['ADMIN']), authController.updateUserRole);
 
+/**
+ * @openapi
+ * /api/v1/auth/users/{id}:
+ *   delete:
+ *     summary: Delete a user (Admin only)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ *       400:
+ *         description: Cannot delete own account
+ *       403:
+ *         description: Forbidden
+ */
+router.delete('/users/:id', authenticate, authorize(['ADMIN']), authController.adminDeleteUser);
+
 export default router;
