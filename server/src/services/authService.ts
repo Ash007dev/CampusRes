@@ -950,10 +950,10 @@ export class AuthService {
     console.log('=== GET ALL USERS - Applying filters ===');
     console.log({ role, search, departmentId, page, limit });
 
-    // Build query with filters
+    // Build query with filters — join departments for name
     let query = supabase
       .from('users')
-      .select('*', { count: 'exact' });
+      .select('*, departments(name)', { count: 'exact' });
 
     // SECURITY FIX: Apply role filter
     if (role) {
@@ -996,7 +996,7 @@ export class AuthService {
         lastName: u.last_name,
         role: u.role,
         departmentId: u.department_id,
-        departmentName: null, // Could join departments table if needed
+        departmentName: u.departments?.name || null,
         reputationScore: u.reputation_score || 100,
         creditsBalance: u.credits_balance || 0,
         isActive: u.is_active,
