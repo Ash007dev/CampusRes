@@ -82,6 +82,8 @@ import { BookingApprovals } from "@/components/admin/BookingApprovals";
 import { AuditLogTable } from "@/components/admin/AuditLogTable";
 import { AddUserModal } from "@/components/admin/AddUserModal";
 import { ViewUserDetailsModal } from "@/components/admin/ViewUserDetailsModal";
+import { ViewRoomDetailsModal } from "@/components/admin/ViewRoomDetailsModal";
+import { EditRoomModal } from "@/components/admin/EditRoomModal";
 
 // Types
 interface Stats {
@@ -164,6 +166,8 @@ export default function AdminPage() {
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [isViewUserModalOpen, setIsViewUserModalOpen] = useState(false);
   const [selectedUserForView, setSelectedUserForView] = useState<AdminUser | null>(null);
+  const [selectedRoomForView, setSelectedRoomForView] = useState<any>(null);
+  const [selectedRoomForEdit, setSelectedRoomForEdit] = useState<any>(null);
   const [selectedRoomForAmenities, setSelectedRoomForAmenities] = useState<any>(null);
   const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
   const [isHolidayCalendarOpen, setIsHolidayCalendarOpen] = useState(false);
@@ -277,6 +281,21 @@ export default function AdminPage() {
       await fetchData(true); // Refresh data
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : "Failed to create room");
+    }
+  };
+
+  // Handle deleting a room
+  const handleDeleteRoom = async (room: any) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the room "${room.name}"? This action cannot be undone.`
+    );
+    if (!confirmed) return;
+    try {
+      await roomsApi.update(room.id, { is_active: false } as any);
+      toast({ title: "Success", description: `Room "${room.name}" deleted successfully` });
+      await fetchData(true);
+    } catch (error: any) {
+      toast({ title: "Error", description: "Failed to delete room", variant: "destructive" });
     }
   };
 
@@ -965,7 +984,7 @@ export default function AdminPage() {
                               <span>{room.capacity} seats</span>
                             </div>
                             <div className="flex gap-2 mt-4">
-                              <Button variant="outline" size="sm" className="flex-1 rounded-lg">
+                              <Button variant="outline" size="sm" className="flex-1 rounded-lg" onClick={() => setSelectedRoomForView(room)}>
                                 <Eye className="mr-1 h-3 w-3" />
                                 View
                               </Button>
@@ -984,12 +1003,12 @@ export default function AdminPage() {
                                     <Wrench className="mr-2 h-3 w-3" />
                                     {room.isMaintenance ? "Disable Maintenance" : "Enable Maintenance"}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setSelectedRoomForEdit(room)}>
                                     <Pencil className="mr-2 h-3 w-3" />
                                     Edit Room
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-destructive">
+                                  <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteRoom(room)}>
                                     <Trash2 className="mr-2 h-3 w-3" />
                                     Delete
                                   </DropdownMenuItem>
@@ -1396,6 +1415,17 @@ export default function AdminPage() {
         user={selectedUserForView}
         isOpen={isViewUserModalOpen}
         onClose={() => setIsViewUserModalOpen(false)}
+      />
+      <ViewRoomDetailsModal
+        room={selectedRoomForView}
+        isOpen={!!selectedRoomForView}
+        onClose={() => setSelectedRoomForView(null)}
+      />
+      <EditRoomModal
+        room={selectedRoomForEdit}
+        isOpen={!!selectedRoomForEdit}
+        onClose={() => setSelectedRoomForEdit(null)}
+        onSuccess={() => fetchData(true)}
       />
       <AddRoomModal
         isOpen={isAddRoomModalOpen}
