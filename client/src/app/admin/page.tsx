@@ -83,7 +83,6 @@ import { AuditLogTable } from "@/components/admin/AuditLogTable";
 import { AddUserModal } from "@/components/admin/AddUserModal";
 import { ViewUserDetailsModal } from "@/components/admin/ViewUserDetailsModal";
 import { ViewRoomDetailsModal } from "@/components/admin/ViewRoomDetailsModal";
-import { EditRoomModal } from "@/components/admin/EditRoomModal";
 
 // Types
 interface Stats {
@@ -167,7 +166,6 @@ export default function AdminPage() {
   const [isViewUserModalOpen, setIsViewUserModalOpen] = useState(false);
   const [selectedUserForView, setSelectedUserForView] = useState<AdminUser | null>(null);
   const [selectedRoomForView, setSelectedRoomForView] = useState<any>(null);
-  const [selectedRoomForEdit, setSelectedRoomForEdit] = useState<any>(null);
   const [selectedRoomForAmenities, setSelectedRoomForAmenities] = useState<any>(null);
   const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
   const [isHolidayCalendarOpen, setIsHolidayCalendarOpen] = useState(false);
@@ -1420,12 +1418,6 @@ export default function AdminPage() {
         room={selectedRoomForView}
         isOpen={!!selectedRoomForView}
         onClose={() => setSelectedRoomForView(null)}
-      />
-      <EditRoomModal
-        room={selectedRoomForEdit}
-        isOpen={!!selectedRoomForEdit}
-        onClose={() => setSelectedRoomForEdit(null)}
-        onSuccess={() => fetchData(true)}
       />
       <AddRoomModal
         isOpen={isAddRoomModalOpen}
