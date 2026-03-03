@@ -227,9 +227,14 @@ export const authApi = {
   updatePreferences: (preferences: {
     emailNotifications?: boolean;
     smsNotifications?: boolean;
+    bookingReminders?: boolean;
+    weeklyDigest?: boolean;
     theme?: 'light' | 'dark' | 'system';
   }) =>
     api.put<ApiResponse<{ success: boolean }>>('/auth/preferences', preferences),
+
+  deleteAccount: () =>
+    api.delete<ApiResponse<{ success: boolean }>>('/auth/account'),
 
   // Forgot Password flow
   forgotPassword: (email: string) =>

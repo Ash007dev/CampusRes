@@ -91,6 +91,8 @@ export default function SettingsPage() {
             await authApi.updatePreferences({
                 emailNotifications: emailNotifications,
                 smsNotifications: pushNotifications,
+                bookingReminders: bookingReminders,
+                weeklyDigest: weeklyDigest,
                 theme: (theme as 'light' | 'dark' | 'system') || 'system',
             });
             toast({
@@ -152,17 +154,17 @@ export default function SettingsPage() {
 
     const handleDeleteAccount = async () => {
         try {
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await authApi.deleteAccount();
             toast({
                 title: "Account Deleted",
                 description: "Your account has been permanently deleted.",
             });
             await logout();
-        } catch (error) {
+        } catch (error: unknown) {
+            const errMsg = error instanceof Error ? error.message : "Failed to delete account";
             toast({
                 title: "Error",
-                description: "Failed to delete account. Please try again.",
+                description: errMsg,
                 variant: "destructive",
             });
         }
