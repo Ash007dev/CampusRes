@@ -18,24 +18,54 @@ import { logger } from '../config/logger.js';
 const VALID_ACTIONS = [
     'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT',
     'APPROVE', 'REJECT', 'CANCEL', 'CHECK_IN',
+    // Extended actions for granular tracking
+    'CHECK_OUT', 'EXTEND', 'RESCHEDULE', 'EXPORT',
+    'PASSWORD_CHANGE', 'REGISTER', 'BROADCAST',
+    'BLOCK', 'UNBLOCK',
 ] as const;
 
 type ValidAction = typeof VALID_ACTIONS[number];
 
 // Map non-enum actions to valid enum actions
 const ACTION_MAP: Record<string, ValidAction> = {
-    'REGISTER': 'CREATE',
+    // Auth actions
+    'REGISTER': 'REGISTER',
+    'USER_LOGIN': 'LOGIN',
+    'USER_LOGOUT': 'LOGOUT',
+    'PASSWORD_CHANGED': 'PASSWORD_CHANGE',
+    'PASSWORD_RESET': 'PASSWORD_CHANGE',
+    'PREFERENCES_UPDATED': 'UPDATE',
+    'ACCOUNT_DELETED': 'DELETE',
+
+    // Booking actions
     'BOOKING_CREATED': 'CREATE',
     'BOOKING_CANCELLED': 'CANCEL',
-    'USER_LOGIN': 'LOGIN',
-    'BROADCAST_SENT': 'CREATE',
-    'NO_SHOW': 'UPDATE',
-    'GHOST_KILL': 'UPDATE',
+    'BOOKING_APPROVED': 'APPROVE',
+    'BOOKING_REJECTED': 'REJECT',
+    'BOOKING_CHECKED_IN': 'CHECK_IN',
+    'BOOKING_CHECKED_OUT': 'CHECK_OUT',
+    'BOOKING_EXTENDED': 'EXTEND',
+    'BOOKING_RESCHEDULED': 'RESCHEDULE',
+    'BOOKING_EXPORTED': 'EXPORT',
+    'TIMETABLE_IMPORTED': 'CREATE',
+
+    // Admin actions
+    'BROADCAST_SENT': 'BROADCAST',
     'ROLE_CHANGE': 'UPDATE',
-    'BLOCK': 'UPDATE',
-    'UNBLOCK': 'UPDATE',
-    'DEACTIVATE': 'UPDATE',
-    'ACTIVATE': 'UPDATE',
+    'USER_CREATED': 'CREATE',
+    'USER_DELETED': 'DELETE',
+    'ROOM_CREATED': 'CREATE',
+    'ROOM_UPDATED': 'UPDATE',
+    'ROOM_DELETED': 'DELETE',
+
+    // System actions
+    'NO_SHOW': 'CANCEL',
+    'GHOST_KILL': 'CANCEL',
+    'BLOCK': 'BLOCK',
+    'UNBLOCK': 'UNBLOCK',
+    'DEACTIVATE': 'BLOCK',
+    'ACTIVATE': 'UNBLOCK',
+    'CONFIG_UPDATED': 'UPDATE',
 };
 
 function mapAction(action: string): ValidAction {

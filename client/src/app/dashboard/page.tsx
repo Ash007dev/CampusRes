@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { useBookingReminders } from "@/hooks/useBookingReminders";
 import { useBookingUpdates, type BookingUpdate } from "@/hooks/useSocket";

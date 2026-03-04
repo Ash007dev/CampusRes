@@ -11,6 +11,7 @@ import { authService } from '../services/authService.js';
 import { asyncHandler, type AuthenticatedRequest } from '../middleware/index.js';
 import { HTTP_STATUS } from '../config/constants.js';
 import type { CreateUserInput, LoginInput } from '../utils/validators.js';
+import { logAudit } from '../utils/auditLogger.js';
 
 /**
  * =============================================================================
@@ -177,6 +178,14 @@ export const authController = {
       currentPassword,
       newPassword
     );
+
+    await logAudit({
+      action: 'PASSWORD_CHANGED',
+      entity_type: 'user',
+      entity_id: authReq.user.userId,
+      performed_by_id: authReq.user.userId,
+      details: { message: 'Password changed successfully' },
+    });
 
     res.json({
       success: true,
