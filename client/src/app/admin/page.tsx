@@ -204,17 +204,15 @@ export default function AdminPage() {
     else setIsLoading(true);
 
     try {
-      const [roomsRes, bookingsRes, usersRes, statsRes] = await Promise.all([
-        roomsApi.search(),
+      const [roomsRes, bookingsRes, usersRes] = await Promise.all([
+        roomsApi.search({ limit: 100, includeMaintenace: true }),
         bookingsApi.getAllBookings(),
         adminApi.getUsers({ limit: 100 }),
-        adminApi.getStats(),
       ]);
 
       const roomsData = roomsRes.data.data || [];
       const bookingsData = bookingsRes.data.data || [];
       const usersData = usersRes.data.data || [];
-      const backendStats = statsRes.data.data;
 
       setRooms(roomsData);
       setBookings(bookingsData);
@@ -225,7 +223,7 @@ export default function AdminPage() {
         name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email?.split('@')[0] || 'Unknown',
         email: u.email || '',
         role: u.role || 'STUDENT',
-        department: u.departmentName || 'Not assigned', // Fixed: departmentName instead of department.name
+        department: u.departmentName || 'Not assigned',
         reputationScore: u.reputationScore ?? 100,
         createdAt: u.createdAt || new Date().toISOString(),
         status: u.blockedUntil && new Date(u.blockedUntil) > new Date() ? 'SUSPENDED' : 'ACTIVE',
@@ -233,7 +231,19 @@ export default function AdminPage() {
 
       setUsers(mappedUsers);
 
-      // Use backend stats for accurate data, with local fallback
+      // Try to get backend stats separately (so a failure here doesn't break everything)
+      let backendStats: any = null;
+      try {
+        const statsRes = await adminApi.getStats();
+        backendStats = statsRes.data.data;
+      } catch (statsErr) {
+        console.warn("Backend stats unavailable, using local calculation:", statsErr);
+      }
+
+      // Calculate local fallback stats
+      const activeBookings = bookingsData.filter(
+        (b: any) => b.status === "CONFIRMED" || b.status === "CHECKED_IN"
+      ).length;
       const pendingApprovals = bookingsData.filter(
         (b: any) => b.status === "PENDING_APPROVAL"
       ).length;
@@ -241,13 +251,16 @@ export default function AdminPage() {
       const todayBookings = bookingsData.filter(
         (b: any) => new Date(b.startTime).toDateString() === today
       ).length;
+      const localUtilization = roomsData.length > 0
+        ? Math.round((activeBookings / roomsData.length) * 100)
+        : 0;
 
       setStats({
         totalUsers: backendStats?.totalUsers || usersData.length || mappedUsers.length,
         totalRooms: backendStats?.totalRooms || roomsData.length,
         totalBookings: backendStats?.totalBookings || bookingsData.length,
-        activeBookings: backendStats?.activeBookings || 0,
-        utilizationRate: backendStats?.utilizationRate ?? 0,
+        activeBookings: backendStats?.activeBookings ?? activeBookings,
+        utilizationRate: backendStats?.utilizationRate ?? localUtilization,
         noShowRate: backendStats?.noShowRate ?? 0,
         pendingApprovals,
         todayBookings,
