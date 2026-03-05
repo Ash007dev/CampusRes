@@ -60,11 +60,11 @@ export const adminService = {
                 utilizationRate = Math.min(100, parseFloat(((totalBookedHours / availableHours) * 100).toFixed(1)));
             }
 
-            // 6. No-show Rate (CANCELLED with specific reason or status)
+            // 6. No-show Rate (CANCELLED bookings vs total)
             const { count: noShows, error: noShowError } = await supabase
                 .from('bookings')
                 .select('*', { count: 'exact', head: true })
-                .eq('check_in_status', 'NO_SHOW');
+                .eq('status', 'CANCELLED');
 
             const noShowRate = totalBookings && totalBookings > 0
                 ? ((noShows || 0) / totalBookings) * 100
