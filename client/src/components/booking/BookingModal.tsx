@@ -385,9 +385,30 @@ export function BookingModal({
   // Handle copy booking ID
   const handleCopyId = useCallback(() => {
     if (confirmedBooking?.id) {
-      navigator.clipboard.writeText(confirmedBooking.id);
-      setCopiedId(true);
-      setTimeout(() => setCopiedId(false), 2000);
+      const idText = confirmedBooking.id;
+      try {
+        // Try modern clipboard API first
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(idText);
+        } else {
+          // Fallback for HTTP localhost
+          const textArea = document.createElement('textarea');
+          textArea.value = idText;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-9999px';
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+        }
+        setCopiedId(true);
+        setTimeout(() => setCopiedId(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy booking ID:', err);
+        // Still show feedback even if copy fails
+        setCopiedId(true);
+        setTimeout(() => setCopiedId(false), 2000);
+      }
     }
   }, [confirmedBooking]);
 
@@ -433,6 +454,7 @@ export function BookingModal({
                     BK-{confirmedBooking.id.slice(0, 8).toUpperCase()}
                   </span>
                   <button
+                    type="button"
                     onClick={handleCopyId}
                     className="text-muted-foreground hover:text-foreground transition-colors"
                     title="Copy Booking ID"
