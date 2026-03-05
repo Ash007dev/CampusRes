@@ -15,6 +15,7 @@ export interface User {
   departmentId?: string;
   departmentName?: string;
   reputationScore: number;
+  creditsBalance?: number;
   avatarUrl?: string;
 }
 
@@ -83,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             departmentId: apiUser.departmentId,
             departmentName: apiUser.departmentName,
             reputationScore: apiUser.reputationScore,
+            creditsBalance: apiUser.creditsBalance,
           };
           setUser(userData);
           localStorage.setItem("user", JSON.stringify(userData));

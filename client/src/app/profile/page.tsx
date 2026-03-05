@@ -215,7 +215,7 @@ export default function ProfilePage() {
                                 <CreditCard className="h-4 w-4 text-green-500" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{(user as any).creditsBalance || 100}</div>
+                                <div className="text-2xl font-bold">{user.creditsBalance ?? 100}</div>
                                 <p className="text-xs text-muted-foreground">
                                     Available booking credits
                                 </p>
