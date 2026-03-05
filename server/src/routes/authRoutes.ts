@@ -366,4 +366,28 @@ router.patch('/users/:id/role', authenticate, authorize(['ADMIN']), authControll
  */
 router.delete('/users/:id', authenticate, authorize(['ADMIN']), authController.adminDeleteUser);
 
+/**
+ * @openapi
+ * /api/v1/auth/refresh-token:
+ *   post:
+ *     summary: Refresh access token using refresh token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [refreshToken]
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: New tokens returned
+ *       401:
+ *         description: Invalid or expired refresh token
+ */
+router.post('/refresh-token', authController.refreshToken);
+
 export default router;

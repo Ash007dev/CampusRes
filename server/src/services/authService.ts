@@ -1256,6 +1256,28 @@ export class AuthService {
 
     logger.info({ userId: tokenData.userId }, 'Password reset successfully');
   }
+
+  /**
+   * Refresh session using a Supabase refresh token
+   * Returns new access and refresh tokens
+   */
+  async refreshSession(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+    logger.info('Attempting to refresh session');
+
+    const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+
+    if (error || !data.session) {
+      logger.warn({ error }, 'Failed to refresh session');
+      throw new Error('Invalid or expired refresh token. Please login again.');
+    }
+
+    logger.info('Session refreshed successfully');
+
+    return {
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+    };
+  }
 }
 
 // Export singleton instance

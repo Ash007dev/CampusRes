@@ -81,21 +81,54 @@ api.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config;
+    const originalRequest = error.config as any;
 
-    // Handle 401 Unauthorized - clear token and redirect to login
-    if (error.response?.status === 401) {
+    // Handle 401 Unauthorized — try to refresh the token first
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
       if (typeof window !== 'undefined') {
+        const refreshToken = localStorage.getItem('refreshToken');
+
+        if (refreshToken) {
+          try {
+            // Call refresh endpoint directly (not through the intercepted api instance)
+            const response = await axios.post(`${API_URL}/auth/refresh-token`, {
+              refreshToken,
+            });
+
+            const newAccessToken = response.data?.data?.accessToken;
+            const newRefreshToken = response.data?.data?.refreshToken;
+
+            if (newAccessToken) {
+              // Store new tokens
+              localStorage.setItem('accessToken', newAccessToken);
+              if (newRefreshToken) {
+                localStorage.setItem('refreshToken', newRefreshToken);
+              }
+              // Also update the cookie for middleware
+              document.cookie = `accessToken=${newAccessToken}; path=/; max-age=${60 * 60 * 24 * 7}`;
+
+              // Retry the original request with the new token
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+              return api(originalRequest);
+            }
+          } catch (refreshError) {
+            console.log('[API] Token refresh failed, logging out...');
+          }
+        }
+
+        // Refresh failed or no refresh token — log out
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
         document.cookie = 'accessToken=; path=/; max-age=0';
 
         // Only redirect if not already on auth pages
         const currentPath = window.location.pathname;
         if (!currentPath.startsWith('/auth/') && currentPath !== '/') {
-          console.log('[API] Token expired, redirecting to login...');
+          console.log('[API] Session expired, redirecting to login...');
           window.location.href = '/auth/login?expired=true';
-          // Return a rejected promise that won't show error in console
           return new Promise(() => { });
         }
       }

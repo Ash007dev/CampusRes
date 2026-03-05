@@ -417,4 +417,31 @@ export const authController = {
       message: 'Password has been reset successfully. You can now login with your new password.',
     });
   }),
+
+  /**
+   * Refresh access token using refresh token
+   * POST /api/v1/auth/refresh-token
+   */
+  refreshToken: asyncHandler(async (req: Request, res: Response) => {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'Refresh token is required', code: 'AUTH_1003' },
+      });
+      return;
+    }
+
+    const result = await authService.refreshSession(refreshToken);
+
+    res.json({
+      success: true,
+      data: {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      },
+      message: 'Token refreshed successfully',
+    });
+  }),
 };
