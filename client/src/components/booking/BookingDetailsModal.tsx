@@ -24,6 +24,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -147,6 +148,9 @@ export function BookingDetailsModal({
               <DialogTitle className="text-2xl font-semibold leading-tight">
                 {booking.title || booking.roomName}
               </DialogTitle>
+              <DialogDescription className="sr-only">
+                Details for {booking.title || booking.roomName}
+              </DialogDescription>
               <Badge
                 variant="secondary"
                 className={cn(
