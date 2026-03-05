@@ -39,9 +39,26 @@ export const adminService = {
                 .eq('status', 'CONFIRMED')
                 .gt('end_time', now);
 
-            // 5. Utilization Rate (Simplistic: booked hours vs available hours in last 7 days)
-            // This is a placeholder for a more complex calculation
-            const utilizationRate = 68.5;
+            // 5. Utilization Rate: booked hours vs available hours in last 7 days
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const { data: recentBookings, error: recentError } = await supabase
+                .from('bookings')
+                .select('start_time, end_time')
+                .in('status', ['CONFIRMED', 'CHECKED_IN', 'COMPLETED'])
+                .gte('start_time', sevenDaysAgo.toISOString());
+
+            let utilizationRate = 0;
+            if (recentBookings && recentBookings.length > 0 && (totalRooms || 0) > 0) {
+                const totalBookedHours = recentBookings.reduce((acc: number, b: any) => {
+                    const start = new Date(b.start_time).getTime();
+                    const end = new Date(b.end_time).getTime();
+                    return acc + (end - start) / (1000 * 60 * 60);
+                }, 0);
+                // Available hours = rooms * 12 hours/day * 7 days
+                const availableHours = (totalRooms || 1) * 12 * 7;
+                utilizationRate = Math.min(100, parseFloat(((totalBookedHours / availableHours) * 100).toFixed(1)));
+            }
 
             // 6. No-show Rate (CANCELLED with specific reason or status)
             const { count: noShows, error: noShowError } = await supabase

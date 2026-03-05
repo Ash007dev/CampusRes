@@ -204,15 +204,17 @@ export default function AdminPage() {
     else setIsLoading(true);
 
     try {
-      const [roomsRes, bookingsRes, usersRes] = await Promise.all([
+      const [roomsRes, bookingsRes, usersRes, statsRes] = await Promise.all([
         roomsApi.search(),
         bookingsApi.getAllBookings(),
         adminApi.getUsers({ limit: 100 }),
+        adminApi.getStats(),
       ]);
 
       const roomsData = roomsRes.data.data || [];
       const bookingsData = bookingsRes.data.data || [];
       const usersData = usersRes.data.data || [];
+      const backendStats = statsRes.data.data;
 
       setRooms(roomsData);
       setBookings(bookingsData);
@@ -231,10 +233,7 @@ export default function AdminPage() {
 
       setUsers(mappedUsers);
 
-      // Calculate stats
-      const activeBookings = bookingsData.filter(
-        (b: any) => b.status === "CONFIRMED" || b.status === "PENDING"
-      ).length;
+      // Use backend stats for accurate data, with local fallback
       const pendingApprovals = bookingsData.filter(
         (b: any) => b.status === "PENDING_APPROVAL"
       ).length;
@@ -244,12 +243,12 @@ export default function AdminPage() {
       ).length;
 
       setStats({
-        totalUsers: usersData.length || mappedUsers.length,
-        totalRooms: roomsData.length,
-        totalBookings: bookingsData.length,
-        activeBookings,
-        utilizationRate: roomsData.length > 0 ? Math.round((activeBookings / roomsData.length) * 100) : 0,
-        noShowRate: 4.2,
+        totalUsers: backendStats?.totalUsers || usersData.length || mappedUsers.length,
+        totalRooms: backendStats?.totalRooms || roomsData.length,
+        totalBookings: backendStats?.totalBookings || bookingsData.length,
+        activeBookings: backendStats?.activeBookings || 0,
+        utilizationRate: backendStats?.utilizationRate ?? 0,
+        noShowRate: backendStats?.noShowRate ?? 0,
         pendingApprovals,
         todayBookings,
       });
