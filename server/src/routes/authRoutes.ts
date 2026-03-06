@@ -300,8 +300,36 @@ router.post('/reset-password', authRateLimiter, authController.resetPassword);
  *     responses:
  *       200:
  *         description: List of users
+ *   post:
+ *     summary: Create a user (Admin)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password, role]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *               role:
+ *                 type: string
+ *                 enum: [user, admin]
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       409:
+ *         description: Email already registered
  */
 router.get('/users', authenticate, authorize(['ADMIN']), authController.getAllUsers);
+router.post('/users', authenticate, authorize(['ADMIN']), authController.adminCreateUser);
 
 /**
  * @openapi
@@ -313,5 +341,53 @@ router.get('/users', authenticate, authorize(['ADMIN']), authController.getAllUs
  *       - bearerAuth: []
  */
 router.patch('/users/:id/role', authenticate, authorize(['ADMIN']), authController.updateUserRole);
+
+/**
+ * @openapi
+ * /api/v1/auth/users/{id}:
+ *   delete:
+ *     summary: Delete a user (Admin only)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ *       400:
+ *         description: Cannot delete own account
+ *       403:
+ *         description: Forbidden
+ */
+router.delete('/users/:id', authenticate, authorize(['ADMIN']), authController.adminDeleteUser);
+
+/**
+ * @openapi
+ * /api/v1/auth/refresh-token:
+ *   post:
+ *     summary: Refresh access token using refresh token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [refreshToken]
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: New tokens returned
+ *       401:
+ *         description: Invalid or expired refresh token
+ */
+router.post('/refresh-token', authController.refreshToken);
 
 export default router;

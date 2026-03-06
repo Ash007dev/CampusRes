@@ -73,6 +73,7 @@ import { roomsApi, bookingsApi, adminApi } from "@/lib/api";
 import { AddRoomModal } from "@/components/admin/AddRoomModal";
 import { EditRoomAmenitiesModal } from "@/components/admin/EditRoomAmenitiesModal";
 import { BulkImportTimetableModal } from "@/components/admin/BulkImportTimetableModal";
+import { BookingDetailsModal } from "@/components/booking/BookingDetailsModal";
 import { HolidayCalendarModal } from "@/components/admin/HolidayCalendarModal";
 import { ExportBookingsModal } from "@/components/admin/ExportBookingsModal";
 import { MaintenanceModeModal } from "@/components/admin/MaintenanceModeModal";
@@ -80,6 +81,10 @@ import { FeedbackReviewModal } from "@/components/admin/FeedbackReviewModal";
 import { SystemConfigModal } from "@/components/admin/SystemConfigModal";
 import { BookingApprovals } from "@/components/admin/BookingApprovals";
 import { AuditLogTable } from "@/components/admin/AuditLogTable";
+import { AddUserModal } from "@/components/admin/AddUserModal";
+import { ViewUserDetailsModal } from "@/components/admin/ViewUserDetailsModal";
+import { ViewRoomDetailsModal } from "@/components/admin/ViewRoomDetailsModal";
+import { EditRoomModal } from "@/components/admin/EditRoomModal";
 
 // Types
 interface Stats {
@@ -159,6 +164,13 @@ export default function AdminPage() {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
   const [isAddRoomModalOpen, setIsAddRoomModalOpen] = useState(false);
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [isViewUserModalOpen, setIsViewUserModalOpen] = useState(false);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [selectedUserForView, setSelectedUserForView] = useState<AdminUser | null>(null);
+  const [selectedRoomForView, setSelectedRoomForView] = useState<any>(null);
+  const [selectedRoomForEdit, setSelectedRoomForEdit] = useState<any>(null);
   const [selectedRoomForAmenities, setSelectedRoomForAmenities] = useState<any>(null);
   const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
   const [isHolidayCalendarOpen, setIsHolidayCalendarOpen] = useState(false);
@@ -196,7 +208,7 @@ export default function AdminPage() {
 
     try {
       const [roomsRes, bookingsRes, usersRes] = await Promise.all([
-        roomsApi.search(),
+        roomsApi.search({ limit: 100, includeMaintenace: true }),
         bookingsApi.getAllBookings(),
         adminApi.getUsers({ limit: 100 }),
       ]);
@@ -214,7 +226,7 @@ export default function AdminPage() {
         name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email?.split('@')[0] || 'Unknown',
         email: u.email || '',
         role: u.role || 'STUDENT',
-        department: u.departmentName || 'Not assigned', // Fixed: departmentName instead of department.name
+        department: u.departmentName || 'Not assigned',
         reputationScore: u.reputationScore ?? 100,
         createdAt: u.createdAt || new Date().toISOString(),
         status: u.blockedUntil && new Date(u.blockedUntil) > new Date() ? 'SUSPENDED' : 'ACTIVE',
@@ -222,9 +234,18 @@ export default function AdminPage() {
 
       setUsers(mappedUsers);
 
-      // Calculate stats
+      // Try to get backend stats separately (so a failure here doesn't break everything)
+      let backendStats: any = null;
+      try {
+        const statsRes = await adminApi.getStats();
+        backendStats = statsRes.data.data;
+      } catch (statsErr) {
+        console.warn("Backend stats unavailable, using local calculation:", statsErr);
+      }
+
+      // Calculate local fallback stats
       const activeBookings = bookingsData.filter(
-        (b: any) => b.status === "CONFIRMED" || b.status === "PENDING"
+        (b: any) => b.status === "CONFIRMED" || b.status === "CHECKED_IN"
       ).length;
       const pendingApprovals = bookingsData.filter(
         (b: any) => b.status === "PENDING_APPROVAL"
@@ -233,14 +254,17 @@ export default function AdminPage() {
       const todayBookings = bookingsData.filter(
         (b: any) => new Date(b.startTime).toDateString() === today
       ).length;
+      const localUtilization = roomsData.length > 0
+        ? Math.round((activeBookings / roomsData.length) * 100)
+        : 0;
 
       setStats({
-        totalUsers: usersData.length || mappedUsers.length,
-        totalRooms: roomsData.length,
-        totalBookings: bookingsData.length,
-        activeBookings,
-        utilizationRate: roomsData.length > 0 ? Math.round((activeBookings / roomsData.length) * 100) : 0,
-        noShowRate: 4.2,
+        totalUsers: backendStats?.totalUsers || usersData.length || mappedUsers.length,
+        totalRooms: backendStats?.totalRooms || roomsData.length,
+        totalBookings: backendStats?.totalBookings || bookingsData.length,
+        activeBookings: backendStats?.activeBookings ?? activeBookings,
+        utilizationRate: backendStats?.utilizationRate ?? localUtilization,
+        noShowRate: backendStats?.noShowRate ?? 0,
         pendingApprovals,
         todayBookings,
       });
@@ -272,6 +296,65 @@ export default function AdminPage() {
       await fetchData(true); // Refresh data
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : "Failed to create room");
+    }
+  };
+
+  // Handle deleting a room
+  const handleDeleteRoom = async (room: any) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the room "${room.name}"? This action cannot be undone.`
+    );
+    if (!confirmed) return;
+    try {
+      await roomsApi.update(room.id, { is_active: false } as any);
+      toast({ title: "Success", description: `Room "${room.name}" deleted successfully` });
+      await fetchData(true);
+    } catch (error: any) {
+      toast({ title: "Error", description: "Failed to delete room", variant: "destructive" });
+    }
+  };
+
+  // Handle creating user
+  const handleCreateUser = async (data: any) => {
+    try {
+      await adminApi.createUser(data);
+      toast({
+        title: "Success",
+        description: "User created successfully",
+      });
+      await fetchData(true); // Refresh data
+    } catch (error: any) {
+      throw new Error(error?.response?.data?.error?.message || error.message || "Failed to create user");
+    }
+  };
+
+  // Handle viewing a user
+  const handleViewUser = (user: AdminUser) => {
+    setSelectedUserForView(user);
+    setIsViewUserModalOpen(true);
+  };
+
+  // Handle deleting a user
+  const handleDeleteUser = async (user: AdminUser) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete the user ${user.name} (${user.email})? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await adminApi.deleteUser(user.id);
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
+      });
+      await fetchData(true);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.error?.message || error.message || "Failed to delete user",
+        variant: "destructive",
+      });
     }
   };
 
@@ -694,7 +777,7 @@ export default function AdminPage() {
                         <Download className="mr-2 h-4 w-4" />
                         Export
                       </Button>
-                      <Button>
+                      <Button onClick={() => setIsAddUserModalOpen(true)}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add User
                       </Button>
@@ -790,13 +873,13 @@ export default function AdminPage() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleViewUser(u)}>
                                       <Eye className="mr-2 h-4 w-4" />
                                       View Details
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                      <Pencil className="mr-2 h-4 w-4" />
-                                      Edit
+                                    <DropdownMenuItem onClick={() => handleDeleteUser(u)} className="text-destructive focus:text-destructive">
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete User
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuSub>
@@ -839,11 +922,6 @@ export default function AdminPage() {
                                         </DropdownMenuItem>
                                       </DropdownMenuSubContent>
                                     </DropdownMenuSub>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="text-destructive">
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      Delete
-                                    </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </td>
@@ -916,7 +994,7 @@ export default function AdminPage() {
                               <span>{room.capacity} seats</span>
                             </div>
                             <div className="flex gap-2 mt-4">
-                              <Button variant="outline" size="sm" className="flex-1 rounded-lg">
+                              <Button variant="outline" size="sm" className="flex-1 rounded-lg" onClick={() => setSelectedRoomForView(room)}>
                                 <Eye className="mr-1 h-3 w-3" />
                                 View
                               </Button>
@@ -935,12 +1013,12 @@ export default function AdminPage() {
                                     <Wrench className="mr-2 h-3 w-3" />
                                     {room.isMaintenance ? "Disable Maintenance" : "Enable Maintenance"}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setSelectedRoomForEdit(room)}>
                                     <Pencil className="mr-2 h-3 w-3" />
                                     Edit Room
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-destructive">
+                                  <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteRoom(room)}>
                                     <Trash2 className="mr-2 h-3 w-3" />
                                     Delete
                                   </DropdownMenuItem>
@@ -1049,18 +1127,54 @@ export default function AdminPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                              // Map backend booking into BookingEvent for the modal
+                              setSelectedBooking({
+                                id: booking.id,
+                                title: booking.title || booking.purpose || "Room Booking",
+                                start: new Date(booking.startTime),
+                                end: new Date(booking.endTime),
+                                status: booking.status,
+                                roomName: booking.room?.name || "Room",
+                                userName: booking.user?.name || booking.user?.email || "User",
+                                purpose: booking.purpose,
+                                isOwner: false, // For admin viewing
+                              });
+                              setIsBookingModalOpen(true);
+                            }}>
                               <Eye className="mr-2 h-4 w-4" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <CheckCircle2 className="mr-2 h-4 w-4" />
-                              Approve
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
-                              <XCircle className="mr-2 h-4 w-4" />
-                              Cancel
-                            </DropdownMenuItem>
+                            {(booking.status === "PENDING" || booking.status === "PENDING_APPROVAL") && (
+                              <DropdownMenuItem onClick={async () => {
+                                try {
+                                  await bookingsApi.approveBooking(booking.id, { approved: true });
+                                  toast({ title: "Booking Approved", description: `Booking ${booking.id.slice(0, 8)} has been confirmed.` });
+                                  fetchData(); // Refresh the list
+                                } catch (error) {
+                                  toast({ title: "Error", description: "Failed to approve booking.", variant: "destructive" });
+                                }
+                              }}>
+                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                Approve
+                              </DropdownMenuItem>
+                            )}
+                            {booking.status !== "CANCELLED" && booking.status !== "COMPLETED" && (
+                              <DropdownMenuItem className="text-destructive" onClick={async () => {
+                                if (confirm("Are you sure you want to cancel this booking?")) {
+                                  try {
+                                    await bookingsApi.cancel(booking.id, "Cancelled by Admin");
+                                    toast({ title: "Booking Cancelled", description: `Booking ${booking.id.slice(0, 8)} has been cancelled.`, variant: "destructive" });
+                                    fetchData(); // Refresh the list
+                                  } catch (error) {
+                                    toast({ title: "Error", description: "Failed to cancel booking.", variant: "destructive" });
+                                  }
+                                }
+                              }}>
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Cancel
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </motion.div>
@@ -1338,6 +1452,27 @@ export default function AdminPage() {
       </main>
 
       {/* Modals */}
+      <AddUserModal
+        isOpen={isAddUserModalOpen}
+        onClose={() => setIsAddUserModalOpen(false)}
+        onSubmit={handleCreateUser}
+      />
+      <ViewUserDetailsModal
+        user={selectedUserForView}
+        isOpen={isViewUserModalOpen}
+        onClose={() => setIsViewUserModalOpen(false)}
+      />
+      <ViewRoomDetailsModal
+        room={selectedRoomForView}
+        isOpen={!!selectedRoomForView}
+        onClose={() => setSelectedRoomForView(null)}
+      />
+      <EditRoomModal
+        room={selectedRoomForEdit}
+        isOpen={!!selectedRoomForEdit}
+        onClose={() => setSelectedRoomForEdit(null)}
+        onSuccess={() => fetchData(true)}
+      />
       <AddRoomModal
         isOpen={isAddRoomModalOpen}
         onClose={() => setIsAddRoomModalOpen(false)}
@@ -1375,6 +1510,23 @@ export default function AdminPage() {
       <SystemConfigModal
         isOpen={isSystemConfigOpen}
         onClose={() => setIsSystemConfigOpen(false)}
+      />
+      <BookingDetailsModal
+        booking={selectedBooking}
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        onCancel={async () => {
+          if (selectedBooking && confirm("Are you sure you want to cancel this booking?")) {
+            try {
+              await bookingsApi.cancel(selectedBooking.id, "Cancelled by Admin");
+              toast({ title: "Booking Cancelled", description: `Booking ${selectedBooking.id.slice(0, 8)} has been cancelled.`, variant: "destructive" });
+              setIsBookingModalOpen(false);
+              fetchData(); // Refresh the list
+            } catch (error) {
+              toast({ title: "Error", description: "Failed to cancel booking.", variant: "destructive" });
+            }
+          }
+        }}
       />
     </div>
   );

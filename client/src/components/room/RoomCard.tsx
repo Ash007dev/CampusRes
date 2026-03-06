@@ -28,6 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { formatTimeInIst } from "@/lib/dateUtils";
 import type { AvailabilityStatus } from "@/lib/api";
 
 // Types
@@ -59,15 +60,42 @@ interface RoomCardProps {
   className?: string;
 }
 
-// Amenity icon mapping
+// Amenity icon mapping (handles both display names and API keys)
 const AMENITY_ICONS: Record<string, React.ElementType> = {
   WiFi: Wifi,
+  wifi: Wifi,
   Projector: Projector,
+  projector: Projector,
   "Video Conference": Monitor,
+  videoConference: Monitor,
+  video_conference: Monitor,
   "Audio System": Mic,
+  microphone: Mic,
   "Air Conditioning": Snowflake,
+  ac: Snowflake,
   Whiteboard: LayoutGrid,
+  whiteboard: LayoutGrid,
+  smartBoard: Monitor,
+  soundSystem: Mic,
+  computers: Monitor,
+  wheelchairAccessible: Users,
 };
+
+// Amenity label mapping for display
+const AMENITY_LABELS: Record<string, string> = {
+  wifi: "WiFi",
+  projector: "Projector",
+  ac: "A/C",
+  microphone: "Mic",
+  videoConference: "Video",
+  whiteboard: "Board",
+  smartBoard: "Smart",
+  soundSystem: "Sound",
+  computers: "Lab",
+  wheelchairAccessible: "♿",
+};
+
+// ... (keep the existing code between these sections)
 
 // Room type colors - Grayscale palette with explicit text colors for visibility
 const ROOM_TYPE_COLORS: Record<string, string> = {
@@ -208,10 +236,7 @@ export function RoomCard({
               <div className="mb-3 flex items-center gap-1 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4" />
                 <span>
-                  Next: {new Date(room.nextAvailable).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  Next: {formatTimeInIst(room.nextAvailable)}
                 </span>
               </div>
             )}
@@ -220,21 +245,22 @@ export function RoomCard({
             <div className="flex flex-wrap gap-2">
               {visibleAmenities.map((amenity) => {
                 const IconComponent = AMENITY_ICONS[amenity.name];
+                const label = AMENITY_LABELS[amenity.name] || amenity.name;
                 return (
                   <Tooltip key={amenity.name}>
                     <TooltipTrigger asChild>
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary">
+                      <div className="flex h-8 items-center justify-center rounded-full bg-secondary px-2">
                         {IconComponent ? (
                           <IconComponent className="h-4 w-4 text-muted-foreground" />
                         ) : (
                           <span className="text-xs font-medium text-muted-foreground">
-                            {amenity.name.charAt(0)}
+                            {label}
                           </span>
                         )}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{amenity.name}</p>
+                      <p>{AMENITY_LABELS[amenity.name] || amenity.name}</p>
                     </TooltipContent>
                   </Tooltip>
                 );

@@ -38,7 +38,7 @@ export async function executeBookingReminder(): Promise<ReminderStats> {
         duration: 0,
     };
 
-    logger.debug('⏰ Booking Reminder: Checking for upcoming bookings...');
+    logger.trace('Booking Reminder: Checking for upcoming bookings...');
 
     try {
         const minutesBefore = config.reminder.minutesBefore;

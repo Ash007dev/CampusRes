@@ -98,26 +98,16 @@ export function EditRoomAmenitiesModal({ room, isOpen, onClose, onSuccess }: Edi
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <DialogTitle className="text-2xl font-bold mb-1">
-                Manage Amenities
-              </DialogTitle>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="outline" className="text-sm">
-                  {room.code}
-                </Badge>
-                <span className="text-sm text-muted-foreground">{room.name}</span>
-              </div>
+          <div>
+            <DialogTitle className="text-2xl font-bold mb-1">
+              Manage Amenities
+            </DialogTitle>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="outline" className="text-sm">
+                {room.code}
+              </Badge>
+              <span className="text-sm text-muted-foreground">{room.name}</span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleClose}
-              className="h-8 w-8 rounded-full"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </DialogHeader>
 
@@ -190,7 +180,7 @@ export function EditRoomAmenitiesModal({ room, isOpen, onClose, onSuccess }: Edi
               <div className="text-sm text-blue-900 dark:text-blue-100">
                 <p className="font-medium mb-1">About Amenity Management</p>
                 <p className="text-blue-700 dark:text-blue-300">
-                  Toggle amenities on/off to indicate availability. Inactive amenities will appear 
+                  Toggle amenities on/off to indicate availability. Inactive amenities will appear
                   with strikethrough text to inform users they are currently unavailable.
                 </p>
               </div>

@@ -18,7 +18,6 @@ import {
     Loader2,
     Settings,
     Palette,
-    Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,7 +65,6 @@ export default function SettingsPage() {
     const [emailNotifications, setEmailNotifications] = useState(true);
     const [bookingReminders, setBookingReminders] = useState(true);
     const [weeklyDigest, setWeeklyDigest] = useState(false);
-    const [language, setLanguage] = useState("en");
     const [isSaving, setIsSaving] = useState(false);
 
     // Password change state
@@ -93,6 +91,8 @@ export default function SettingsPage() {
             await authApi.updatePreferences({
                 emailNotifications: emailNotifications,
                 smsNotifications: pushNotifications,
+                bookingReminders: bookingReminders,
+                weeklyDigest: weeklyDigest,
                 theme: (theme as 'light' | 'dark' | 'system') || 'system',
             });
             toast({
@@ -154,17 +154,17 @@ export default function SettingsPage() {
 
     const handleDeleteAccount = async () => {
         try {
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await authApi.deleteAccount();
             toast({
                 title: "Account Deleted",
                 description: "Your account has been permanently deleted.",
             });
             await logout();
-        } catch (error) {
+        } catch (error: unknown) {
+            const errMsg = error instanceof Error ? error.message : "Failed to delete account";
             toast({
                 title: "Error",
-                description: "Failed to delete account. Please try again.",
+                description: errMsg,
                 variant: "destructive",
             });
         }
@@ -242,31 +242,6 @@ export default function SettingsPage() {
                                         <SelectItem value="light">Light</SelectItem>
                                         <SelectItem value="dark">Dark</SelectItem>
                                         <SelectItem value="system">System</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <Separator />
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="rounded-lg bg-primary/10 p-2">
-                                        <Globe className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <div>
-                                        <Label className="font-medium">Language</Label>
-                                        <p className="text-xs text-muted-foreground">
-                                            Select your preferred language
-                                        </p>
-                                    </div>
-                                </div>
-                                <Select value={language} onValueChange={setLanguage}>
-                                    <SelectTrigger className="w-32">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="en">English</SelectItem>
-                                        <SelectItem value="es">Español</SelectItem>
-                                        <SelectItem value="fr">Français</SelectItem>
-                                        <SelectItem value="hi">हिंदी</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

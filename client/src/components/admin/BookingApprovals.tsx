@@ -10,6 +10,7 @@ import {
     MessageSquare,
     AlertCircle
 } from "lucide-react";
+import { formatDateTimeInIst, formatTimeInIst } from "@/lib/dateUtils";
 import { adminApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -153,25 +154,13 @@ export function BookingApprovals() {
                                     <div className="text-sm">
                                         <p>{booking.startTime ? (() => {
                                             try {
-                                                return format(new Date(booking.startTime), "MMM d, yyyy");
+                                                return formatDateTimeInIst(booking.startTime).split(',')[0];
                                             } catch (e) {
                                                 return "Invalid Date";
                                             }
                                         })() : "N/A"}</p>
                                         <p className="text-muted-foreground">
-                                            {booking.startTime ? (() => {
-                                                try {
-                                                    return format(new Date(booking.startTime), "HH:mm");
-                                                } catch (e) {
-                                                    return "--:--";
-                                                }
-                                            })() : "--:--"} - {booking.endTime ? (() => {
-                                                try {
-                                                    return format(new Date(booking.endTime), "HH:mm");
-                                                } catch (e) {
-                                                    return "--:--";
-                                                }
-                                            })() : "--:--"}
+                                            {formatTimeInIst(booking.startTime)} - {formatTimeInIst(booking.endTime)}
                                         </p>
                                     </div>
                                 </TableCell>

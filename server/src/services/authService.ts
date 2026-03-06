@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabase.js';
 import { config } from '../config/index.js';
 import { logger } from '../config/logger.js';
 import { TIME } from '../config/constants.js';
+import { logAudit } from '../utils/auditLogger.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import {
@@ -24,10 +25,11 @@ import { emailService } from './emailService.js';
 // Registration input interface
 interface RegisterUserInput {
   email: string;
-  password: string;
+  password?: string;
   firstName: string;
   lastName: string;
   departmentCode?: string;
+  departmentId?: string;
   role?: string;
 }
 
@@ -176,7 +178,7 @@ export class AuthService {
     try {
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: input.email,
-        password: input.password,
+        password: input.password!,
       });
 
       if (!signInError && signInData.session) {
@@ -190,7 +192,7 @@ export class AuthService {
     }
 
     // Audit log
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'CREATE',
       entity_type: 'user',
       entity_id: user.id,
@@ -476,12 +478,12 @@ export class AuthService {
       .eq('id', user.id);
 
     // Audit log
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'LOGIN',
       entity_type: 'user',
       entity_id: user.id,
       performed_by_id: user.id,
-      metadata: { mfa_verified: true, device_fingerprint: deviceFingerprint, ip_address: ipAddress },
+      details: { mfa_verified: true, device_fingerprint: deviceFingerprint, ip_address: ipAddress },
     });
 
     logger.info({ userId: user.id, email: user.email }, 'Login successful with MFA verification');
@@ -501,6 +503,140 @@ export class AuthService {
         refreshToken: verifyData.session.refresh_token,
       },
     };
+  }
+
+  /**
+   * Create a user from admin panel (does not sign in)
+   */
+  async adminCreateUser(input: RegisterUserInput, adminId: string) {
+    // 1. Check if email exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', input.email)
+      .single();
+
+    if (existingUser) {
+      throw new EmailAlreadyExistsError(input.email);
+    }
+
+    // 2. Map department code to ID if needed
+    let departmentId = input.departmentId;
+    let departmentName = '';
+
+    if (!departmentId && input.departmentCode) {
+      const { data: dept } = await supabase
+        .from('departments')
+        .select('id, name')
+        .eq('code', input.departmentCode)
+        .single();
+
+      if (dept) {
+        departmentId = dept.id;
+        departmentName = dept.name;
+      }
+    }
+
+    // Generate random pass if none provided
+    const tempPassword = input.password || Math.random().toString(36).slice(-10) + 'A1!';
+
+    // Create user in Supabase Auth using admin API
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: input.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
+        first_name: input.firstName,
+        last_name: input.lastName,
+      },
+    });
+
+    if (authError || !authData.user) {
+      logger.error({ error: authError }, 'Failed to create auth user via admin');
+      throw new AppError(`Failed to create user: ${authError?.message || 'Unknown error'}`, 500);
+    }
+
+    const authUserId = authData.user.id;
+
+    // Create corresponding entry in public.users table
+    const now = new Date().toISOString();
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .insert({
+        id: authUserId,
+        email: input.email,
+        first_name: input.firstName,
+        last_name: input.lastName,
+        role: input.role || 'STUDENT',
+        department_id: departmentId,
+        created_at: now,
+        updated_at: now,
+      })
+      .select()
+      .single();
+
+    if (userError || !user) {
+      logger.error({ error: userError }, 'Failed to create public user via admin');
+      await supabase.auth.admin.deleteUser(authUserId);
+      throw new AppError('Failed to create user profile', 500);
+    }
+
+    // Audit log
+    await logAudit({
+      action: 'CREATE',
+      entity_type: 'user',
+      entity_id: user.id,
+      performed_by_id: adminId,
+      new_state: { email: user.email, role: user.role, name: `${user.first_name} ${user.last_name}` },
+    });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        departmentId: user.department_id,
+        departmentName: departmentName,
+      },
+      tempPassword
+    };
+  }
+
+  /**
+   * Delete user (Admin only)
+   */
+  async adminDeleteUser(userId: string, adminId: string) {
+    // Audit log before deletion
+    await logAudit({
+      action: 'DELETE',
+      entity_type: 'user',
+      entity_id: userId,
+      performed_by_id: adminId,
+      new_state: { status: 'DELETED' },
+    });
+
+    // Delete public user profile (cascading might handle this, but let's be explicit)
+    const { error: dbError } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
+
+    if (dbError) {
+      logger.error({ error: dbError }, 'Failed to delete public user record');
+      throw new AppError('Failed to delete user profile', 500);
+    }
+
+    // Delete auth user from Supabase admin API
+    const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+
+    if (authError) {
+      logger.error({ error: authError }, 'Failed to delete auth user via admin API');
+      throw new AppError('Failed to permanently delete user account', 500);
+    }
+
+    return { success: true };
   }
 
   /**
@@ -564,7 +700,7 @@ export class AuthService {
       .eq('id', user.id);
 
     // Audit log
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'LOGIN',
       entity_type: 'user',
       entity_id: user.id,
@@ -820,7 +956,7 @@ export class AuthService {
       .select('*', { count: 'exact' });
 
     // SECURITY FIX: Apply role filter
-    if (role) {
+    if (role && role !== 'all') {
       query = query.eq('role', role);
     }
 
@@ -860,7 +996,7 @@ export class AuthService {
         lastName: u.last_name,
         role: u.role,
         departmentId: u.department_id,
-        departmentName: null, // Could join departments table if needed
+        departmentName: u.departmentName || null,
         reputationScore: u.reputation_score || 100,
         creditsBalance: u.credits_balance || 0,
         isActive: u.is_active,
@@ -892,12 +1028,12 @@ export class AuthService {
     }
 
     // Audit log
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'UPDATE',
       entity_type: 'user',
       entity_id: userId,
       performed_by_id: adminUserId,
-      metadata: { action: 'role_change', new_role: newRole },
+      details: { action: 'role_change', new_role: newRole },
     });
 
     logger.info({ userId, newRole, adminUserId }, 'User role updated');
@@ -1110,15 +1246,37 @@ export class AuthService {
     passwordResetTokens.delete(resetToken);
 
     // Audit log
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'UPDATE',
       entity_type: 'user',
       entity_id: tokenData.userId,
       performed_by_id: tokenData.userId,
-      metadata: { action: 'password_reset' },
+      details: { action: 'password_reset' },
     });
 
     logger.info({ userId: tokenData.userId }, 'Password reset successfully');
+  }
+
+  /**
+   * Refresh session using a Supabase refresh token
+   * Returns new access and refresh tokens
+   */
+  async refreshSession(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+    logger.info('Attempting to refresh session');
+
+    const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+
+    if (error || !data.session) {
+      logger.warn({ error }, 'Failed to refresh session');
+      throw new Error('Invalid or expired refresh token. Please login again.');
+    }
+
+    logger.info('Session refreshed successfully');
+
+    return {
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+    };
   }
 }
 

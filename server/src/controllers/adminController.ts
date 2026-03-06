@@ -13,6 +13,7 @@ import { HTTP_STATUS } from '../config/constants.js';
 import { supabase } from '../lib/supabase.js';
 import { logger } from '../config/logger.js';
 import { sendBroadcastEmail } from '../services/emailService.js';
+import { logAudit } from '../utils/auditLogger.js';
 
 export const adminController = {
     /**
@@ -43,9 +44,43 @@ export const adminController = {
             entityType: entityType as string,
         });
 
+        // Helper to ensure UTC
+        const formatTimestamp = (ts: string | null | undefined) => {
+            if (!ts) return ts;
+            return ts.endsWith('Z') ? ts : `${ts}Z`;
+        };
+
+        const formattedLogs = result.logs.map((log: any) => {
+            const formattedLog: any = {
+                id: log.id,
+                action: log.action,
+                entityType: log.entity_type,
+                entityId: log.entity_id,
+                performedBy: log.performed_by,
+                createdAt: formatTimestamp(log.created_at),
+                previousState: log.previous_state,
+                newState: log.new_state,
+                oldState: log.previous_state,
+                new_state: log.new_state,
+                previous_state: log.previous_state,
+                metadata: log.metadata,
+                ipAddress: log.ip_address,
+                userAgent: log.user_agent,
+            };
+
+            if (log.booking) {
+                formattedLog.booking = {
+                    ...log.booking,
+                    startTime: formatTimestamp(log.booking.startTime),
+                    endTime: formatTimestamp(log.booking.endTime),
+                };
+            }
+            return formattedLog;
+        });
+
         res.json({
             success: true,
-            data: result.logs,
+            data: formattedLogs,
             meta: {
                 total: result.total,
                 page: page ? parseInt(page as string) : 1,
@@ -117,13 +152,12 @@ export const adminController = {
 
         // Audit log
         const performedBy = (req as any).user?.id;
-        await supabase.from('audit_logs').insert({
+        await logAudit({
             action: 'BROADCAST_SENT',
             entity_type: 'system',
+            entity_id: 'broadcast',
             performed_by_id: performedBy,
             details: { subject, recipientCount: users.length, successCount, failCount },
-        }).then(({ error: auditError }) => {
-            if (auditError) logger.error({ auditError }, 'Broadcast: Failed to write audit log');
         });
 
         logger.info({ successCount, failCount, total: users.length }, '📢 Broadcast complete');

@@ -13,6 +13,7 @@ import { configService } from './configService.js';
 import { config } from '../config/index.js';
 import { emitBookingUpdate, emitRoomUpdate, sendNotification } from '../lib/socket.js';
 import { waitlistService } from './waitlistService.js';
+import { logAudit } from '../utils/auditLogger.js';
 import { getCurrentIST, getISTHour, getISTStartOfDay, isISTPeakHour, istToUtc, parseDbDate } from '../utils/dateUtils.js';
 import {
   BOOKING_STATUS,
@@ -178,7 +179,7 @@ export class BookingService {
       const initialStatus = requiresApproval ? BOOKING_STATUS.PENDING_APPROVAL : BOOKING_STATUS.CONFIRMED;
 
       // Create booking
-      const now = new Date().toISOString();
+      const now = getCurrentIST().toISOString();
       const bookingId = crypto.randomUUID();
       const { data: newBooking, error: bookingError } = await supabase
         .from('bookings')
@@ -226,7 +227,7 @@ export class BookingService {
       }
 
       // Audit log
-      await supabase.from('audit_logs').insert({
+      await logAudit({
         action: 'CREATE',
         entity_type: 'booking',
         entity_id: newBooking.id,
@@ -393,7 +394,7 @@ export class BookingService {
       }
     }
 
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'CANCEL',
       entity_type: 'booking',
       entity_id: bookingId,
@@ -521,14 +522,14 @@ export class BookingService {
       throw new AppError('Failed to reschedule booking', 500);
     }
 
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'UPDATE',
       entity_type: 'booking',
       entity_id: bookingId,
       performed_by_id: userId,
       previous_state: { start_time: booking.start_time, end_time: booking.end_time },
       new_state: { start_time: newStartTime.toISOString(), end_time: newEndTime.toISOString() },
-      metadata: { action: 'reschedule' },
+      details: { action: 'reschedule' },
     });
 
     await this.invalidateAvailabilityCache(booking.room_id, parseDbDate(booking.start_time));
@@ -715,8 +716,10 @@ export class BookingService {
     }
 
     const now = getCurrentIST();
-    const checkInWindowStart = new Date(parseDbDate(booking.start_time).getTime() - 15 * TIME.MINUTE);
-    const checkInWindowEnd = new Date(parseDbDate(booking.start_time).getTime() + 15 * TIME.MINUTE);
+    // Check-in window logic adjusted for Fake UTC
+    const bookingStart = parseDbDate(booking.start_time);
+    const checkInWindowStart = new Date(bookingStart.getTime() - 15 * TIME.MINUTE);
+    const checkInWindowEnd = new Date(bookingStart.getTime() + 15 * TIME.MINUTE);
 
     if (now < checkInWindowStart) {
       throw new AppError('Check-in window has not started yet', 400);
@@ -740,7 +743,7 @@ export class BookingService {
       throw new AppError('Failed to check in', 500);
     }
 
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'CHECK_IN',
       entity_type: 'booking',
       entity_id: bookingId,
@@ -820,7 +823,7 @@ export class BookingService {
       }
     }
 
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: approved ? 'APPROVE' : 'REJECT',
       entity_type: 'booking',
       entity_id: bookingId,
@@ -949,7 +952,7 @@ export class BookingService {
       }
     }
 
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'UPDATE',
       entity_type: 'booking',
       entity_id: bookingId,
@@ -1062,7 +1065,7 @@ export class BookingService {
       .update({ credits_balance: (booking.users as any).credits_balance - additionalCredits })
       .eq('id', userId);
 
-    await supabase.from('audit_logs').insert({
+    await logAudit({
       action: 'UPDATE',
       entity_type: 'booking',
       entity_id: bookingId,

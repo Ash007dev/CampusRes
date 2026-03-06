@@ -12,7 +12,7 @@ import { createApp } from './app.js';
 import { config, isDevelopment } from './config/index.js';
 import { logger } from './config/logger.js';
 import { testConnection, disconnect } from './lib/supabase.js';
-import { disconnectRedis } from './lib/redis.js';
+import { disconnectRedis, isRedisHealthy } from './lib/redis.js';
 import { initSocketServer } from './lib/socket.js';
 import { scheduleGhostKiller } from './jobs/ghostKiller.js';
 import { scheduleBookingReminder } from './jobs/bookingReminder.js';
@@ -45,27 +45,30 @@ async function startServer(): Promise<void> {
     initSocketServer(server);
     logger.info('🔌 Socket.io server initialized');
 
-    // Start HTTP server
-    server.listen(config.port, () => {
-      logger.info({
-        port: config.port,
-        environment: config.nodeEnv,
-        apiVersion: config.apiVersion,
-      }, `✅ Server running on http://localhost:${config.port}`);
-
-      logger.info(`📚 API Documentation: http://localhost:${config.port}/api-docs`);
-    });
-
-    // Schedule Ghost Killer cron job
-    if (!isDevelopment || process.env.ENABLE_GHOST_KILLER === 'true') {
-      scheduleGhostKiller();
-    } else {
-      logger.info('👻 Ghost Killer disabled in development (set ENABLE_GHOST_KILLER=true to enable)');
-    }
+    // Schedule cron jobs
+    scheduleGhostKiller();
 
     // Schedule Booking Reminder cron job
     scheduleBookingReminder();
-    logger.info('⏰ Booking Reminder cron job enabled');
+
+    // Start HTTP server
+    server.listen(config.port, async () => {
+      const redisOk = await isRedisHealthy();
+      logger.info('='.repeat(60));
+      logger.info('  Campus Resource Engine - Server Started');
+      logger.info('='.repeat(60));
+      logger.info(`  Port:          ${config.port}`);
+      logger.info(`  Environment:   ${config.nodeEnv}`);
+      logger.info(`  API Version:   ${config.apiVersion}`);
+      logger.info(`  Database:      Connected (Supabase)`);
+      logger.info(`  Redis:         ${redisOk ? 'Connected' : 'Unavailable (using fallbacks)'}`);
+      logger.info(`  Socket.io:     Initialized`);
+      logger.info(`  Ghost Killer:  Active (every ${config.ghostKiller.cronSchedule})`);
+      logger.info(`  Reminders:     Active (every ${config.reminder.cronSchedule})`);
+      logger.info(`  API Base:      http://localhost:${config.port}/api/${config.apiVersion}`);
+      logger.info(`  API Docs:      http://localhost:${config.port}/api-docs`);
+      logger.info('='.repeat(60));
+    });
 
     // Schedule Waitlist Cascade cron job (US 3.7)
     scheduleWaitlistCascade();

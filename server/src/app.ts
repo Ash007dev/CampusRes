@@ -13,9 +13,9 @@ import compression from 'compression';
 import { config } from './config/index.js';
 import { logger } from './config/logger.js';
 import routes from './routes/index.js';
-import { 
-  errorHandler, 
-  notFoundHandler, 
+import {
+  errorHandler,
+  notFoundHandler,
   standardRateLimiter,
 } from './middleware/index.js';
 import { setupSwagger } from './swagger.js';
@@ -29,13 +29,19 @@ export function createApp(): Application {
   // ==========================================================================
   // CORS - ABSOLUTELY FIRST - SIMPLEST POSSIBLE CONFIG
   // ==========================================================================
-  
+
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Request-ID');
     res.header('Access-Control-Allow-Credentials', 'true');
-    
+
+    // Prevent aggressive browser caching that causes the hard-refresh requirement
+    res.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.header('Pragma', 'no-cache');
+    res.header('Expires', '0');
+    res.header('Surrogate-Control', 'no-store');
+
     if (req.method === 'OPTIONS') {
       return res.sendStatus(200);
     }
@@ -69,27 +75,37 @@ export function createApp(): Application {
 
   // Request ID tracking
   app.use((req, _res, next) => {
-    req.headers['x-request-id'] = 
-      req.headers['x-request-id'] || 
+    req.headers['x-request-id'] =
+      req.headers['x-request-id'] ||
       `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     next();
   });
 
-  // Request logging
+  // Request logging (filtered for readability)
+  const NOISY_PATHS = ['/health', '/api-docs', '/dev-docs', '/favicon.ico', '/api/v1/health'];
   app.use((req, res, next) => {
     const startTime = Date.now();
-    
+
     res.on('finish', () => {
+      // Skip noisy routes that clutter the logs
+      if (NOISY_PATHS.some(p => req.path.startsWith(p))) return;
+
       const duration = Date.now() - startTime;
-      logger.info({
+      const logData = {
         method: req.method,
         path: req.path,
-        statusCode: res.statusCode,
-        duration: `${duration}ms`,
-        requestId: req.headers['x-request-id'],
-      }, 'Request completed');
+        status: res.statusCode,
+        time: `${duration}ms`,
+      };
+
+      // Errors get full visibility, success gets debug
+      if (res.statusCode >= 400) {
+        logger.warn(logData, `${req.method} ${req.path} -> ${res.statusCode}`);
+      } else {
+        logger.info(logData, `${req.method} ${req.path} -> ${res.statusCode} (${duration}ms)`);
+      }
     });
-    
+
     next();
   });
 

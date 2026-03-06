@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { Booking } from "@/lib/api";
+import { getISTHour, getCurrentIST, formatDateTimeInIst, formatTimeInIst, utcToIst, utcToIstShifted } from "@/lib/dateUtils";
 
 // Generate time slots from 6 AM to 10 PM
 const generateTimeSlots = () => {
@@ -69,8 +70,8 @@ export function RescheduleModal({
       const startTimeValue = (booking as any).startTime || (booking as any).start;
       const endTimeValue = (booking as any).endTime || (booking as any).end;
 
-      const bookingStart = new Date(startTimeValue);
-      const bookingEnd = new Date(endTimeValue);
+      const bookingStart = utcToIstShifted(startTimeValue);
+      const bookingEnd = utcToIstShifted(endTimeValue);
 
       // Validate dates before formatting
       if (isNaN(bookingStart.getTime()) || isNaN(bookingEnd.getTime())) {
@@ -106,7 +107,8 @@ export function RescheduleModal({
     const bookingStart = new Date(date);
     bookingStart.setHours(startHour, startMin, 0, 0);
 
-    if (bookingStart <= new Date()) {
+    const now = getCurrentIST();
+    if (bookingStart <= now) {
       setError("Booking must be scheduled for a future time");
       return;
     }
@@ -129,7 +131,7 @@ export function RescheduleModal({
     setError("");
 
     try {
-      await onReschedule(booking.id, newStartTime, newEndTime);
+      await onReschedule((booking as any).id, newStartTime, newEndTime);
       onClose();
     } catch (err: any) {
       setError(err.message || "Failed to reschedule booking");

@@ -14,6 +14,7 @@ import { useParams } from "next/navigation";
 import { format, isAfter, isBefore, addMinutes } from "date-fns";
 import { Clock, Users, Calendar, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { roomsApi, bookingsApi, type Room, type Booking } from "@/lib/api";
+import { formatTimeInIst } from "@/lib/dateUtils";
 
 interface DisplayBooking {
     id: string;
@@ -128,8 +129,8 @@ export default function DisplayModePage() {
     return (
         <div
             className={`min-h-screen flex flex-col ${isOccupied
-                    ? 'bg-gradient-to-br from-red-600 to-red-900'
-                    : 'bg-gradient-to-br from-green-600 to-green-900'
+                ? 'bg-gradient-to-br from-red-600 to-red-900'
+                : 'bg-gradient-to-br from-green-600 to-green-900'
                 } text-white p-8`}
         >
             {/* Header */}
@@ -157,7 +158,7 @@ export default function DisplayModePage() {
                         <>
                             <XCircle className="h-32 w-32 mx-auto mb-6" />
                             <h2 className="text-7xl font-bold mb-4">OCCUPIED</h2>
-                            <p className="text-4xl mb-2">Until {format(currentBooking!.endTime, 'h:mm a')}</p>
+                            <p className="text-4xl mb-2">Until {formatTimeInIst(currentBooking!.endTime)}</p>
                             <p className="text-3xl opacity-80">
                                 Free in {timeUntilFree} minute{timeUntilFree !== 1 ? 's' : ''}
                             </p>
@@ -187,7 +188,7 @@ export default function DisplayModePage() {
                             <div>
                                 <p className="font-semibold">{currentBooking.title}</p>
                                 <p className="opacity-80">
-                                    {format(currentBooking.startTime, 'h:mm a')} - {format(currentBooking.endTime, 'h:mm a')}
+                                    {formatTimeInIst(currentBooking.startTime)} - {formatTimeInIst(currentBooking.endTime)}
                                 </p>
                             </div>
                         </div>
@@ -208,7 +209,7 @@ export default function DisplayModePage() {
                             <div>
                                 <p className="font-semibold">{nextBooking.title}</p>
                                 <p className="opacity-80">
-                                    {format(nextBooking.startTime, 'h:mm a')} - {format(nextBooking.endTime, 'h:mm a')}
+                                    {formatTimeInIst(nextBooking.startTime)} - {formatTimeInIst(nextBooking.endTime)}
                                 </p>
                             </div>
                         </div>

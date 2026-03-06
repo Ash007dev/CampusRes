@@ -14,6 +14,7 @@ import { config } from '../config/index.js';
 import { logger } from '../config/logger.js';
 import { emitBookingUpdate, emitRoomUpdate } from '../lib/socket.js';
 import { parseDbDate } from '../utils/dateUtils.js';
+import { logAudit } from '../utils/auditLogger.js';
 
 const SYSTEM_USER_ID = 'system-ghost-killer';
 
@@ -38,7 +39,7 @@ export async function executeGhostKiller(): Promise<GhostKillerStats> {
     duration: 0,
   };
 
-  logger.info('🔍 Ghost Killer: Starting check for no-show bookings...');
+  logger.debug('Ghost Killer: Checking for no-show bookings...');
 
   try {
     const gracePeriodMs = config.ghostKiller.gracePeriodMinutes * 60 * 1000;
@@ -91,7 +92,7 @@ export async function executeGhostKiller(): Promise<GhostKillerStats> {
     stats.bookingsFound = ghostBookings.length;
 
     if (stats.bookingsFound === 0) {
-      logger.info('👻 Ghost Killer: No ghost bookings found. All clear!');
+      logger.debug('Ghost Killer: No ghost bookings found. All clear.');
       stats.duration = Date.now() - startTime;
       return stats;
     }
@@ -205,7 +206,7 @@ async function processGhostBooking(booking: any): Promise<void> {
     .eq('id', booking.user_id);
 
   // 5. Create audit log entry
-  await supabase.from('audit_logs').insert({
+  await logAudit({
     action: 'GHOST_KILL',
     entity_type: 'booking',
     entity_id: booking.id,
@@ -225,7 +226,7 @@ async function processGhostBooking(booking: any): Promise<void> {
       blocked: shouldBlock,
       blocked_until: blockedUntil,
     },
-    metadata: {
+    details: {
       automatedBy: 'ghost-killer-cron',
       room_code: booking.rooms?.code,
       room_name: booking.rooms?.name,

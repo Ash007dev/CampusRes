@@ -42,7 +42,7 @@ import { bookingsApi, type Booking } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 import { QRScanner } from "@/components/booking/QRScanner";
 import { RescheduleModal } from "@/components/booking/RescheduleModal";
-import { formatTimeInIst } from "@/lib/dateUtils";
+import { formatTimeInIst, formatDateTimeInIst } from "@/lib/dateUtils";
 
 const STATUS_COLORS: Record<string, string> = {
     CONFIRMED: "bg-green-500",
@@ -445,7 +445,7 @@ export default function BookingsPage() {
                                     const floor = booking.room?.floor || "1";
                                     const now = new Date();
                                     const isUpcoming = isValidDate && startTime >= now;
-                                    const canCancel = isUpcoming && booking.status === "CONFIRMED" && booking.checkInStatus !== "CHECKED_IN";
+                                    const canCancel = isUpcoming && (booking.status === "CONFIRMED" || booking.status === "PENDING") && booking.checkInStatus !== "CHECKED_IN";
 
                                     // US 3.2: Check-in window - 15 min before start until end of booking
                                     const checkInWindowStart = isValidDate ? new Date(startTime.getTime() - 15 * 60 * 1000) : null;
@@ -499,7 +499,7 @@ export default function BookingsPage() {
                                                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                                                     <div className="flex items-center gap-1">
                                                         <Calendar className="h-4 w-4" />
-                                                        {isValidDate ? format(startTime, "PPP") : "Invalid date"}
+                                                        {isValidDate ? formatDateTimeInIst(booking.startTime) : "Invalid date"}
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <Clock className="h-4 w-4" />

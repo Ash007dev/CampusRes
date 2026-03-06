@@ -11,6 +11,7 @@ import { authService } from '../services/authService.js';
 import { asyncHandler, type AuthenticatedRequest } from '../middleware/index.js';
 import { HTTP_STATUS } from '../config/constants.js';
 import type { CreateUserInput, LoginInput } from '../utils/validators.js';
+import { logAudit } from '../utils/auditLogger.js';
 
 /**
  * =============================================================================
@@ -178,6 +179,14 @@ export const authController = {
       newPassword
     );
 
+    await logAudit({
+      action: 'PASSWORD_CHANGED',
+      entity_type: 'user',
+      entity_id: authReq.user.userId,
+      performed_by_id: authReq.user.userId,
+      details: { message: 'Password changed successfully' },
+    });
+
     res.json({
       success: true,
       message: 'Password changed successfully',
@@ -237,6 +246,34 @@ export const authController = {
   }),
 
   /**
+   * Create user (Admin only) - US 5.4
+   * POST /api/v1/auth/users
+   */
+  adminCreateUser: asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { email, firstName, lastName, role, departmentId, departmentCode, password } = req.body;
+
+    if (!email || !firstName || !lastName || !role) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'Email, first name, last name, and role are required', code: 'AUTH_4004' },
+      });
+      return;
+    }
+
+    const result = await authService.adminCreateUser(
+      { email, firstName, lastName, role, departmentId, departmentCode, password },
+      authReq.user.userId
+    );
+
+    res.status(HTTP_STATUS.CREATED).json({
+      success: true,
+      data: result,
+      message: 'User created successfully',
+    });
+  }),
+
+  /**
    * Update user role (Admin only) - US 5.4
    * PATCH /api/v1/auth/users/:id/role
    */
@@ -255,9 +292,42 @@ export const authController = {
 
     await authService.updateUserRole(id, role, authReq.user.userId);
 
-    res.json({
+    res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'User role updated successfully',
+    });
+  }),
+
+  /**
+   * Delete user (Admin only) - US 5.4
+   * DELETE /api/v1/auth/users/:id
+   */
+  adminDeleteUser: asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    if (!id) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'User ID is required', code: 'AUTH_4004' },
+      });
+      return;
+    }
+
+    // Prevent self-deletion
+    if (id === authReq.user.userId) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'Cannot delete your own admin account', code: 'AUTH_4000' },
+      });
+      return;
+    }
+
+    await authService.adminDeleteUser(id, authReq.user.userId);
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'User deleted successfully',
     });
   }),
 
@@ -345,6 +415,33 @@ export const authController = {
     res.json({
       success: true,
       message: 'Password has been reset successfully. You can now login with your new password.',
+    });
+  }),
+
+  /**
+   * Refresh access token using refresh token
+   * POST /api/v1/auth/refresh-token
+   */
+  refreshToken: asyncHandler(async (req: Request, res: Response) => {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'Refresh token is required', code: 'AUTH_1003' },
+      });
+      return;
+    }
+
+    const result = await authService.refreshSession(refreshToken);
+
+    res.json({
+      success: true,
+      data: {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      },
+      message: 'Token refreshed successfully',
     });
   }),
 };

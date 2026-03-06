@@ -4,6 +4,7 @@ import * as React from "react";
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { useBookingReminders } from "@/hooks/useBookingReminders";
 import { useBookingUpdates, type BookingUpdate } from "@/hooks/useSocket";
@@ -69,6 +70,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { roomsApi, bookingsApi, authApi, waitlistApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { SlotInfo } from "react-big-calendar";
+import { utcToIstShifted, getCurrentIST } from "@/lib/dateUtils";
 
 // Types
 interface DashboardUser {
@@ -214,12 +216,14 @@ export default function DashboardPage() {
 
       // Transform bookings to calendar events
       const userId = user?.id;
+      // ...
+
       setBookings(
         bookingsData.map((booking: any) => ({
           id: booking.id,
           title: booking.title || booking.description || "Booking",
-          start: new Date(booking.startTime),
-          end: new Date(booking.endTime),
+          start: utcToIstShifted(booking.startTime),
+          end: utcToIstShifted(booking.endTime),
           roomId: booking.roomId,
           roomName: booking.room?.name || booking.rooms?.name || "Room",
           status: booking.status,
@@ -392,19 +396,27 @@ export default function DashboardPage() {
 
     setWaitlistConfirm({ room, startTime, endTime });
   };
-
   // Step 2: Actually join the waitlist after user confirms
   const handleConfirmWaitlist = async () => {
     if (!waitlistConfirm) return;
-    const { room, startTime, endTime } = waitlistConfirm;
+    const { room } = waitlistConfirm;
 
     setIsJoiningWaitlist(true);
     setNotifyingRoomId(room.id);
     try {
+      // Join waitlist for the next hour slot
+      const now = getCurrentIST();
+      const startTime = new Date(now);
+      startTime.setMinutes(0, 0, 0); // Round to hour
+      startTime.setHours(startTime.getHours() + 1); // Next hour
+
+      const endTime = new Date(startTime);
+      endTime.setHours(endTime.getHours() + 1); // 1 hour slot
+
       const response = await waitlistApi.join(
         room.id,
-        startTime,
-        endTime
+        startTime.toISOString(),
+        endTime.toISOString()
       );
 
       toast({
@@ -514,6 +526,8 @@ export default function DashboardPage() {
     });
   }, [rooms, filters]);
 
+  const upcomingBookingsCount = bookings.filter(b => b.start > getCurrentIST()).length;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -543,12 +557,54 @@ export default function DashboardPage() {
             </Button>
 
             {/* Notifications */}
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                3
-              </span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  {upcomingBookingsCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                      {upcomingBookingsCount}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {upcomingBookingsCount > 0 ? (
+                  <div className="max-h-[300px] overflow-y-auto">
+                    {bookings
+                      .filter(b => b.start > getCurrentIST())
+                      .sort((a, b) => a.start.getTime() - b.start.getTime())
+                      .slice(0, 5)
+                      .map(booking => (
+                        <DropdownMenuItem
+                          key={booking.id}
+                          className="flex flex-col items-start p-3 cursor-pointer"
+                          onClick={() => router.push('/bookings')}
+                        >
+                          <span className="font-medium text-sm">{booking.title || 'Upcoming Booking'}</span>
+                          <span className="text-xs text-muted-foreground mt-1">
+                            {booking.roomName} • {booking.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                    {upcomingBookingsCount > 5 && (
+                      <DropdownMenuItem
+                        className="justify-center text-primary text-sm font-medium cursor-pointer py-3"
+                        onClick={() => router.push('/bookings')}
+                      >
+                        View all {upcomingBookingsCount} upcoming
+                      </DropdownMenuItem>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    No new notifications
+                  </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* User Menu */}
             <DropdownMenu>
@@ -577,32 +633,32 @@ export default function DashboardPage() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <a href="/profile" onClick={(e) => { e.preventDefault(); router.push("/profile"); }}>
+                  <Link href="/profile">
                     <User className="mr-2 h-4 w-4" />
                     Profile
-                  </a>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <a href="/bookings" onClick={(e) => { e.preventDefault(); router.push("/bookings"); }}>
+                  <Link href="/bookings">
                     <Calendar className="mr-2 h-4 w-4" />
                     My Bookings
-                  </a>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <a href="/settings" onClick={(e) => { e.preventDefault(); router.push("/settings"); }}>
+                  <Link href="/settings">
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
-                  </a>
+                  </Link>
                 </DropdownMenuItem>
                 {/* Admin Panel - Only visible for ADMIN users */}
                 {currentUser?.role === "ADMIN" && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <a href="/admin" onClick={(e) => { e.preventDefault(); router.push("/admin"); }}>
+                      <Link href="/admin">
                         <Settings className="mr-2 h-4 w-4" />
                         Admin Panel
-                      </a>
+                      </Link>
                     </DropdownMenuItem>
                   </>
                 )}
@@ -675,7 +731,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-background border">
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Upcoming</p>
-                    <p className="text-lg font-bold">{bookings.filter(b => new Date(b.start) > new Date()).length}</p>
+                    <p className="text-lg font-bold">{bookings.filter(b => b.start > getCurrentIST()).length}</p>
                   </div>
                   <Calendar className="h-5 w-5 text-foreground" />
                 </div>
