@@ -85,51 +85,63 @@ api.interceptors.response.use(
 
     // Handle 401 Unauthorized — try to refresh the token first
     if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+      const errorData = error.response?.data as any;
+      const errorMsg = errorData?.error?.message || errorData?.error || errorData?.message || '';
 
-      if (typeof window !== 'undefined') {
-        const refreshToken = localStorage.getItem('refreshToken');
+      // Don't try to refresh for non-token errors (profile issues, deactivated accounts, etc.)
+      const isProfileError = typeof errorMsg === 'string' && (
+        errorMsg.includes('profile not found') ||
+        errorMsg.includes('deactivated') ||
+        errorMsg.includes('not found in public')
+      );
 
-        if (refreshToken) {
-          try {
-            // Call refresh endpoint directly (not through the intercepted api instance)
-            const response = await axios.post(`${API_URL}/auth/refresh-token`, {
-              refreshToken,
-            });
+      if (!isProfileError) {
+        originalRequest._retry = true;
 
-            const newAccessToken = response.data?.data?.accessToken;
-            const newRefreshToken = response.data?.data?.refreshToken;
+        if (typeof window !== 'undefined') {
+          const refreshToken = localStorage.getItem('refreshToken');
 
-            if (newAccessToken) {
-              // Store new tokens
-              localStorage.setItem('accessToken', newAccessToken);
-              if (newRefreshToken) {
-                localStorage.setItem('refreshToken', newRefreshToken);
+          if (refreshToken) {
+            try {
+              // Call refresh endpoint directly (not through the intercepted api instance)
+              const response = await axios.post(`${API_URL}/auth/refresh-token`, {
+                refreshToken,
+              });
+
+              const newAccessToken = response.data?.data?.accessToken;
+              const newRefreshToken = response.data?.data?.refreshToken;
+
+              if (newAccessToken) {
+                // Store new tokens
+                localStorage.setItem('accessToken', newAccessToken);
+                if (newRefreshToken) {
+                  localStorage.setItem('refreshToken', newRefreshToken);
+                }
+                // Also update the cookie for middleware
+                document.cookie = `accessToken=${newAccessToken}; path=/; max-age=${60 * 60 * 24 * 7}`;
+
+                // Retry the original request with the new token
+                originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+                return api(originalRequest);
               }
-              // Also update the cookie for middleware
-              document.cookie = `accessToken=${newAccessToken}; path=/; max-age=${60 * 60 * 24 * 7}`;
-
-              // Retry the original request with the new token
-              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-              return api(originalRequest);
+            } catch (refreshError) {
+              console.log('[API] Token refresh failed, logging out...');
             }
-          } catch (refreshError) {
-            console.log('[API] Token refresh failed, logging out...');
           }
-        }
 
-        // Refresh failed or no refresh token — log out
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        document.cookie = 'accessToken=; path=/; max-age=0';
+          // Refresh failed or no refresh token — log out
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          document.cookie = 'accessToken=; path=/; max-age=0';
 
-        // Only redirect if not already on auth pages
-        const currentPath = window.location.pathname;
-        if (!currentPath.startsWith('/auth/') && currentPath !== '/') {
-          console.log('[API] Session expired, redirecting to login...');
-          window.location.href = '/auth/login?expired=true';
-          return new Promise(() => { });
+          // Only redirect if not already on auth pages
+          const currentPath = window.location.pathname;
+          if (!currentPath.startsWith('/auth/') && currentPath !== '/') {
+            console.log('[API] Session expired, redirecting to login...');
+            window.location.href = '/auth/login?expired=true';
+            return new Promise(() => { });
+          }
         }
       }
     }
