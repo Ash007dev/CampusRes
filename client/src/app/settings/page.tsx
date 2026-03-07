@@ -9,8 +9,8 @@ import {
     User,
     Bell,
     Mail,
-    Moon,
-    Sun,
+    // Moon, // Removed
+    // Sun, // Removed
     Shield,
     Key,
     Trash2,
@@ -51,14 +51,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useTheme } from "next-themes";
+// import { ThemeToggle } from "@/components/ui/theme-toggle"; // Removed
+// import { useTheme } from "next-themes"; // Removed
 
 export default function SettingsPage() {
     const router = useRouter();
     const { user, isLoading, logout, isInitialized } = useAuth();
     const { toast } = useToast();
-    const { theme, setTheme } = useTheme();
+    // const { theme, setTheme } = useTheme(); // Removed
 
     // Settings state
     const [pushNotifications, setPushNotifications] = useState(true);
@@ -91,9 +91,13 @@ export default function SettingsPage() {
             await authApi.updatePreferences({
                 emailNotifications: emailNotifications,
                 smsNotifications: pushNotifications,
+<<<<<<< HEAD
                 bookingReminders: bookingReminders,
                 weeklyDigest: weeklyDigest,
                 theme: (theme as 'light' | 'dark' | 'system') || 'system',
+=======
+                // theme: (theme as 'light' | 'dark' | 'system') || 'system', // Removed
+>>>>>>> 037ee58808f952e530e0f1885c242567d763b097
             });
             toast({
                 title: "Settings Saved",
@@ -195,7 +199,7 @@ export default function SettingsPage() {
                         Back to Profile
                     </Button>
                     <h1 className="text-xl font-semibold">Settings</h1>
-                    <ThemeToggle />
+                    {/* <ThemeToggle /> */}
                 </div>
             </header>
 
@@ -207,6 +211,7 @@ export default function SettingsPage() {
                     className="space-y-6"
                 >
                     {/* Appearance */}
+<<<<<<< HEAD
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -247,6 +252,9 @@ export default function SettingsPage() {
                             </div>
                         </CardContent>
                     </Card>
+=======
+                    {/* Appearance Section Removed */}
+>>>>>>> 037ee58808f952e530e0f1885c242567d763b097
 
                     {/* Notifications */}
                     <Card>

@@ -34,7 +34,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { bookingsApi, authApi } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+// import { ThemeToggle } from "@/components/ui/theme-toggle"; // Removed
 
 interface QuotaInfo {
     usedHours: number;
@@ -146,7 +146,7 @@ export default function ProfilePage() {
                         </Button>
                     </div>
                     <h1 className="text-xl font-semibold">My Profile</h1>
-                    <ThemeToggle />
+                    {/* <ThemeToggle /> */}
                 </div>
             </header>
 

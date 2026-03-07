@@ -45,7 +45,7 @@ import { RescheduleModal } from "@/components/booking/RescheduleModal";
 import { FairnessPolicyModal } from "@/components/ui/fairness-policy-modal";
 import { RoomFilter, useRoomFilters, type RoomFilters } from "@/components/room/RoomFilter";
 import { RoomCard, type Room } from "@/components/room/RoomCard";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+// import { ThemeToggle } from "@/components/ui/theme-toggle"; // Removed
 import {
   Sheet,
   SheetContent,
@@ -488,7 +488,7 @@ export default function DashboardPage() {
           {/* Actions */}
           <div className="flex items-center gap-4">
             {/* Theme Toggle */}
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
 
             {/* Refresh */}
             <Button
@@ -667,7 +667,7 @@ export default function DashboardPage() {
                 {user?.role === "ADMIN" && (
                   <Button
                     onClick={() => router.push("/admin")}
-                    className="bg-neutral-900 dark:bg-neutral-100 dark:text-black text-white hover:bg-neutral-800 dark:hover:bg-neutral-300"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
                   >
                     Open Admin Panel →
                   </Button>

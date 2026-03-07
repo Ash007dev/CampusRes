@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 
 // ─── Mock Supabase ───────────────────────────────────────────────────────────
 const mockFrom = vi.fn();
@@ -54,7 +54,7 @@ vi.mock('../../services/adminService.js', () => ({
 
 // ─── Mock Middleware ─────────────────────────────────────────────────────────
 vi.mock('../../middleware/index.js', () => ({
-    asyncHandler: (fn: any) => fn,
+    asyncHandler: (fn: any) => (req: any, res: any, next: any = () => { }) => fn(req, res, next),
 }));
 
 // ─── Import after mocks ────────────────────────────────────────────────────
@@ -76,6 +76,8 @@ function createMockRes(): Partial<Response> & { _statusCode: number; _json: any 
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
+const mockNext: NextFunction = vi.fn();
+
 describe('Epic 6 US 2: Admin Broadcast Email', () => {
     const mockUsers = [
         { id: 'u1', email: 'alice@campus.edu', first_name: 'Alice', last_name: 'Smith' },
@@ -112,7 +114,7 @@ describe('Epic 6 US 2: Admin Broadcast Email', () => {
         const req = createMockReq({ subject: 'Campus Closure', message: 'Campus is closed tomorrow.' });
         const res = createMockRes();
 
-        await adminController.sendBroadcast(req as Request, res as Response);
+        await adminController.sendBroadcast(req as Request, res as Response, mockNext);
 
         expect(res._json.success).toBe(true);
         expect(res._json.data.recipientCount).toBe(3);
@@ -137,7 +139,7 @@ describe('Epic 6 US 2: Admin Broadcast Email', () => {
         const req = createMockReq({ message: 'Some message' });
         const res = createMockRes();
 
-        await adminController.sendBroadcast(req as Request, res as Response);
+        await adminController.sendBroadcast(req as Request, res as Response, mockNext);
 
         expect(res._statusCode).toBe(400);
         expect(res._json.success).toBe(false);
@@ -148,7 +150,7 @@ describe('Epic 6 US 2: Admin Broadcast Email', () => {
         const req = createMockReq({ subject: 'Test Subject' });
         const res = createMockRes();
 
-        await adminController.sendBroadcast(req as Request, res as Response);
+        await adminController.sendBroadcast(req as Request, res as Response, mockNext);
 
         expect(res._statusCode).toBe(400);
         expect(res._json.success).toBe(false);
@@ -161,7 +163,7 @@ describe('Epic 6 US 2: Admin Broadcast Email', () => {
         const req = createMockReq({ subject: 'Test', message: 'Test msg' });
         const res = createMockRes();
 
-        await adminController.sendBroadcast(req as Request, res as Response);
+        await adminController.sendBroadcast(req as Request, res as Response, mockNext);
 
         expect(res._statusCode).toBe(500);
         expect(res._json.success).toBe(false);
@@ -180,7 +182,7 @@ describe('Epic 6 US 2: Admin Broadcast Email', () => {
         const req = createMockReq({ subject: 'Notice', message: 'Dedup test' });
         const res = createMockRes();
 
-        await adminController.sendBroadcast(req as Request, res as Response);
+        await adminController.sendBroadcast(req as Request, res as Response, mockNext);
 
         // Only 2 unique emails: admin@campus.edu and student@campus.edu
         expect(mockSendBroadcastEmail).toHaveBeenCalledTimes(2);
@@ -199,7 +201,7 @@ describe('Epic 6 US 2: Admin Broadcast Email', () => {
         const req = createMockReq({ subject: 'Test', message: 'Partial fail' });
         const res = createMockRes();
 
-        await adminController.sendBroadcast(req as Request, res as Response);
+        await adminController.sendBroadcast(req as Request, res as Response, mockNext);
 
         expect(res._json.success).toBe(true);
         expect(res._json.data.successCount).toBe(2);
@@ -218,7 +220,7 @@ describe('Epic 6 US 2: Admin Broadcast Email', () => {
         const req = createMockReq({ subject: 'Test', message: 'Exception test' });
         const res = createMockRes();
 
-        await adminController.sendBroadcast(req as Request, res as Response);
+        await adminController.sendBroadcast(req as Request, res as Response, mockNext);
 
         expect(res._json.success).toBe(true);
         expect(res._json.data.successCount).toBe(2);
@@ -231,7 +233,7 @@ describe('Epic 6 US 2: Admin Broadcast Email', () => {
         const req = createMockReq({ subject: 'Audit Test', message: 'Check audit' });
         const res = createMockRes();
 
-        await adminController.sendBroadcast(req as Request, res as Response);
+        await adminController.sendBroadcast(req as Request, res as Response, mockNext);
 
         // Verify audit_logs insert was called
         expect(mockFrom).toHaveBeenCalledWith('audit_logs');
@@ -246,7 +248,7 @@ describe('Epic 6 US 2: Admin Broadcast Email', () => {
         const req = createMockReq({ subject: 'Test', message: 'Name fallback' });
         const res = createMockRes();
 
-        await adminController.sendBroadcast(req as Request, res as Response);
+        await adminController.sendBroadcast(req as Request, res as Response, mockNext);
 
         expect(mockSendBroadcastEmail).toHaveBeenCalledWith(
             'noname@campus.edu',

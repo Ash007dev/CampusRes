@@ -66,7 +66,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+// import { ThemeToggle } from "@/components/ui/theme-toggle"; // Removed
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { roomsApi, bookingsApi, adminApi } from "@/lib/api";
@@ -565,7 +565,7 @@ export default function AdminPage() {
             >
               <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
             </Button>
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2">
