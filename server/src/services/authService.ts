@@ -176,7 +176,14 @@ export class AuthService {
     let refreshToken = '';
 
     try {
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      // Use temp client to avoid tainting the shared singleton's auth state
+      const { createClient } = await import('@supabase/supabase-js');
+      const tempLoginClient = createClient(
+        process.env.SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      );
+      const { data: signInData, error: signInError } = await tempLoginClient.auth.signInWithPassword({
         email: input.email,
         password: input.password!,
       });
@@ -228,9 +235,18 @@ export class AuthService {
     const { email, password } = input;
     logger.info({ email }, 'Login initiation - validating credentials');
 
-    // CRITICAL FIX: Only validate credentials, DON'T create session yet
-    // We verify password by attempting sign-in then immediately signing out
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+    // Validate credentials using a TEMPORARY Supabase client
+    // CRITICAL: We must NOT use the shared singleton for signInWithPassword()
+    // because it sets a user session on the client, corrupting its auth state
+    // for all subsequent getUser(token) calls from the auth middleware.
+    const { createClient } = await import('@supabase/supabase-js');
+    const tempAuthClient = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const { data: signInData, error: signInError } = await tempAuthClient.auth.signInWithPassword({
       email,
       password,
     });
@@ -240,9 +256,8 @@ export class AuthService {
       throw new InvalidCredentialsError();
     }
 
-    // IMMEDIATELY sign out to invalidate the session
-    // User will only get real session after OTP verification
-    await supabase.auth.signOut();
+    // Don't call signOut() — it would revoke the session in Supabase Auth.
+    // The temp client is simply discarded (garbage collected).
 
     // Get user profile from public.users
     const { data: user, error: userError } = await supabase
@@ -442,7 +457,9 @@ export class AuthService {
     }
 
     // NOW create the Supabase auth session (only after OTP verification)
-    // Generate a magic link and exchange it for a real session
+    // Use admin generateLink to get a magic link, then exchange it for a session
+    // IMPORTANT: We use a SEPARATE temporary Supabase client for the token exchange
+    // to avoid polluting the shared server client's auth state
 
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
@@ -461,7 +478,16 @@ export class AuthService {
       throw new AppError('Failed to create authentication session', 500);
     }
 
-    const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+    // Create a TEMPORARY Supabase client for the OTP exchange
+    // This avoids setting a user session on the shared server client
+    const { createClient } = await import('@supabase/supabase-js');
+    const tempClient = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const { data: verifyData, error: verifyError } = await tempClient.auth.verifyOtp({
       token_hash: tokenHash,
       type: 'magiclink',
     });
@@ -647,8 +673,14 @@ export class AuthService {
     const { email, password } = input;
     logger.info({ email }, 'User login attempt via Supabase Auth');
 
-    // Sign in with Supabase Auth
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+    // Use temp client to avoid tainting the shared singleton's auth state
+    const { createClient } = await import('@supabase/supabase-js');
+    const tempLoginClient = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: signInData, error: signInError } = await tempLoginClient.auth.signInWithPassword({
       email,
       password,
     });
@@ -835,11 +867,20 @@ export class AuthService {
       throw new UserNotFoundError(userId);
     }
 
-    // Verify current password by attempting to sign in
-    const { error: verifyError } = await supabase.auth.signInWithPassword({
+    // Verify current password using a TEMPORARY Supabase client
+    // (same fix as initiateLogin — don't corrupt the shared singleton's auth state)
+    const { createClient } = await import('@supabase/supabase-js');
+    const tempAuthClient = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const { error: verifyError } = await tempAuthClient.auth.signInWithPassword({
       email: user.email,
       password: currentPassword,
     });
+    // Don't call signOut() — just discard the temp client
 
     if (verifyError) {
       throw new AppError('Current password is incorrect', 400);
@@ -893,7 +934,15 @@ export class AuthService {
     role: string;
     departmentId: string | null;
   } | null> {
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+    // Use a temporary client to avoid shared singleton auth state corruption
+    const { createClient } = await import('@supabase/supabase-js');
+    const tempClient = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const { data: { user }, error } = await tempClient.auth.getUser(accessToken);
 
     if (error || !user) {
       return null;
@@ -951,12 +1000,15 @@ export class AuthService {
     console.log({ role, search, departmentId, page, limit });
 
     // Build query with filters
+    // NOTE: Don't use departments(name) join here — it fails with
+    // "Could not embed because more than one relationship was found"
+    // when there are multiple FK relationships between users and departments.
     let query = supabase
       .from('users')
       .select('*', { count: 'exact' });
 
     // SECURITY FIX: Apply role filter
-    if (role && role !== 'all') {
+    if (role) {
       query = query.eq('role', role);
     }
 
@@ -996,7 +1048,7 @@ export class AuthService {
         lastName: u.last_name,
         role: u.role,
         departmentId: u.department_id,
-        departmentName: u.departmentName || null,
+        departmentName: u.departments?.name || null,
         reputationScore: u.reputation_score || 100,
         creditsBalance: u.credits_balance || 0,
         isActive: u.is_active,
@@ -1255,28 +1307,6 @@ export class AuthService {
     });
 
     logger.info({ userId: tokenData.userId }, 'Password reset successfully');
-  }
-
-  /**
-   * Refresh session using a Supabase refresh token
-   * Returns new access and refresh tokens
-   */
-  async refreshSession(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
-    logger.info('Attempting to refresh session');
-
-    const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
-
-    if (error || !data.session) {
-      logger.warn({ error }, 'Failed to refresh session');
-      throw new Error('Invalid or expired refresh token. Please login again.');
-    }
-
-    logger.info('Session refreshed successfully');
-
-    return {
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-    };
   }
 }
 

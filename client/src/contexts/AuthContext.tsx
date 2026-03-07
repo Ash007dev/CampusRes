@@ -93,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Token invalid or expired, clear storage silently
           console.log("[Auth] Token expired or invalid, clearing session");
           localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
           localStorage.removeItem("user");
           document.cookie = 'accessToken=; path=/; max-age=0';
           setUser(null);
@@ -210,6 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Logout
   const logout = useCallback(() => {
     localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
     // Clear cookie
     document.cookie = 'accessToken=; path=/; max-age=0; SameSite=Lax';

@@ -358,7 +358,7 @@ export const bookingController = {
       limit: 500, // Get more bookings for calendar view
     });
 
-    // Format all booking timestamps
+    // Return ALL bookings (including CANCELLED/NO_SHOW) — frontend renders them with strikeout
     const formattedBookings = result.bookings.map(bookingController.formatBookingResponse);
 
     res.json({

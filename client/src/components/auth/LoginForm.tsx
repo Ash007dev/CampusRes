@@ -50,6 +50,7 @@ export function LoginForm({ onSuccess, redirectTo = "/dashboard" }: LoginFormPro
   // ALWAYS clear existing session when login page loads
   useEffect(() => {
     localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
     document.cookie = "accessToken=; path=/; max-age=0; SameSite=Lax";
     window.dispatchEvent(new Event("storage"));
@@ -123,13 +124,18 @@ export function LoginForm({ onSuccess, redirectTo = "/dashboard" }: LoginFormPro
 
       // Store token and user data
       localStorage.setItem("accessToken", tokens.accessToken);
+      if (tokens.refreshToken) {
+        localStorage.setItem("refreshToken", tokens.refreshToken);
+      }
       localStorage.setItem("user", JSON.stringify(userData));
       document.cookie = `accessToken=${tokens.accessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
 
       console.log("[Login] User authenticated with MFA:", userData);
 
       onSuccess?.();
-      router.push(redirectTo);
+      // Use window.location.replace for full page navigation
+      // This ensures the cookie is read by Next.js middleware
+      window.location.replace(redirectTo);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Invalid or expired OTP"
