@@ -9,6 +9,7 @@
 
 import { Response, NextFunction } from 'express';
 import { bookingService } from '../services/bookingService.js';
+import { suggestionService } from '../services/suggestionService.js';
 import { asyncHandler, type AuthenticatedRequest } from '../middleware/index.js';
 import { HTTP_STATUS } from '../config/constants.js';
 import { logger } from '../config/logger.js';
@@ -478,6 +479,39 @@ export const bookingController = {
       success: true,
       data: bookingController.formatBookingResponse(booking),
       message: 'Booking marked as running late. You have an additional 15 minutes to check in.',
+    });
+  }),
+
+  /**
+   * Get alternative slot and room suggestions (US 2)
+   * GET /api/v1/bookings/suggestions
+   */
+  getSuggestions: asyncHandler(async (req, res: Response) => {
+    const { roomId, startTime, endTime, attendeeCount } = req.query as {
+      roomId: string;
+      startTime: string;
+      endTime: string;
+      attendeeCount?: string;
+    };
+
+    if (!roomId || !startTime || !endTime) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'roomId, startTime, and endTime are required query parameters' },
+      });
+      return;
+    }
+
+    const suggestions = await suggestionService.getAlternativeSuggestions(
+      roomId,
+      startTime,
+      endTime,
+      attendeeCount ? parseInt(attendeeCount) : 1
+    );
+
+    res.json({
+      success: true,
+      data: suggestions,
     });
   }),
 };

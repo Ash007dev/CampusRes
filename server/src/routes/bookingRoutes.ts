@@ -116,6 +116,44 @@ router.get(
 );
 
 /**
+ * @openapi
+ * /api/v1/bookings/suggestions:
+ *   get:
+ *     summary: Get alternative time slots and rooms (US 2)
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: roomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: startTime
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: endTime
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: attendeeCount
+ *         schema:
+ *           type: integer
+ *           default: 1
+ */
+router.get(
+  '/suggestions',
+  authenticate,
+  bookingController.getSuggestions
+);
+
+/**
  * =============================================================================
  * ADMIN ROUTES - Must be before /:id to avoid matching as ID
  * =============================================================================

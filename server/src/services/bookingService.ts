@@ -37,6 +37,7 @@ import {
 } from '../utils/errors.js';
 import { getCache, setCache, deleteCache } from '../lib/redis.js';
 import { emailService } from './emailService.js';
+import { noiseCompatibilityService } from './noiseCompatibilityService.js';
 import type { CreateBookingInput, CreateRecurringBookingInput } from '../utils/validators.js';
 
 interface BookingWithRelations {
@@ -169,6 +170,23 @@ export class BookingService {
         );
       }
 
+      // US 5 (Noise): Check noise compatibility for adjacent rooms
+      const eventNoiseLevel = (input as any).eventNoiseLevel || 'MODERATE';
+      const noiseCheck = await noiseCompatibilityService.checkNoiseCompatibility(
+        input.roomId,
+        eventNoiseLevel,
+        startTime.toISOString(),
+        endTime.toISOString()
+      );
+
+      if (!noiseCheck.compatible) {
+        const conflictDetails = noiseCheck.conflicts.map(c => c.reason).join('; ');
+        throw new AppError(
+          `Noise compatibility conflict: ${conflictDetails}`,
+          409
+        );
+      }
+
       // Determine status (US 4.2 & 4.3)
       // Admins bypass approval. 
       // Students ALWAYS need approval now as per user request.
@@ -196,6 +214,7 @@ export class BookingService {
           check_in_status: 'PENDING',
           credits_charged: creditsRequired,
           is_peak_hours: isPeakHours,
+          event_noise_level: eventNoiseLevel,
           created_at: now,
           updated_at: now,
           metadata: (input.guestName || input.guestPhone) ? {
