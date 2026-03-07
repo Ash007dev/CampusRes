@@ -132,10 +132,31 @@ export const ROOM_TYPES = {
 /**
  * Rooms that require admin approval for booking
  */
+/**
+ * Room types that require admin approval (legacy, for compatibility)
+ */
 export const APPROVAL_REQUIRED_ROOM_TYPES = [
   ROOM_TYPES.AUDITORIUM,
   ROOM_TYPES.CONFERENCE_HALL,
   ROOM_TYPES.CONFERENCE_ROOM,
+] as const;
+
+/**
+ * Room names that require admin approval (configurable)
+ * Update this list as needed or load from DB/config file in future
+ */
+export const APPROVAL_REQUIRED_ROOM_NAMES = [
+  "Auditorium",
+  "Room 003 - Building B",
+  "Room 004 - Admin Building",
+  "Room 009 - Main Building",
+  "Room 010 - Main Building",
+  "Hall 1",
+  "Hall 2",
+  "Hall 3",
+  "Room 018 - AB2",
+  "Room 023 - AB3",
+  "Room 025 - AB2"
 ] as const;
 
 /**

@@ -95,6 +95,13 @@ const STATUS_CONFIG = {
     textColor: "text-muted-foreground",
     bgColor: "bg-muted",
   },
+  PENDING_APPROVAL: {
+    label: "Pending Approval",
+    icon: AlertCircle,
+    color: "bg-yellow-500",
+    textColor: "text-yellow-700",
+    bgColor: "bg-yellow-100",
+  },
 } as const;
 
 const DEFAULT_STATUS_CONFIG = {

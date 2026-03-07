@@ -104,6 +104,21 @@ router.get(
 
 /**
  * @openapi
+ * /api/v1/bookings/emergency-overrides:
+ *   get:
+ *     summary: Get emergency overrides for calendar display
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get(
+  '/emergency-overrides',
+  authenticate,
+  bookingController.getEmergencyOverrides
+);
+
+/**
+ * @openapi
  * /api/v1/bookings/availability:
  *   get:
  *     summary: Get room availability for a date

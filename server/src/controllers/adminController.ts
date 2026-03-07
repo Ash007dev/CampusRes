@@ -8,11 +8,7 @@
 
 import { Request, Response } from 'express';
 import { adminService } from '../services/adminService.js';
-import { demandForecastService } from '../services/demandForecastService.js';
-import { utilizationService } from '../services/utilizationService.js';
-import { noShowService } from '../services/noShowService.js';
-import { noiseCompatibilityService } from '../services/noiseCompatibilityService.js';
-import { peakHourService } from '../services/peakHourService.js';
+import { bookingService } from '../services/bookingService.js';
 import { asyncHandler } from '../middleware/index.js';
 import { HTTP_STATUS } from '../config/constants.js';
 import { supabase } from '../lib/supabase.js';
@@ -178,141 +174,107 @@ export const adminController = {
     }),
 
     /**
-     * Get demand forecast (US 1)
-     * GET /api/v1/admin/demand-forecast
+     * Emergency override: cancel all bookings for selected rooms and date range
+     * POST /api/v1/admin/emergency-override
      */
-    getDemandForecast: asyncHandler(async (req: Request, res: Response) => {
-        const days = req.query.days ? parseInt(req.query.days as string) : 30;
+    emergencyOverride: asyncHandler(async (req: Request, res: Response) => {
+        const { rooms, startDate, endDate, reason } = req.body;
+        const adminUserId = (req as any).user?.id;
 
-        const forecast = await demandForecastService.getDemandForecast(days);
-
-        res.json({
-            success: true,
-            data: forecast,
-        });
-    }),
-
-    /**
-     * Get underutilized rooms report (US 3)
-     * GET /api/v1/admin/underutilized-rooms
-     */
-    getUnderutilizedRooms: asyncHandler(async (req: Request, res: Response) => {
-        const days = req.query.days ? parseInt(req.query.days as string) : 30;
-        const threshold = req.query.threshold ? parseInt(req.query.threshold as string) : 30;
-
-        const report = await utilizationService.getUnderutilizedRooms(days, threshold);
-
-        res.json({
-            success: true,
-            data: report,
-        });
-    }),
-
-    /**
-     * Get no-show report (US 4)
-     * GET /api/v1/admin/no-show-report
-     */
-    getNoShowReport: asyncHandler(async (_req: Request, res: Response) => {
-        const report = await noShowService.getNoShowReport();
-
-        res.json({
-            success: true,
-            data: report,
-        });
-    }),
-
-    /**
-     * Reset a user's no-show tier (US 4)
-     * POST /api/v1/admin/no-show-reset/:userId
-     */
-    resetNoShowTier: asyncHandler(async (req: Request, res: Response) => {
-        const { userId } = req.params;
-
-        if (!userId) {
+        if (!rooms || !Array.isArray(rooms) || rooms.length === 0 || !startDate || !endDate) {
             res.status(HTTP_STATUS.BAD_REQUEST).json({
                 success: false,
-                error: { message: 'userId parameter is required' },
+                error: { message: 'rooms (array), startDate, and endDate are required' },
             });
             return;
         }
 
-        await noShowService.resetNoShowTier(userId);
+        logger.info({ adminUserId, rooms, startDate, endDate, reason }, '🚨 Emergency override initiated');
 
-        const performedBy = (req as any).user?.id;
+        const result = await bookingService.emergencyOverrideBookings({
+            startDate,
+            endDate,
+            roomIds: rooms,
+            adminUserId,
+            reason,
+        });
+
+        // Store the override record for calendar display
+        const { data: overrideRecord, error: insertError } = await supabase
+            .from('emergency_overrides')
+            .insert({
+                start_time: startDate,
+                end_time: endDate,
+                reason: reason || 'Emergency override',
+                created_by: adminUserId,
+                cancelled_count: result.cancelled,
+            })
+            .select('id')
+            .single();
+
+        if (!insertError && overrideRecord) {
+            const roomRows = rooms.map((roomId: string) => ({
+                override_id: overrideRecord.id,
+                room_id: roomId,
+            }));
+            await supabase.from('emergency_override_rooms').insert(roomRows);
+        }
+
+        // Audit log
         await logAudit({
-            action: 'NO_SHOW_TIER_RESET',
-            entity_type: 'user',
-            entity_id: userId,
-            performed_by_id: performedBy,
-            details: { resetBy: performedBy },
+            action: 'EMERGENCY_OVERRIDE',
+            entity_type: 'booking',
+            entity_id: 'emergency-override',
+            performed_by_id: adminUserId,
+            details: { rooms, startDate, endDate, reason, cancelledCount: result.cancelled },
         });
+
+        const affectedUsers = result.affected.map((b: any) => b.users?.email).filter(Boolean);
+        const uniqueUsers = [...new Set(affectedUsers)];
 
         res.json({
             success: true,
-            message: `No-show tier reset for user ${userId}`,
+            data: {
+                cancelledCount: result.cancelled,
+                affectedUsers: uniqueUsers,
+                message: `${result.cancelled} bookings cancelled. ${uniqueUsers.length} users notified.`,
+            },
         });
     }),
 
     /**
-     * Set room adjacency for noise compatibility (US 5)
-     * POST /api/v1/admin/room-adjacency
+     * Get emergency overrides for calendar display
+     * GET /api/v1/admin/emergency-overrides
      */
-    setRoomAdjacency: asyncHandler(async (req: Request, res: Response) => {
-        const { roomId, adjacentRoomId } = req.body;
+    getEmergencyOverrides: asyncHandler(async (req: Request, res: Response) => {
+        const { startDate, endDate } = req.query;
 
-        if (!roomId || !adjacentRoomId) {
-            res.status(HTTP_STATUS.BAD_REQUEST).json({
+        let query = supabase
+            .from('emergency_overrides')
+            .select('*, emergency_override_rooms(room_id, rooms:room_id(id, name))')
+            .order('created_at', { ascending: false });
+
+        if (startDate) {
+            query = query.gte('end_time', startDate as string);
+        }
+        if (endDate) {
+            query = query.lte('start_time', endDate as string);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            logger.error({ error }, 'Failed to fetch emergency overrides');
+            res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
-                error: { message: 'roomId and adjacentRoomId are required' },
+                error: { message: 'Failed to fetch emergency overrides' },
             });
             return;
         }
 
-        await noiseCompatibilityService.setRoomAdjacency(roomId, adjacentRoomId);
-
         res.json({
             success: true,
-            message: 'Room adjacency set successfully',
-        });
-    }),
-
-    /**
-     * Get peak hour configuration (US 9)
-     * GET /api/v1/admin/peak-hour-config
-     */
-    getPeakHourConfig: asyncHandler(async (_req: Request, res: Response) => {
-        const config = await peakHourService.getPeakHourConfig();
-
-        res.json({
-            success: true,
-            data: config,
-        });
-    }),
-
-    /**
-     * Update peak hour limits (US 9)
-     * PUT /api/v1/admin/peak-hour-config
-     */
-    updatePeakHourConfig: asyncHandler(async (req: Request, res: Response) => {
-        const { peakMaxBookingHours, peakMaxBookingsPerDay } = req.body;
-
-        if (peakMaxBookingHours === undefined && peakMaxBookingsPerDay === undefined) {
-            res.status(HTTP_STATUS.BAD_REQUEST).json({
-                success: false,
-                error: { message: 'At least one of peakMaxBookingHours or peakMaxBookingsPerDay is required' },
-            });
-            return;
-        }
-
-        const performedBy = (req as any).user?.userId;
-        const updated = await peakHourService.updatePeakHourConfig(performedBy, {
-            peakMaxBookingHours,
-            peakMaxBookingsPerDay,
-        });
-
-        res.json({
-            success: true,
-            data: updated,
+            data: data || [],
         });
     }),
 };

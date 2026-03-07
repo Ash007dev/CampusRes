@@ -18,6 +18,7 @@ import { getCurrentIST, getISTHour, getISTStartOfDay, isISTPeakHour, istToUtc, p
 import {
   BOOKING_STATUS,
   APPROVAL_REQUIRED_ROOM_TYPES,
+  APPROVAL_REQUIRED_ROOM_NAMES,
   PG_ERROR_CODES,
   TIME,
   CACHE,
@@ -59,6 +60,51 @@ interface BookingWithRelations {
 }
 
 export class BookingService {
+    /**
+     * Emergency override: cancel all bookings for selected rooms and date range, notify affected users
+     */
+    async emergencyOverrideBookings({ startDate, endDate, roomIds, adminUserId, reason }: { startDate: string; endDate: string; roomIds: string[]; adminUserId: string; reason?: string }): Promise<{ cancelled: number; affected: any[] }> {
+      // Find all bookings in the range for the selected rooms
+      const { data: bookings, error } = await supabase
+        .from('bookings')
+        .select('*, rooms(*), users(id, email, first_name, last_name)')
+        .in('room_id', roomIds)
+        .gte('start_time', startDate)
+        .lte('end_time', endDate)
+        .not('status', 'in', '("CANCELLED","NO_SHOW")');
+
+      if (error) {
+        throw new AppError('Failed to fetch bookings for override', 500);
+      }
+
+      let cancelled = 0;
+      for (const booking of bookings || []) {
+        // Cancel each booking
+        await supabase
+          .from('bookings')
+          .update({ status: 'CANCELLED', cancelled_at: new Date().toISOString(), cancelled_by: adminUserId, cancellation_reason: reason || 'Emergency override' })
+          .eq('id', booking.id);
+
+        // Notify user
+        const user = booking.users;
+        if (user && user.email) {
+          const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+          await emailService.sendBookingCancellationEmail(user.email, userName, {
+            roomName: booking.rooms?.name || 'Room',
+            startTime: booking.start_time,
+            endTime: booking.end_time,
+            reason: reason || 'Emergency override',
+          });
+          sendNotification(
+            user.id,
+            `Your booking for ${booking.rooms?.name || 'Room'} on ${new Date(booking.start_time).toLocaleString()} was cancelled due to emergency override. ${reason ? `Reason: ${reason}` : ''}`,
+            'warning'
+          );
+        }
+        cancelled++;
+      }
+      return { cancelled, affected: bookings || [] };
+    }
   async createBooking(
     userId: string,
     userDepartmentId: string | null | undefined,
@@ -192,12 +238,22 @@ export class BookingService {
       }
 
       // Determine status (US 4.2 & 4.3)
-      // Admins bypass approval. 
-      // Students ALWAYS need approval now as per user request.
-      // Faculty need approval for specific rooms.
-      const requiresApproval = user.role === USER_ROLES.STUDENT || (user.role === USER_ROLES.FACULTY && APPROVAL_REQUIRED_ROOM_TYPES.includes(
-        room.room_type as typeof APPROVAL_REQUIRED_ROOM_TYPES[number]
-      ));
+      // Admins bypass approval.
+      // Students ALWAYS need approval.
+      // Faculty need approval only for specific rooms (by name).
+      // Guests always need approval.
+      // APPROVAL_REQUIRED_ROOM_NAMES is now imported above
+      let requiresApproval = false;
+      if (user.role === USER_ROLES.STUDENT) {
+        // Students require admin approval only for specified rooms
+        requiresApproval = APPROVAL_REQUIRED_ROOM_NAMES.includes(room.name);
+      } else if (user.role === USER_ROLES.FACULTY) {
+        // Faculty never require admin approval
+        requiresApproval = false;
+      } else if (input.guestName || input.guestPhone) {
+        // Guests always require admin approval
+        requiresApproval = true;
+      }
       const initialStatus = requiresApproval ? BOOKING_STATUS.PENDING_APPROVAL : BOOKING_STATUS.CONFIRMED;
 
       // Create booking

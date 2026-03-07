@@ -344,6 +344,18 @@ export const bookingsApi = {
   // US 3: Mark booking as running late
   runningLate: (id: string) =>
     api.post<ApiResponse<Booking>>(`/bookings/${id}/running-late`),
+
+    /**
+     * Emergency Override: Cancel bookings for selected rooms and date range
+     * @param payload { rooms: string[]; startDate: string; endDate: string; reason?: string }
+     * @returns ApiResponse<{ cancelledCount: number; affectedUsers: string[]; message: string }>
+     */
+    emergencyOverride: (payload: { rooms: string[]; startDate: string; endDate: string; reason?: string }) =>
+      api.post<ApiResponse<{ cancelledCount: number; affectedUsers: string[]; message: string }>>('/admin/emergency-override', payload),
+
+  // Get emergency overrides for calendar display (all users)
+  getEmergencyOverrides: (params?: { startDate?: string; endDate?: string }) =>
+    api.get<ApiResponse<any[]>>('/bookings/emergency-overrides', { params }),
 };
 
 // Rooms
@@ -470,22 +482,9 @@ export const adminApi = {
   sendBroadcast: (data: { subject: string; message: string }) =>
     api.post<ApiResponse<{ recipientCount: number; successCount: number; failCount: number }>>('/admin/broadcast', data),
 
-  // Get demand forecast heatmap (US 2.1)
-  getDemandForecast: (days?: number) =>
-    api.get<ApiResponse<{
-      forecast: Array<{
-        dayOfWeek: number;
-        dayName: string;
-        hourlyDemand: Array<{
-          hour: number;
-          avgBookings: number;
-          peakLabel: 'LOW' | 'MEDIUM' | 'HIGH';
-        }>;
-      }>;
-      totalBookingsAnalyzed: number;
-      periodDays: number;
-      generatedAt: string;
-    }>>('/admin/demand-forecast', { params: days ? { days } : undefined }),
+  // Get emergency overrides for calendar display
+  getEmergencyOverrides: (params?: { startDate?: string; endDate?: string }) =>
+    api.get<ApiResponse<any[]>>('/admin/emergency-overrides', { params }),
 };
 
 // Holiday API (US 5.5)
@@ -651,7 +650,6 @@ export interface RoomQueryParams {
   roomType?: string;
   amenities?: string;
   building?: string;
-  includeMaintenace?: boolean;
 }
 
 export interface BestFitParams {

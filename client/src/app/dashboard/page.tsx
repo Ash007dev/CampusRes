@@ -161,10 +161,11 @@ export default function DashboardPage() {
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [availableNowResponse, bookingsResponse, quotaResponse] = await Promise.all([
+      const [availableNowResponse, bookingsResponse, quotaResponse, overridesResponse] = await Promise.all([
         roomsApi.getAvailableNow(), // US 3.3: Fetch rooms with real-time availability
         bookingsApi.getCalendarBookings(), // Fetch ALL bookings for calendar (not just user's)
         authApi.getQuota().catch(() => null), // Optional - may fail for non-students
+        bookingsApi.getEmergencyOverrides().catch(() => null), // Fetch emergency overrides for calendar
       ]);
       const roomsData = availableNowResponse.data.data || [];
       const bookingsData = bookingsResponse.data.data || [];
@@ -194,8 +195,7 @@ export default function DashboardPage() {
       const userId = user?.id;
       // ...
 
-      setBookings(
-        bookingsData.map((booking: any) => ({
+      const calendarEvents: BookingEvent[] = bookingsData.map((booking: any) => ({
           id: booking.id,
           title: booking.title || booking.description || "Booking",
           start: utcToIstShifted(booking.startTime),
@@ -208,8 +208,30 @@ export default function DashboardPage() {
           userId: booking.userId,
           userName: booking.user?.firstName ? `${booking.user.firstName} ${booking.user.lastName}` : booking.user?.name,
           purpose: booking.title || booking.description,
-        }))
-      );
+      }));
+
+      // Merge emergency overrides as red EMERGENCY_OVERRIDE events
+      const overridesData = overridesResponse?.data?.data || [];
+      for (const override of overridesData) {
+        const overrideRooms = override.emergency_override_rooms || [];
+        for (const or of overrideRooms) {
+          const roomName = or.rooms?.name || "Room";
+          calendarEvents.push({
+            id: `override-${override.id}-${or.room_id}`,
+            title: `⚠ EMERGENCY: ${override.reason || "Override"}`,
+            start: new Date(override.start_time),
+            end: new Date(override.end_time),
+            roomId: or.room_id,
+            roomName,
+            status: "EMERGENCY_OVERRIDE" as any,
+            isOwner: false,
+            userId: override.created_by || "",
+            purpose: override.reason || "Emergency Override",
+          });
+        }
+      }
+
+      setBookings(calendarEvents);
 
       // Set quota info if available
       if (quotaResponse?.data?.data) {

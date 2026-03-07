@@ -9,13 +9,10 @@
 
 import { Response, NextFunction } from 'express';
 import { bookingService } from '../services/bookingService.js';
-import { suggestionService } from '../services/suggestionService.js';
-import { bookingPatternService } from '../services/bookingPatternService.js';
-import { roomRecommendationService } from '../services/roomRecommendationService.js';
-import { loadBalancingService } from '../services/loadBalancingService.js';
 import { asyncHandler, type AuthenticatedRequest } from '../middleware/index.js';
 import { HTTP_STATUS } from '../config/constants.js';
 import { logger } from '../config/logger.js';
+import { supabase } from '../lib/supabase.js';
 import { istToUtc } from '../utils/dateUtils.js';
 import type {
   CreateBookingInput,
@@ -486,122 +483,38 @@ export const bookingController = {
   }),
 
   /**
-   * Get alternative slot and room suggestions (US 2)
-   * GET /api/v1/bookings/suggestions
+   * Get emergency overrides for calendar display (all authenticated users)
+   * GET /api/v1/bookings/emergency-overrides
    */
-  getSuggestions: asyncHandler(async (req, res: Response) => {
-    const { roomId, startTime, endTime, attendeeCount } = req.query as {
-      roomId: string;
-      startTime: string;
-      endTime: string;
-      attendeeCount?: string;
-    };
+  getEmergencyOverrides: asyncHandler(async (req, res: Response) => {
+    const { startDate, endDate } = req.query;
 
-    if (!roomId || !startTime || !endTime) {
-      res.status(HTTP_STATUS.BAD_REQUEST).json({
+    let query = supabase
+      .from('emergency_overrides')
+      .select('*, emergency_override_rooms(room_id, rooms:room_id(id, name))')
+      .order('created_at', { ascending: false });
+
+    if (startDate) {
+      query = query.gte('end_time', startDate as string);
+    }
+    if (endDate) {
+      query = query.lte('start_time', endDate as string);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      logger.error({ error }, 'Failed to fetch emergency overrides');
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
-        error: { message: 'roomId, startTime, and endTime are required query parameters' },
+        error: { message: 'Failed to fetch emergency overrides' },
       });
       return;
     }
 
-    const suggestions = await suggestionService.getAlternativeSuggestions(
-      roomId,
-      startTime,
-      endTime,
-      attendeeCount ? parseInt(attendeeCount) : 1
-    );
-
     res.json({
       success: true,
-      data: suggestions,
-    });
-  }),
-
-  /**
-   * Get quick-book suggestions based on recurring patterns (US 6)
-   * GET /api/v1/bookings/quick-book-suggestions
-   */
-  getQuickBookSuggestions: asyncHandler(async (req, res: Response) => {
-    const authReq = req as AuthenticatedRequest;
-    const days = req.query.days ? parseInt(req.query.days as string) : 60;
-
-    const result = await bookingPatternService.getQuickBookSuggestions(
-      authReq.user.userId,
-      days
-    );
-
-    res.json({
-      success: true,
-      data: result,
-    });
-  }),
-
-  /**
-   * Get smallest suitable room recommendation (US 7)
-   * GET /api/v1/bookings/room-recommend
-   */
-  recommendRoom: asyncHandler(async (req, res: Response) => {
-    const { attendeeCount, startTime, endTime, amenities } = req.query as {
-      attendeeCount: string;
-      startTime: string;
-      endTime: string;
-      amenities?: string;
-    };
-
-    if (!attendeeCount || !startTime || !endTime) {
-      res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        error: { message: 'attendeeCount, startTime, and endTime are required' },
-      });
-      return;
-    }
-
-    const requiredAmenities = amenities ? amenities.split(',').map(a => a.trim()) : [];
-
-    const result = await roomRecommendationService.recommendRoom(
-      parseInt(attendeeCount),
-      startTime,
-      endTime,
-      requiredAmenities
-    );
-
-    res.json({
-      success: true,
-      data: result,
-    });
-  }),
-
-  /**
-   * Get load-balanced room suggestion (US 8)
-   * GET /api/v1/bookings/balanced-room
-   */
-  getBalancedRoom: asyncHandler(async (req, res: Response) => {
-    const { roomId, startTime, endTime, attendeeCount } = req.query as {
-      roomId: string;
-      startTime: string;
-      endTime: string;
-      attendeeCount?: string;
-    };
-
-    if (!roomId || !startTime || !endTime) {
-      res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        error: { message: 'roomId, startTime, and endTime are required' },
-      });
-      return;
-    }
-
-    const result = await loadBalancingService.getBalancedRoom(
-      roomId,
-      startTime,
-      endTime,
-      attendeeCount ? parseInt(attendeeCount) : 1
-    );
-
-    res.json({
-      success: true,
-      data: result,
+      data: data || [],
     });
   }),
 };

@@ -1,5 +1,7 @@
 "use client";
 // this is for admin page 
+import { EmergencyOverrideForm } from "./EmergencyOverrideForm";
+
 import * as React from "react";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -131,7 +133,17 @@ interface Booking {
   user?: { name: string; email: string };
 }
 
-type AdminTab = "overview" | "users" | "rooms" | "bookings" | "approvals" | "audit_logs" | "analytics" | "broadcast" | "settings";
+type AdminTab =
+  | "overview"
+  | "users"
+  | "rooms"
+  | "bookings"
+  | "approvals"
+  | "audit_logs"
+  | "analytics"
+  | "broadcast"
+  | "settings"
+  | "emergency_override";
 
 // Sidebar navigation
 const navItems: { id: AdminTab; label: string; icon: React.ElementType }[] = [
@@ -140,6 +152,7 @@ const navItems: { id: AdminTab; label: string; icon: React.ElementType }[] = [
   { id: "rooms", label: "Rooms", icon: Building2 },
   { id: "bookings", label: "Bookings", icon: Calendar },
   { id: "approvals", label: "Approvals", icon: CheckCircle },
+  { id: "emergency_override", label: "Emergency Override", icon: AlertTriangle },
   { id: "audit_logs", label: "Audit Logs", icon: Activity },
   { id: "broadcast", label: "Broadcast", icon: Megaphone },
   { id: "analytics", label: "Analytics", icon: Activity },
@@ -210,7 +223,7 @@ function AdminPage() {
 
     try {
       const [roomsRes, bookingsRes, usersRes] = await Promise.all([
-        roomsApi.search({ limit: 100, includeMaintenace: true }),
+        roomsApi.search({ limit: 100 }),
         bookingsApi.getAllBookings(),
         adminApi.getUsers({ limit: 100 }),
       ]);
@@ -236,7 +249,7 @@ function AdminPage() {
 
       setUsers(mappedUsers);
 
-      // Try to get backend stats separately (so a failure here doesn't break everything)
+      // Try to get backend stats separately
       let backendStats: any = null;
       try {
         const statsRes = await adminApi.getStats();
@@ -245,127 +258,46 @@ function AdminPage() {
         console.warn("Backend stats unavailable, using local calculation:", statsErr);
       }
 
-      // Calculate local fallback stats
-      const activeBookings = bookingsData.filter(
-        (b: any) => b.status === "CONFIRMED" || b.status === "CHECKED_IN"
-      ).length;
-      const pendingApprovals = bookingsData.filter(
-        (b: any) => b.status === "PENDING_APPROVAL"
-      ).length;
-      const today = new Date().toDateString();
-      const todayBookings = bookingsData.filter(
-        (b: any) => new Date(b.startTime).toDateString() === today
-      ).length;
-      const localUtilization = roomsData.length > 0
-        ? Math.round((activeBookings / roomsData.length) * 100)
-        : 0;
+      // Calculate stats
+      const activeBookings = bookingsData.filter((b: any) => b.status === 'CONFIRMED').length;
+      const todayBookings = bookingsData.filter((b: any) => {
+        const start = new Date(b.startTime);
+        const today = new Date();
+        return start.toDateString() === today.toDateString();
+      }).length;
+      const pendingApprovals = bookingsData.filter((b: any) => b.status === 'PENDING' || b.status === 'PENDING_APPROVAL').length;
 
-      setStats({
-        totalUsers: backendStats?.totalUsers || usersData.length || mappedUsers.length,
-        totalRooms: backendStats?.totalRooms || roomsData.length,
-        totalBookings: backendStats?.totalBookings || bookingsData.length,
-        activeBookings: backendStats?.activeBookings ?? activeBookings,
-        utilizationRate: backendStats?.utilizationRate ?? localUtilization,
-        noShowRate: backendStats?.noShowRate ?? 0,
+      setStats(backendStats || {
+        totalUsers: mappedUsers.length,
+        totalRooms: roomsData.length,
+        totalBookings: bookingsData.length,
+        activeBookings,
+        utilizationRate: roomsData.length > 0 ? Math.round((activeBookings / roomsData.length) * 100) : 0,
+        noShowRate: 0,
         pendingApprovals,
         todayBookings,
       });
-    } catch (error) {
-      console.error("Failed to fetch admin data:", error);
-      // Fallback to mock user if API fails
-      setUsers([
-        {
-          id: "1",
-          name: user?.name || "Admin User",
-          email: "admin@amrita.edu",
-          role: user?.role || "ADMIN",
-          department: "Administration",
-          reputationScore: 100,
-          createdAt: new Date().toISOString(),
-          status: "ACTIVE",
-        },
-      ]);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.error?.message || error.message || "Failed to fetch data",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [user]);
+  }, [toast]);
 
-  // Handle room creation
-  const handleCreateRoom = async (data: any) => {
-    try {
-      await roomsApi.create(data);
-      await fetchData(true); // Refresh data
-    } catch (error) {
-      throw new Error(error instanceof Error ? error.message : "Failed to create room");
-    }
-  };
-
-  // Handle deleting a room
-  const handleDeleteRoom = async (room: any) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete the room "${room.name}"? This action cannot be undone.`
-    );
-    if (!confirmed) return;
-    try {
-      await roomsApi.update(room.id, { is_active: false } as any);
-      toast({ title: "Success", description: `Room "${room.name}" deleted successfully` });
-      await fetchData(true);
-    } catch (error: any) {
-      toast({ title: "Error", description: "Failed to delete room", variant: "destructive" });
-    }
-  };
-
-  // Handle creating user
-  const handleCreateUser = async (data: any) => {
-    try {
-      await adminApi.createUser(data);
-      toast({
-        title: "Success",
-        description: "User created successfully",
-      });
-      await fetchData(true); // Refresh data
-    } catch (error: any) {
-      throw new Error(error?.response?.data?.error?.message || error.message || "Failed to create user");
-    }
-  };
-
-  // Handle viewing a user
-  const handleViewUser = (user: AdminUser) => {
-    setSelectedUserForView(user);
-    setIsViewUserModalOpen(true);
-  };
-
-  // Handle deleting a user
-  const handleDeleteUser = async (user: AdminUser) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to permanently delete the user ${user.name} (${user.email})? This action cannot be undone.`
-    );
-
-    if (!confirmed) return;
-
-    try {
-      await adminApi.deleteUser(user.id);
-      toast({
-        title: "Success",
-        description: "User deleted successfully",
-      });
-      await fetchData(true);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.response?.data?.error?.message || error.message || "Failed to delete user",
-        variant: "destructive",
-      });
-    }
-  };
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Handle user role update
   const handleUpdateUserRole = async (userId: string, userName: string, currentRole: string, newRole: string) => {
     const confirmed = window.confirm(
       `Are you sure you want to change ${userName}'s role from ${currentRole} to ${newRole}?`
     );
-
     if (!confirmed) return;
 
     try {
@@ -374,7 +306,7 @@ function AdminPage() {
         title: 'Role Updated',
         description: `${userName}'s role has been changed to ${newRole}`,
       });
-      await fetchData(true); // Refresh data
+      await fetchData(true);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -384,10 +316,55 @@ function AdminPage() {
     }
   };
 
+  // Handler functions for UI actions
+  const handleViewUser = (user: AdminUser) => {
+    setSelectedUserForView(user);
+    setIsViewUserModalOpen(true);
+  };
+
+  const handleDeleteUser = async (user: AdminUser) => {
+    if (window.confirm(`Are you sure you want to delete user ${user.name}?`)) {
+      try {
+        await adminApi.deleteUser(user.id);
+        toast({ title: "User Deleted", description: `${user.name} deleted.`, variant: "destructive" });
+        fetchData(true);
+      } catch (error: any) {
+        toast({ title: "Error", description: error?.response?.data?.error?.message || "Failed to delete user", variant: "destructive" });
+      }
+    }
+  };
+
+  const handleDeleteRoom = async (room: any) => {
+    if (window.confirm(`Are you sure you want to delete room ${room.name}?`)) {
+      toast({ title: "Not Supported", description: "Room deletion is not available yet.", variant: "destructive" });
+    }
+  };
+
+  const handleCreateUser = async (userData: any) => {
+    try {
+      await adminApi.createUser(userData);
+      toast({ title: "User Created", description: "New user has been created." });
+      setIsAddUserModalOpen(false);
+      fetchData(true);
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.response?.data?.error?.message || "Failed to create user", variant: "destructive" });
+    }
+  };
+
+  const handleCreateRoom = async (roomData: any) => {
+    try {
+      await roomsApi.create(roomData);
+      toast({ title: "Room Created", description: "New room has been created." });
+      setIsAddRoomModalOpen(false);
+      fetchData(true);
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.response?.data?.error?.message || "Failed to create room", variant: "destructive" });
+    }
+  };
+
   // Handle users export
   const handleExportUsers = () => {
     try {
-      // Create CSV content
       const headers = ['Name', 'Email', 'Role', 'Department', 'Reputation Score', 'Status', 'Created At'];
       const rows = filteredUsers.map(u => [
         u.name || '',
@@ -404,7 +381,6 @@ function AdminPage() {
         ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
       ].join('\n');
 
-      // Create and download blob
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -427,10 +403,6 @@ function AdminPage() {
       });
     }
   };
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   // Filter users
   const filteredUsers = React.useMemo(() => {
@@ -1044,7 +1016,32 @@ function AdminPage() {
             </motion.div>
           )}
 
-          {/* Bookings Tab */}
+          {/* Emergency Override Tab */}
+          {activeTab === "emergency_override" && (
+            <motion.div
+              key="emergency_override"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card className="rounded-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-red-500" />
+                    Emergency Override
+                  </CardTitle>
+                  <CardDescription>
+                    Cancel all bookings for selected rooms/labs and date range. Notifies affected users.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {/* Emergency Override Form */}
+                  <EmergencyOverrideForm rooms={rooms} toast={toast} fetchData={fetchData} />
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
           {activeTab === "bookings" && (
             <motion.div
               key="bookings"
