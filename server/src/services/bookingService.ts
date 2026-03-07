@@ -38,6 +38,7 @@ import {
 import { getCache, setCache, deleteCache } from '../lib/redis.js';
 import { emailService } from './emailService.js';
 import { noiseCompatibilityService } from './noiseCompatibilityService.js';
+import { peakHourService } from './peakHourService.js';
 import type { CreateBookingInput, CreateRecurringBookingInput } from '../utils/validators.js';
 
 interface BookingWithRelations {
@@ -130,6 +131,9 @@ export class BookingService {
 
       // Check weekly quota
       await this.checkWeeklyQuota(userId, startTime, endTime);
+
+      // US 9: Enforce stricter peak-hour booking limits
+      await peakHourService.checkPeakHourLimits(userId, startTime, endTime);
 
       // Calculate credits
       const { creditsRequired, isPeakHours } = this.calculateCredits(startTime, endTime);

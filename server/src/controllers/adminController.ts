@@ -12,6 +12,7 @@ import { demandForecastService } from '../services/demandForecastService.js';
 import { utilizationService } from '../services/utilizationService.js';
 import { noShowService } from '../services/noShowService.js';
 import { noiseCompatibilityService } from '../services/noiseCompatibilityService.js';
+import { peakHourService } from '../services/peakHourService.js';
 import { asyncHandler } from '../middleware/index.js';
 import { HTTP_STATUS } from '../config/constants.js';
 import { supabase } from '../lib/supabase.js';
@@ -272,6 +273,46 @@ export const adminController = {
         res.json({
             success: true,
             message: 'Room adjacency set successfully',
+        });
+    }),
+
+    /**
+     * Get peak hour configuration (US 9)
+     * GET /api/v1/admin/peak-hour-config
+     */
+    getPeakHourConfig: asyncHandler(async (_req: Request, res: Response) => {
+        const config = await peakHourService.getPeakHourConfig();
+
+        res.json({
+            success: true,
+            data: config,
+        });
+    }),
+
+    /**
+     * Update peak hour limits (US 9)
+     * PUT /api/v1/admin/peak-hour-config
+     */
+    updatePeakHourConfig: asyncHandler(async (req: Request, res: Response) => {
+        const { peakMaxBookingHours, peakMaxBookingsPerDay } = req.body;
+
+        if (peakMaxBookingHours === undefined && peakMaxBookingsPerDay === undefined) {
+            res.status(HTTP_STATUS.BAD_REQUEST).json({
+                success: false,
+                error: { message: 'At least one of peakMaxBookingHours or peakMaxBookingsPerDay is required' },
+            });
+            return;
+        }
+
+        const performedBy = (req as any).user?.userId;
+        const updated = await peakHourService.updatePeakHourConfig(performedBy, {
+            peakMaxBookingHours,
+            peakMaxBookingsPerDay,
+        });
+
+        res.json({
+            success: true,
+            data: updated,
         });
     }),
 };

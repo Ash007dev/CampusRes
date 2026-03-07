@@ -135,4 +135,37 @@ router.post('/no-show-reset/:userId', adminController.resetNoShowTier);
  */
 router.post('/room-adjacency', adminController.setRoomAdjacency);
 
+/**
+ * @openapi
+ * /api/v1/admin/peak-hour-config:
+ *   get:
+ *     summary: Get peak hour booking limits configuration (US 9)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get('/peak-hour-config', adminController.getPeakHourConfig);
+
+/**
+ * @openapi
+ * /api/v1/admin/peak-hour-config:
+ *   put:
+ *     summary: Update peak hour booking limits (US 9)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               peakMaxBookingHours:
+ *                 type: number
+ *               peakMaxBookingsPerDay:
+ *                 type: number
+ */
+router.put('/peak-hour-config', adminController.updatePeakHourConfig);
+
 export default router;

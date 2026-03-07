@@ -132,6 +132,16 @@ export async function authPatch(path: string, body?: object): Promise<Test> {
 }
 
 /**
+ * Make an authenticated PUT request
+ */
+export async function authPut(path: string, body?: object): Promise<Test> {
+    const token = await getAdminToken();
+    const req = request().put(path).set('Authorization', `Bearer ${token}`);
+    if (body) req.send(body);
+    return req;
+}
+
+/**
  * Make an authenticated DELETE request
  */
 export async function authDelete(path: string): Promise<Test> {
