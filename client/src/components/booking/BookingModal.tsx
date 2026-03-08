@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useState, useCallback } from "react";
 import { format, addHours } from "date-fns";
-import { CalendarIcon, Clock, Repeat, AlertCircle, CheckCircle, Loader2, User, Copy, Check, Bell } from "lucide-react";
+import { CalendarIcon, Clock, Repeat, AlertCircle, CheckCircle, Loader2, User, Copy, Check, Bell, Volume2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -96,6 +96,7 @@ const baseBookingSchema = z.object({
   isRecurring: z.boolean().default(false),
   recurringPattern: z.enum(["DAILY", "WEEKLY", "BIWEEKLY"]).optional(),
   recurringEndDate: z.date().optional(),
+  eventNoiseLevel: z.enum(["QUIET", "MODERATE", "LOUD"]).default("MODERATE"),
   guestName: z.string().optional(),
   guestPhone: z.string().optional(),
 });
@@ -203,6 +204,7 @@ export function BookingModal({
       startTime: defaultStartHour,
       endTime: defaultEndHour,
       isRecurring: false,
+      eventNoiseLevel: "MODERATE",
       guestName: "",
       guestPhone: "",
     },
@@ -618,6 +620,33 @@ export function BookingModal({
             />
             {errors.purpose && (
               <p className="text-sm text-destructive">{errors.purpose.message}</p>
+            )}
+          </div>
+
+          {/* Noise Level */}
+          <div className="space-y-2">
+            <Label>Event Noise Level *</Label>
+            <div className="flex items-center gap-2 mb-1 text-xs text-muted-foreground">
+              <Volume2 className="h-3 w-3" />
+              <span>We use this to prevent noisy and quiet events from being adjacent.</span>
+            </div>
+            <Select
+              defaultValue={watch("eventNoiseLevel")}
+              onValueChange={(val) => setValue("eventNoiseLevel", val as "QUIET" | "MODERATE" | "LOUD")}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select noise level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="QUIET">Quiet (e.g., Exam, Silent Study)</SelectItem>
+                <SelectItem value="MODERATE">Moderate (e.g., Lecture, Meeting)</SelectItem>
+                <SelectItem value="LOUD">Loud (e.g., Presentation with audio, Event)</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.eventNoiseLevel && (
+              <p className="text-sm text-destructive">
+                {(errors.eventNoiseLevel as any).message}
+              </p>
             )}
           </div>
 
