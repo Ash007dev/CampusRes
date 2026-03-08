@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-// import { ThemeToggle } from "@/components/ui/theme-toggle"; // Removed
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 // import { useTheme } from "next-themes"; // Removed
 
 export default function SettingsPage() {
@@ -199,7 +199,7 @@ export default function SettingsPage() {
                         Back to Profile
                     </Button>
                     <h1 className="text-xl font-semibold">Settings</h1>
-                    {/* <ThemeToggle /> */}
+                    <ThemeToggle />
                 </div>
             </header>
 

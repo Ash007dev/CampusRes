@@ -38,7 +38,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { roomsApi, bookingsApi, type Room } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 import { BookingModal, type BookingFormData } from "@/components/booking/BookingModal";
-// import { ThemeToggle } from "@/components/ui/theme-toggle"; // Removed
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { SubmitFeedbackModal } from "@/components/feedback/SubmitFeedbackModal";
 
 const AMENITY_ICONS: Record<string, React.ElementType> = {
@@ -194,7 +194,7 @@ export default function RoomDetailsPage() {
                         Back
                     </Button>
                     <h1 className="text-xl font-semibold">Room Details</h1>
-                    {/* <ThemeToggle /> */}
+                    <ThemeToggle />
                 </div>
             </header>
 

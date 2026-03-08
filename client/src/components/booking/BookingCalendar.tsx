@@ -15,6 +15,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import { cn } from "@/lib/utils";
 import { holidayApi, type Holiday } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
+import { useTheme } from "next-themes";
 
 // Types
 export interface BookingEvent extends Event {
@@ -69,84 +70,78 @@ const EventComponent: React.FC<{ event: BookingEvent }> = ({ event }) => {
   );
 };
 
-// Get event style based on status and ownership
-const getEventStyle = (event: BookingEvent) => {
+// Event styling based on booking status and ownership
+const getEventStyle = (event: BookingEvent, isDark: boolean): React.CSSProperties => {
   const baseStyle: React.CSSProperties = {
-    borderRadius: "6px",
-    opacity: 1,
-    display: "block",
-    fontSize: "0.75rem",
-    padding: "4px 6px",
+    borderRadius: "4px",
+    padding: "2px 4px",
+    fontSize: "11px",
+    lineHeight: "1.3",
+    cursor: "pointer",
     borderWidth: "1px",
     borderStyle: "solid",
     fontWeight: "500",
   };
 
-  // Use distinct colors that work with black/white theme
   if (event.isOwner) {
-    // My bookings: Dark with bright white text
     return {
       ...baseStyle,
-      backgroundColor: "#A4123F", // Maroon
-      color: "#ffffff",
-      borderColor: "#800e30",
+      backgroundColor: isDark ? "#e5e5e5" : "#A4123F",
+      color: isDark ? "#171717" : "#ffffff",
+      borderColor: isDark ? "#a3a3a3" : "#800e30",
       fontWeight: "600",
     };
   }
 
-  // Status-based styles for other bookings
   switch (event.status) {
     case "CONFIRMED":
-      // Others' bookings: Medium gray with white text
       return {
         ...baseStyle,
-        backgroundColor: "#630b26", // Darker Maroon
-        color: "#ffffff",
-        borderColor: "#4a081c",
+        backgroundColor: isDark ? "#404040" : "#630b26",
+        color: isDark ? "#e5e5e5" : "#ffffff",
+        borderColor: isDark ? "#525252" : "#4a081c",
       };
     case "PENDING":
-      // Pending: Light gray with dark text
       return {
         ...baseStyle,
-        backgroundColor: "#f5d0d8", // Light Maroon
-        color: "#800e30", // Dark Maroon Text
-        borderColor: "#e8b8c6",
+        backgroundColor: isDark ? "#854d0e" : "#f5d0d8",
+        color: isDark ? "#fef9c3" : "#800e30",
+        borderColor: isDark ? "#a16207" : "#e8b8c6",
         fontWeight: "600",
       };
     case "CANCELLED":
       return {
         ...baseStyle,
-        backgroundColor: "#f5f5f5",
-        color: "#525252",
-        borderColor: "#d4d4d4",
+        backgroundColor: isDark ? "#262626" : "#f5f5f5",
+        color: isDark ? "#737373" : "#525252",
+        borderColor: isDark ? "#404040" : "#d4d4d4",
         textDecoration: "line-through",
         opacity: 0.6,
       };
     case "NO_SHOW":
       return {
         ...baseStyle,
-        backgroundColor: "#fef2f2",
-        color: "#991b1b",
-        borderColor: "#fca5a5",
+        backgroundColor: isDark ? "#3b1010" : "#fef2f2",
+        color: isDark ? "#f87171" : "#991b1b",
+        borderColor: isDark ? "#7f1d1d" : "#fca5a5",
         textDecoration: "line-through",
         opacity: 0.6,
       };
     case "COMPLETED":
-      // Completed: Outlined style
       return {
         ...baseStyle,
-        backgroundColor: "#fdf2f5", // Very Light Maroon
-        color: "#a4123f", // Maroon Text
-        borderColor: "#e8b8c6",
+        backgroundColor: isDark ? "#1c1c1c" : "#fdf2f5",
+        color: isDark ? "#a3a3a3" : "#a4123f",
+        borderColor: isDark ? "#404040" : "#e8b8c6",
         borderStyle: "dashed",
         borderWidth: "2px",
       };
     default:
       return {
         ...baseStyle,
-        backgroundColor: "#630b26", // Darker Maroon (Same as Confirmed)
-        color: "#ffffff",
-        borderColor: "#4a081c",
+        backgroundColor: isDark ? "#404040" : "#630b26",
+        color: isDark ? "#e5e5e5" : "#ffffff",
+        borderColor: isDark ? "#525252" : "#4a081c",
       };
   }
 };
@@ -167,6 +162,8 @@ export function BookingCalendar({
   const [date, setDate] = useState<Date>(defaultDate);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const { toast } = useToast();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
 
   // Helper to format date as YYYY-MM-DD in IST
   const formatDateString = (d: Date): string => {
@@ -260,10 +257,10 @@ export function BookingCalendar({
   const eventStyleGetter = useCallback(
     (event: BookingEvent) => {
       return {
-        style: getEventStyle(event),
+        style: getEventStyle(event, isDark),
       };
     },
-    []
+    [isDark]
   );
 
   // Custom toolbar component
@@ -281,10 +278,11 @@ export function BookingCalendar({
       const holiday = isHoliday(slotDate);
 
       if (holiday) {
-        // Holiday styling - red tint
         return {
           style: {
-            backgroundColor: holiday.type === 'WEEKEND' ? '#fef3c7' : '#fee2e2',
+            backgroundColor: holiday.type === 'WEEKEND'
+              ? (isDark ? '#1c1a00' : '#fef3c7')
+              : (isDark ? '#2a1215' : '#fee2e2'),
           },
         };
       }
@@ -292,13 +290,13 @@ export function BookingCalendar({
       if (slotDate < now) {
         return {
           style: {
-            backgroundColor: "#fff0f5", // Lavender Blush (Faint Maroon/Pink)
+            backgroundColor: isDark ? '#1a1a1a' : '#fff0f5',
           },
         };
       }
       return {};
     },
-    [isHoliday]
+    [isHoliday, isDark]
   );
 
   // Day styling for month view (colors entire day cell)
@@ -310,13 +308,15 @@ export function BookingCalendar({
         return {
           className: 'holiday-day',
           style: {
-            backgroundColor: holiday.type === 'WEEKEND' ? '#fef3c7' : '#fee2e2',
+            backgroundColor: holiday.type === 'WEEKEND'
+              ? (isDark ? '#1c1a00' : '#fef3c7')
+              : (isDark ? '#2a1215' : '#fee2e2'),
           },
         };
       }
       return {};
     },
-    [isHoliday]
+    [isHoliday, isDark]
   );
 
   if (loading) {
@@ -342,35 +342,35 @@ export function BookingCalendar({
       {/* Legend - Black/white with grayscale colors */}
       <div className="mb-4 flex flex-wrap gap-4 pb-4 border-b border-border">
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#A4123F" }} />
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: isDark ? "#e5e5e5" : "#A4123F" }} />
           <span className="text-xs font-medium">My Booking</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#630b26" }} />
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: isDark ? "#404040" : "#630b26" }} />
           <span className="text-xs font-medium">Booked</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#f5d0d8" }} />
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: isDark ? "#854d0e" : "#f5d0d8" }} />
           <span className="text-xs font-medium">Pending</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded border-2 border-dashed" style={{ borderColor: "#e8b8c6", backgroundColor: "#fdf2f5" }} />
+          <div className="h-3 w-3 rounded border-2 border-dashed" style={{ borderColor: isDark ? "#404040" : "#e8b8c6", backgroundColor: isDark ? "#1c1c1c" : "#fdf2f5" }} />
           <span className="text-xs font-medium">Completed</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#fee2e2" }} />
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: isDark ? "#2a1215" : "#fee2e2" }} />
           <span className="text-xs font-medium">Holiday</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#fef3c7" }} />
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: isDark ? "#1c1a00" : "#fef3c7" }} />
           <span className="text-xs font-medium">Weekend</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#f5f5f5", textDecoration: "line-through" }} />
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: isDark ? "#262626" : "#f5f5f5" }} />
           <span className="text-xs font-medium" style={{ textDecoration: "line-through", opacity: 0.6 }}>Cancelled</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#fef2f2" }} />
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: isDark ? "#3b1010" : "#fef2f2" }} />
           <span className="text-xs font-medium" style={{ textDecoration: "line-through", opacity: 0.6 }}>No Show</span>
         </div>
       </div>

@@ -45,7 +45,7 @@ import { RescheduleModal } from "@/components/booking/RescheduleModal";
 import { FairnessPolicyModal } from "@/components/ui/fairness-policy-modal";
 import { RoomFilter, useRoomFilters, type RoomFilters } from "@/components/room/RoomFilter";
 import { RoomCard, type Room } from "@/components/room/RoomCard";
-// import { ThemeToggle } from "@/components/ui/theme-toggle"; // Removed
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   Sheet,
   SheetContent,
@@ -488,7 +488,7 @@ export default function DashboardPage() {
           {/* Actions */}
           <div className="flex items-center gap-4">
             {/* Theme Toggle */}
-            {/* <ThemeToggle /> */}
+            <ThemeToggle />
 
             {/* Refresh */}
             <Button
