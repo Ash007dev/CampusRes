@@ -111,6 +111,7 @@ export default function DashboardPage() {
     endTime: string;
   } | null>(null);
   const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
+  const [notificationsRead, setNotificationsRead] = useState(false);
   const { toast } = useToast();
 
   const { filters, setFilters } = useRoomFilters();
@@ -243,6 +244,7 @@ export default function DashboardPage() {
       console.error("Failed to fetch data:", error);
     } finally {
       setIsLoading(false);
+      setNotificationsRead(false); // Reset so new bookings trigger badge
     }
   }, [user?.id]);
 
@@ -527,6 +529,7 @@ export default function DashboardPage() {
   }, [rooms, filters]);
 
   const upcomingBookingsCount = bookings.filter(b => b.start > getCurrentIST()).length;
+  const unreadNotificationsCount = notificationsRead ? 0 : upcomingBookingsCount;
 
   return (
     <div className="min-h-screen bg-background">
@@ -557,13 +560,13 @@ export default function DashboardPage() {
             </Button>
 
             {/* Notifications */}
-            <DropdownMenu>
+            <DropdownMenu onOpenChange={(open) => { if (open) setNotificationsRead(true); }}>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
-                  {upcomingBookingsCount > 0 && (
+                  {unreadNotificationsCount > 0 && (
                     <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                      {upcomingBookingsCount}
+                      {unreadNotificationsCount}
                     </span>
                   )}
                 </Button>

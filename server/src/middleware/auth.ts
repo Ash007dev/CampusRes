@@ -79,8 +79,18 @@ export async function authenticate(
       throw new UnauthorizedError('No authentication token provided');
     }
 
-    // Verify token with Supabase
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+    // Verify token using a TEMPORARY Supabase client
+    // CRITICAL: The shared singleton client's auth state can be corrupted by
+    // signInWithPassword() calls elsewhere. Using a fresh client ensures
+    // getUser(token) works reliably regardless of the singleton's state.
+    const { createClient } = await import('@supabase/supabase-js');
+    const tempClient = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const { data: { user: authUser }, error: authError } = await tempClient.auth.getUser(token);
 
     if (authError || !authUser) {
       logger.debug({ error: authError }, 'Supabase auth verification failed');
@@ -140,7 +150,14 @@ export async function optionalAuth(
   }
 
   try {
-    const { data: { user: authUser } } = await supabase.auth.getUser(token);
+    // Use temp client to avoid shared singleton auth state issues
+    const { createClient } = await import('@supabase/supabase-js');
+    const tempClient = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: { user: authUser } } = await tempClient.auth.getUser(token);
 
     if (authUser) {
       const { data: userProfile } = await supabase

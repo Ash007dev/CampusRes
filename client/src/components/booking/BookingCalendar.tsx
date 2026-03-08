@@ -21,7 +21,7 @@ export interface BookingEvent extends Event {
   id: string;
   roomId: string;
   roomName: string;
-  status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
+  status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED" | "NO_SHOW";
   checkInStatus?: "PENDING" | "CHECKED_IN" | "MISSED" | "NOT_REQUIRED";
   isOwner: boolean;
   userId: string;
@@ -58,11 +58,12 @@ const localizer = dateFnsLocalizer({
 
 // Custom event component with status-based styling
 const EventComponent: React.FC<{ event: BookingEvent }> = ({ event }) => {
+  const isCancelledOrNoShow = event.status === 'CANCELLED' || event.status === 'NO_SHOW';
   return (
     <div className="flex h-full flex-col overflow-hidden p-1">
-      <div className="truncate text-xs font-semibold leading-tight">{event.roomName}</div>
+      <div className={cn("truncate text-xs font-semibold leading-tight", isCancelledOrNoShow && "line-through")}>{event.roomName}</div>
       {event.purpose && (
-        <div className="truncate text-xs leading-tight mt-0.5">{event.purpose}</div>
+        <div className={cn("truncate text-xs leading-tight mt-0.5", isCancelledOrNoShow && "line-through")}>{event.purpose}</div>
       )}
     </div>
   );
@@ -119,7 +120,16 @@ const getEventStyle = (event: BookingEvent) => {
         color: "#525252",
         borderColor: "#d4d4d4",
         textDecoration: "line-through",
-        opacity: 0.7,
+        opacity: 0.6,
+      };
+    case "NO_SHOW":
+      return {
+        ...baseStyle,
+        backgroundColor: "#fef2f2",
+        color: "#991b1b",
+        borderColor: "#fca5a5",
+        textDecoration: "line-through",
+        opacity: 0.6,
       };
     case "COMPLETED":
       // Completed: Outlined style
@@ -354,6 +364,14 @@ export function BookingCalendar({
         <div className="flex items-center gap-2">
           <div className="h-3 w-3 rounded" style={{ backgroundColor: "#fef3c7" }} />
           <span className="text-xs font-medium">Weekend</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#f5f5f5", textDecoration: "line-through" }} />
+          <span className="text-xs font-medium" style={{ textDecoration: "line-through", opacity: 0.6 }}>Cancelled</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: "#fef2f2" }} />
+          <span className="text-xs font-medium" style={{ textDecoration: "line-through", opacity: 0.6 }}>No Show</span>
         </div>
       </div>
 
