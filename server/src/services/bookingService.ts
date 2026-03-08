@@ -726,6 +726,10 @@ export class BookingService {
       throw new AppError('You can only check in to your own bookings', 403);
     }
 
+    if (qrCode !== booking.rooms?.code && qrCode !== booking.rooms?.name && qrCode !== booking.room_id && qrCode !== booking.id) {
+      throw new AppError('Invalid Check-In code. Please make sure you are checking into the correct room.', 400);
+    }
+
     if (booking.status !== 'CONFIRMED') {
       throw new AppError(`Cannot check in to a ${booking.status} booking`, 400);
     }
