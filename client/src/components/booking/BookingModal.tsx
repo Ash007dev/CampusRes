@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useState, useCallback } from "react";
 import { format, addHours } from "date-fns";
-import { CalendarIcon, Clock, Repeat, AlertCircle, CheckCircle, Loader2, User, Copy, Check, Bell, Volume2 } from "lucide-react";
+import { CalendarIcon, Clock, Repeat, AlertCircle, CheckCircle, Loader2, User, Copy, Check, Bell, Volume2, Users2, Lightbulb, ArrowRight } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { type Room } from "@/components/room/RoomCard";
-import { type ApiError, waitlistApi } from "@/lib/api";
+import { type ApiError, waitlistApi, bookingsApi, type BalancedRoomResult } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 import { getISTHour, getCurrentIST } from "@/lib/dateUtils";
 
@@ -154,6 +154,13 @@ export function BookingModal({
   const [isBookingConflict, setIsBookingConflict] = useState(false);
   const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
   const [hasJoinedWaitlist, setHasJoinedWaitlist] = useState(false);
+  // US 7 – Smart Room Suggestion
+  const [attendeeCount, setAttendeeCount] = useState<string>('');
+  const [recommendedRooms, setRecommendedRooms] = useState<any[]>([]);
+  const [isRecommending, setIsRecommending] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  // US 8 – Load Balanced Room suggestion
+  const [balancedSuggestion, setBalancedSuggestion] = useState<BalancedRoomResult | null>(null);
   const { toast } = useToast();
 
   // Get default future time
@@ -173,6 +180,7 @@ export function BookingModal({
     setValue,
     watch,
     reset,
+    getValues,
     formState: { errors },
   } = useForm<BookingFormData & { roomId: string }>({
     resolver: zodResolver(
@@ -380,9 +388,72 @@ export function BookingModal({
       setIsBookingConflict(false);
       setHasJoinedWaitlist(false);
       setIsJoiningWaitlist(false);
+      setRecommendedRooms([]);
+      setShowRecommendations(false);
+      setAttendeeCount('');
+      setBalancedSuggestion(null);
       onClose();
     }
   }, [reset, onClose, isSubmitting]);
+
+  // US 7 – Fetch smart room recommendation
+  const handleFindBestRoom = useCallback(async () => {
+    // Use getValues() (not watch()) to read current form values without stale closure
+    const { startTime, endTime, date } = getValues();
+    if (!attendeeCount || !startTime || !endTime || !date) {
+      toast({ title: 'Missing fields', description: 'Please select a date and time range first.', variant: 'destructive' });
+      return;
+    }
+    setIsRecommending(true);
+    setShowRecommendations(false);
+    try {
+      const dateObj = date instanceof Date ? date : new Date(date);
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      const startISO = `${dateStr}T${startTime}:00`;
+      const endISO = `${dateStr}T${endTime}:00`;
+      const res = await bookingsApi.recommendRoom(Number(attendeeCount), startISO, endISO);
+      // API returns { recommendations: [...], criteria: {...} }
+      const raw = res.data.data as any;
+      const roomsList = Array.isArray(raw) ? raw : (raw?.recommendations || raw?.rooms || []);
+      setRecommendedRooms(roomsList);
+      setShowRecommendations(true);
+    } catch (err: any) {
+      toast({ title: 'Recommendation failed', description: err.message || 'Could not fetch suggestions.', variant: 'destructive' });
+    } finally {
+      setIsRecommending(false);
+    }
+  }, [attendeeCount, getValues, toast]);
+
+  // US 8 – Check load-balanced alternative when room + times change
+  const watchStartTimeVal = watch('startTime');
+  const watchEndTimeVal = watch('endTime');
+  const watchDateVal = watch('date');
+  React.useEffect(() => {
+    const currentRoomId = watchRoomId;
+    if (!currentRoomId || !watchStartTimeVal || !watchEndTimeVal || !watchDateVal) {
+      setBalancedSuggestion(null);
+      return;
+    }
+    const dateStr = watchDateVal.toISOString ? watchDateVal.toISOString().split('T')[0] : '';
+    if (!dateStr) return;
+    const startISO = `${dateStr}T${watchStartTimeVal}:00`;
+    const endISO = `${dateStr}T${watchEndTimeVal}:00`;
+    bookingsApi.getBalancedRoom(currentRoomId, startISO, endISO, attendeeCount ? Number(attendeeCount) : undefined)
+      .then(res => {
+        const result = res.data.data as BalancedRoomResult;
+        // Only show if a different room is suggested
+        if (result?.suggestedRoom && result.suggestedRoom.id !== currentRoomId) {
+          setBalancedSuggestion(result);
+        } else {
+          setBalancedSuggestion(null);
+        }
+      })
+      .catch(() => setBalancedSuggestion(null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchRoomId, watchStartTimeVal, watchEndTimeVal, watchDateVal]);
 
   // Handle copy booking ID
   const handleCopyId = useCallback(() => {
@@ -589,7 +660,11 @@ export function BookingModal({
             <Label>Room *</Label>
             <Select
               value={watchRoomId}
-              onValueChange={(val) => setValue("roomId", val)}
+              onValueChange={(val) => {
+                setValue("roomId", val);
+                setBalancedSuggestion(null); // reset on manual change
+                setShowRecommendations(false);
+              }}
               disabled={!!room} // Disable if room is pre-selected
             >
               <SelectTrigger>
@@ -609,6 +684,88 @@ export function BookingModal({
               </p>
             )}
           </div>
+
+          {/* US 7 – Smart Room Suggestion (only when no room pre-selected) */}
+          {!room && (
+            <div className="space-y-2 rounded-md border border-blue-200 bg-blue-50/40 dark:bg-blue-950/20 dark:border-blue-900/50 p-3">
+              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 text-xs font-medium">
+                <Lightbulb className="h-3.5 w-3.5" />
+                <span>Smart Room Suggestion (US 7)</span>
+              </div>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Users2 className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Number of attendees"
+                    value={attendeeCount}
+                    onChange={(e) => setAttendeeCount(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 text-sm rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="border-blue-400 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                  onClick={handleFindBestRoom}
+                  disabled={!attendeeCount || isRecommending}
+                >
+                  {isRecommending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+              {showRecommendations && recommendedRooms.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Best fit rooms — click to select:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {recommendedRooms.slice(0, 4).map((r: any) => (
+                      <button
+                        key={r.roomId || r.id}
+                        type="button"
+                        onClick={() => {
+                          setValue('roomId', r.roomId || r.id);
+                          setShowRecommendations(false);
+                        }}
+                        className="px-2.5 py-1 rounded-full text-xs border bg-background hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-400 transition-colors"
+                      >
+                        {r.roomName || r.name} ({r.capacity}p)
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {showRecommendations && recommendedRooms.length === 0 && (
+                <p className="text-xs text-muted-foreground">No suitable rooms found for that group size.</p>
+              )}
+            </div>
+          )}
+
+          {/* US 8 – Load Balanced Room advisory */}
+          {balancedSuggestion?.suggestedRoom && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900/50 p-3 text-sm">
+              <Lightbulb className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-amber-800 dark:text-amber-400">Load Balance Tip (US 8)</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  <strong>{balancedSuggestion.suggestedRoom.name}</strong> is an equivalent room that&apos;s currently less busy.
+                  {balancedSuggestion.reason && ` ${balancedSuggestion.reason}`}
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="flex-shrink-0 border-amber-400 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 h-7 text-xs"
+                onClick={() => {
+                  setValue('roomId', balancedSuggestion!.suggestedRoom!.id);
+                  setBalancedSuggestion(null);
+                }}
+              >
+                Use This Room
+              </Button>
+            </div>
+          )}
 
           {/* Purpose */}
           <div className="space-y-2">

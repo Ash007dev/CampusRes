@@ -70,7 +70,7 @@ export const utilizationService = {
             const { data: bookings, error: bookingError } = await supabase
                 .from('bookings')
                 .select('room_id, start_time, end_time')
-                .in('status', ['CONFIRMED', 'CHECKED_IN', 'COMPLETED'])
+                .in('status', ['CONFIRMED', 'COMPLETED'])
                 .gte('start_time', startDate.toISOString())
                 .lte('start_time', now.toISOString());
 

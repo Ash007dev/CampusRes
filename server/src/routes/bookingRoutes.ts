@@ -514,5 +514,35 @@ router.post(
   bookingController.runningLate
 );
 
+/**
+ * US 6 – Get one-tap quick book suggestions from recurring patterns
+ * GET /api/v1/bookings/quick-book-suggestions?days=60
+ */
+router.get(
+  '/quick-book-suggestions',
+  authenticate,
+  bookingController.getQuickBookSuggestions
+);
+
+/**
+ * US 7 – Recommend the smallest suitable room
+ * GET /api/v1/bookings/room-recommend?attendeeCount=N&startTime=T&endTime=T
+ */
+router.get(
+  '/room-recommend',
+  authenticate,
+  bookingController.recommendRoom
+);
+
+/**
+ * US 8 – Get a load-balanced alternative room
+ * GET /api/v1/bookings/balanced-room?roomId=X&startTime=T&endTime=T
+ */
+router.get(
+  '/balanced-room',
+  authenticate,
+  bookingController.getBalancedRoom
+);
+
 export default router;
 

@@ -82,7 +82,7 @@ export const suggestionService = {
                 .from('bookings')
                 .select('start_time, end_time')
                 .eq('room_id', roomId)
-                .in('status', ['CONFIRMED', 'CHECKED_IN', 'PENDING'])
+                .in('status', ['CONFIRMED', 'PENDING'])
                 .gte('start_time', dayBefore.toISOString())
                 .lte('end_time', dayAfter.toISOString())
                 .order('start_time', { ascending: true });
@@ -111,7 +111,7 @@ export const suggestionService = {
             const { data: overlappingBookings } = await supabase
                 .from('bookings')
                 .select('room_id')
-                .in('status', ['CONFIRMED', 'CHECKED_IN', 'PENDING'])
+                .in('status', ['CONFIRMED', 'PENDING'])
                 .lt('start_time', requestedEnd.toISOString())
                 .gt('end_time', requestedStart.toISOString());
 
