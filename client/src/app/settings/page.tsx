@@ -91,13 +91,8 @@ export default function SettingsPage() {
             await authApi.updatePreferences({
                 emailNotifications: emailNotifications,
                 smsNotifications: pushNotifications,
-<<<<<<< HEAD
                 bookingReminders: bookingReminders,
                 weeklyDigest: weeklyDigest,
-                theme: (theme as 'light' | 'dark' | 'system') || 'system',
-=======
-                // theme: (theme as 'light' | 'dark' | 'system') || 'system', // Removed
->>>>>>> 037ee58808f952e530e0f1885c242567d763b097
             });
             toast({
                 title: "Settings Saved",
@@ -211,50 +206,7 @@ export default function SettingsPage() {
                     className="space-y-6"
                 >
                     {/* Appearance */}
-<<<<<<< HEAD
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Palette className="h-5 w-5" />
-                                Appearance
-                            </CardTitle>
-                            <CardDescription>
-                                Customize how the app looks and feels
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="rounded-lg bg-primary/10 p-2">
-                                        {theme === "dark" ? (
-                                            <Moon className="h-4 w-4 text-primary" />
-                                        ) : (
-                                            <Sun className="h-4 w-4 text-primary" />
-                                        )}
-                                    </div>
-                                    <div>
-                                        <Label className="font-medium">Theme</Label>
-                                        <p className="text-xs text-muted-foreground">
-                                            Choose your preferred color scheme
-                                        </p>
-                                    </div>
-                                </div>
-                                <Select value={theme} onValueChange={setTheme}>
-                                    <SelectTrigger className="w-32">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="light">Light</SelectItem>
-                                        <SelectItem value="dark">Dark</SelectItem>
-                                        <SelectItem value="system">System</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardContent>
-                    </Card>
-=======
-                    {/* Appearance Section Removed */}
->>>>>>> 037ee58808f952e530e0f1885c242567d763b097
+
 
                     {/* Notifications */}
                     <Card>
