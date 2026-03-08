@@ -11,15 +11,33 @@
  * =============================================================================
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import {
     request,
     authGet,
     getAdminToken,
 } from '../setup/testSetup.js';
 
+// Mock the Gemini API to prevent actual network calls during tests
+vi.mock('@google/generative-ai', () => {
+    return {
+        GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
+            getGenerativeModel: vi.fn().mockReturnValue({
+                generateContent: vi.fn().mockRejectedValue(new Error('Mocked API Error - testing fallback!')),
+            }),
+        })),
+        SchemaType: { OBJECT: 'object', ARRAY: 'array', INTEGER: 'integer', STRING: 'string', NUMBER: 'number' }
+    };
+});
+
 beforeAll(async () => {
     await getAdminToken();
+    // Force the DB user to be an admin to avoid 403s just for this test
+    const { supabase } = await import('../../lib/supabase.js');
+    const authReq = await request().get('/api/v1/auth/me').set('Authorization', `Bearer ${await getAdminToken()}`);
+    if (authReq.body?.data?.id) {
+        await supabase.from('users').update({ role: 'ADMIN' }).eq('id', authReq.body.data.id);
+    }
 });
 
 describe('US 2.1: Demand Forecast', () => {

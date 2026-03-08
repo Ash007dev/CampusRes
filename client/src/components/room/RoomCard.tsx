@@ -160,10 +160,10 @@ export function RoomCard({
 
           {/* Room Image */}
           <div className="relative h-40 w-full overflow-hidden bg-gradient-to-br from-slate-700 to-slate-900">
-            {room.imageUrl ? (
+            {room.imageUrl || true ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={room.imageUrl}
+                src={room.imageUrl || "/images/rooms/amrita_ab1.jpg"}
                 alt={room.name}
                 className="h-full w-full object-cover"
               />

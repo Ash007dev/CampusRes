@@ -115,7 +115,7 @@ async function main() {
             department_code: 'CSE',
             reputation_score: 95,
             credits_balance: 200,
-            quota_limit_hours: 4,
+            quota_limit_hours: 10,
         },
         {
             email: 'student2@campus.edu',
@@ -126,7 +126,7 @@ async function main() {
             department_code: 'ECE',
             reputation_score: 88,
             credits_balance: 150,
-            quota_limit_hours: 4,
+            quota_limit_hours: 10,
         },
     ];
 

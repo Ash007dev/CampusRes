@@ -757,6 +757,31 @@ export class AuthService {
   }
 
   /**
+   * Refresh access token using refresh token
+   */
+  async refreshSession(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+    // We must use a TEMPORARY client to avoid altering the shared server auth state
+    const { createClient } = await import('@supabase/supabase-js');
+    const tempClient = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const { data, error } = await tempClient.auth.refreshSession({ refresh_token: refreshToken });
+
+    if (error || !data.session) {
+      logger.warn({ error }, 'Failed to refresh session');
+      throw new AppError('Invalid or expired refresh token', 401);
+    }
+
+    return {
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+    };
+  }
+
+  /**
    * Get user by ID
    */
   async getUserById(userId: string): Promise<{
