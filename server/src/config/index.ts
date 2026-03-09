@@ -111,6 +111,11 @@ const configSchema = z.object({
 
   // Logging Configuration
   logLevel: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('debug'),
+
+  // AI Configuration
+  ai: z.object({
+    geminiApiKey: z.string().optional(),
+  }),
 });
 
 /**
@@ -179,6 +184,9 @@ function loadConfig() {
       expirySeconds: process.env.OTP_EXPIRY_SECONDS,
     },
     logLevel: process.env.LOG_LEVEL,
+    ai: {
+      geminiApiKey: process.env.GEMINI_API_KEY,
+    },
   };
 
   const result = configSchema.safeParse(rawConfig);

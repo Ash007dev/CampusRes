@@ -15,6 +15,7 @@ import { logger } from '../config/logger.js';
 import { emitBookingUpdate, emitRoomUpdate } from '../lib/socket.js';
 import { parseDbDate } from '../utils/dateUtils.js';
 import { logAudit } from '../utils/auditLogger.js';
+import { noShowService } from '../services/noShowService.js';
 
 const SYSTEM_USER_ID = 'system-ghost-killer';
 
@@ -179,33 +180,10 @@ async function processGhostBooking(booking: any): Promise<void> {
     })
     .eq('id', booking.id);
 
-  // 2. Get current user data
-  const { data: currentUser } = await supabase
-    .from('users')
-    .select('reputation_score, no_show_count')
-    .eq('id', booking.user_id)
-    .single();
+  // 2. Use escalating no-show service (US 4) instead of fixed 3-strike logic
+  const escalation = await noShowService.escalateNoShowPenalty(booking.user_id, reputationPenalty);
 
-  const currentNoShowCount = ((currentUser?.no_show_count) || 0) + 1;
-  const newReputationScore = Math.max(0, (currentUser?.reputation_score || 100) - reputationPenalty);
-
-  // 3. Check if user should be blocked (3 or more no-shows)
-  const shouldBlock = currentNoShowCount >= 3;
-  const blockedUntil = shouldBlock
-    ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
-    : null;
-
-  // 4. Update user reputation and no-show count
-  await supabase
-    .from('users')
-    .update({
-      reputation_score: newReputationScore,
-      no_show_count: shouldBlock ? 0 : currentNoShowCount,
-      blocked_until: blockedUntil,
-    })
-    .eq('id', booking.user_id);
-
-  // 5. Create audit log entry
+  // 3. Create audit log entry
   await logAudit({
     action: 'GHOST_KILL',
     entity_type: 'booking',
@@ -215,16 +193,14 @@ async function processGhostBooking(booking: any): Promise<void> {
       status: 'CONFIRMED',
       check_in_status: 'PENDING',
       reputation_score: booking.users?.reputation_score,
-      no_show_count: currentNoShowCount - 1,
+      no_show_tier: escalation.previousTier,
     },
     new_state: {
       status: 'NO_SHOW',
       check_in_status: 'MISSED',
-      reputation_score: newReputationScore,
-      reputation_penalty: reputationPenalty,
-      no_show_count: shouldBlock ? 0 : currentNoShowCount,
-      blocked: shouldBlock,
-      blocked_until: blockedUntil,
+      no_show_tier: escalation.newTier,
+      escalation_action: escalation.action,
+      blocked_until: escalation.blockedUntil,
     },
     details: {
       automatedBy: 'ghost-killer-cron',
@@ -236,22 +212,22 @@ async function processGhostBooking(booking: any): Promise<void> {
     },
   });
 
-  if (shouldBlock) {
+  if (escalation.blockedUntil) {
     logger.warn({
       userId: booking.user_id,
       userEmail: booking.users?.email,
-      blockedUntil,
-      noShowCount: currentNoShowCount,
-    }, '🚫 Ghost Killer: USER BLOCKED for 7 days due to repeated no-shows');
+      blockedUntil: escalation.blockedUntil,
+      tier: escalation.newTier,
+    }, `🚫 Ghost Killer: USER BLOCKED (Tier ${escalation.newTier}) — ${escalation.action}`);
   }
 
   logger.debug({
     userId: booking.user_id,
     userEmail: booking.users?.email,
-    oldReputation: booking.users?.reputation_score,
-    newReputation: newReputationScore,
-    penalty: reputationPenalty,
-  }, 'Ghost Killer: Applied reputation penalty');
+    previousTier: escalation.previousTier,
+    newTier: escalation.newTier,
+    action: escalation.action,
+  }, 'Ghost Killer: Applied escalating no-show penalty');
 }
 
 /**

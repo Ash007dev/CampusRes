@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { 
-  Calendar, 
-  Building2, 
-  Users, 
-  BarChart3, 
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import {
+  Calendar,
+  Building2,
+  Users,
+  BarChart3,
   ArrowRight,
   CheckCircle2,
   Clock,
@@ -43,7 +43,7 @@ export default function HomePage() {
           <span className="text-primary block mt-2">Reservation System</span>
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-          Book rooms, labs, and auditoriums with ease. Smart scheduling, 
+          Book rooms, labs, and auditoriums with ease. Smart scheduling,
           real-time availability, and fair access for everyone.
         </p>
         <div className="flex gap-4 justify-center">
@@ -136,13 +136,13 @@ export default function HomePage() {
   );
 }
 
-function FeatureCard({ 
-  icon, 
-  title, 
-  description 
-}: { 
-  icon: React.ReactNode; 
-  title: string; 
+function FeatureCard({
+  icon,
+  title,
+  description
+}: {
+  icon: React.ReactNode;
+  title: string;
   description: string;
 }) {
   return (
@@ -154,13 +154,13 @@ function FeatureCard({
   );
 }
 
-function StepCard({ 
-  step, 
-  title, 
-  description 
-}: { 
-  step: number; 
-  title: string; 
+function StepCard({
+  step,
+  title,
+  description
+}: {
+  step: number;
+  title: string;
   description: string;
 }) {
   return (

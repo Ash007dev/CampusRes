@@ -9,8 +9,8 @@ import {
     User,
     Bell,
     Mail,
-    Moon,
-    Sun,
+    // Moon, // Removed
+    // Sun, // Removed
     Shield,
     Key,
     Trash2,
@@ -52,13 +52,13 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useTheme } from "next-themes";
+// import { useTheme } from "next-themes"; // Removed
 
 export default function SettingsPage() {
     const router = useRouter();
     const { user, isLoading, logout, isInitialized } = useAuth();
     const { toast } = useToast();
-    const { theme, setTheme } = useTheme();
+    // const { theme, setTheme } = useTheme(); // Removed
 
     // Settings state
     const [pushNotifications, setPushNotifications] = useState(true);
@@ -93,7 +93,6 @@ export default function SettingsPage() {
                 smsNotifications: pushNotifications,
                 bookingReminders: bookingReminders,
                 weeklyDigest: weeklyDigest,
-                theme: (theme as 'light' | 'dark' | 'system') || 'system',
             });
             toast({
                 title: "Settings Saved",
@@ -207,46 +206,7 @@ export default function SettingsPage() {
                     className="space-y-6"
                 >
                     {/* Appearance */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Palette className="h-5 w-5" />
-                                Appearance
-                            </CardTitle>
-                            <CardDescription>
-                                Customize how the app looks and feels
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="rounded-lg bg-primary/10 p-2">
-                                        {theme === "dark" ? (
-                                            <Moon className="h-4 w-4 text-primary" />
-                                        ) : (
-                                            <Sun className="h-4 w-4 text-primary" />
-                                        )}
-                                    </div>
-                                    <div>
-                                        <Label className="font-medium">Theme</Label>
-                                        <p className="text-xs text-muted-foreground">
-                                            Choose your preferred color scheme
-                                        </p>
-                                    </div>
-                                </div>
-                                <Select value={theme} onValueChange={setTheme}>
-                                    <SelectTrigger className="w-32">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="light">Light</SelectItem>
-                                        <SelectItem value="dark">Dark</SelectItem>
-                                        <SelectItem value="system">System</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardContent>
-                    </Card>
+
 
                     {/* Notifications */}
                     <Card>

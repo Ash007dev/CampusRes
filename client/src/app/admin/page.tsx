@@ -68,6 +68,7 @@ import {
 } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useToast } from "@/components/ui/use-toast";
+import { withAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { roomsApi, bookingsApi, adminApi } from "@/lib/api";
 import { AddRoomModal } from "@/components/admin/AddRoomModal";
@@ -85,6 +86,7 @@ import { AddUserModal } from "@/components/admin/AddUserModal";
 import { ViewUserDetailsModal } from "@/components/admin/ViewUserDetailsModal";
 import { ViewRoomDetailsModal } from "@/components/admin/ViewRoomDetailsModal";
 import { EditRoomModal } from "@/components/admin/EditRoomModal";
+import { DemandForecastHeatmap } from "@/components/admin/DemandForecastHeatmap";
 
 // Types
 interface Stats {
@@ -152,7 +154,7 @@ const gradients = [
   "from-orange-500 to-amber-500",
 ];
 
-export default function AdminPage() {
+function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -1228,15 +1230,8 @@ export default function AdminPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="text-center py-20"
             >
-              <div className="p-6 rounded-full bg-primary/10 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-                <BarChart3 className="h-12 w-12 text-primary" />
-              </div>
-              <h2 className="text-2xl font-bold mb-2">Analytics Coming Soon</h2>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                Advanced analytics with demand forecasting, utilization reports, and department-wise insights will be available soon.
-              </p>
+              <DemandForecastHeatmap />
             </motion.div>
           )}
 
@@ -1532,4 +1527,6 @@ export default function AdminPage() {
     </div>
   );
 }
+
+export default withAuth(AdminPage, { allowedRoles: ["ADMIN"] });
 

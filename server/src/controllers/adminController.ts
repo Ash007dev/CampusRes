@@ -8,6 +8,11 @@
 
 import { Request, Response } from 'express';
 import { adminService } from '../services/adminService.js';
+import { demandForecastService } from '../services/demandForecastService.js';
+import { utilizationService } from '../services/utilizationService.js';
+import { noShowService } from '../services/noShowService.js';
+import { noiseCompatibilityService } from '../services/noiseCompatibilityService.js';
+import { peakHourService } from '../services/peakHourService.js';
 import { asyncHandler } from '../middleware/index.js';
 import { HTTP_STATUS } from '../config/constants.js';
 import { supabase } from '../lib/supabase.js';
@@ -169,6 +174,145 @@ export const adminController = {
                 successCount,
                 failCount,
             },
+        });
+    }),
+
+    /**
+     * Get demand forecast (US 1)
+     * GET /api/v1/admin/demand-forecast
+     */
+    getDemandForecast: asyncHandler(async (req: Request, res: Response) => {
+        const days = req.query.days ? parseInt(req.query.days as string) : 30;
+
+        const forecast = await demandForecastService.getDemandForecast(days);
+
+        res.json({
+            success: true,
+            data: forecast,
+        });
+    }),
+
+    /**
+     * Get underutilized rooms report (US 3)
+     * GET /api/v1/admin/underutilized-rooms
+     */
+    getUnderutilizedRooms: asyncHandler(async (req: Request, res: Response) => {
+        const days = req.query.days ? parseInt(req.query.days as string) : 30;
+        const threshold = req.query.threshold ? parseInt(req.query.threshold as string) : 30;
+
+        const report = await utilizationService.getUnderutilizedRooms(days, threshold);
+
+        res.json({
+            success: true,
+            data: report,
+        });
+    }),
+
+    /**
+     * Get no-show report (US 4)
+     * GET /api/v1/admin/no-show-report
+     */
+    getNoShowReport: asyncHandler(async (_req: Request, res: Response) => {
+        const report = await noShowService.getNoShowReport();
+
+        res.json({
+            success: true,
+            data: report,
+        });
+    }),
+
+    /**
+     * Reset a user's no-show tier (US 4)
+     * POST /api/v1/admin/no-show-reset/:userId
+     */
+    resetNoShowTier: asyncHandler(async (req: Request, res: Response) => {
+        const { userId } = req.params;
+
+        if (!userId) {
+            res.status(HTTP_STATUS.BAD_REQUEST).json({
+                success: false,
+                error: { message: 'userId parameter is required' },
+            });
+            return;
+        }
+
+        await noShowService.resetNoShowTier(userId);
+
+        const performedBy = (req as any).user?.id;
+        await logAudit({
+            action: 'NO_SHOW_TIER_RESET',
+            entity_type: 'user',
+            entity_id: userId,
+            performed_by_id: performedBy,
+            details: { resetBy: performedBy },
+        });
+
+        res.json({
+            success: true,
+            message: `No-show tier reset for user ${userId}`,
+        });
+    }),
+
+    /**
+     * Set room adjacency for noise compatibility (US 5)
+     * POST /api/v1/admin/room-adjacency
+     */
+    setRoomAdjacency: asyncHandler(async (req: Request, res: Response) => {
+        const { roomId, adjacentRoomId } = req.body;
+
+        if (!roomId || !adjacentRoomId) {
+            res.status(HTTP_STATUS.BAD_REQUEST).json({
+                success: false,
+                error: { message: 'roomId and adjacentRoomId are required' },
+            });
+            return;
+        }
+
+        await noiseCompatibilityService.setRoomAdjacency(roomId, adjacentRoomId);
+
+        res.json({
+            success: true,
+            message: 'Room adjacency set successfully',
+        });
+    }),
+
+    /**
+     * Get peak hour configuration (US 9)
+     * GET /api/v1/admin/peak-hour-config
+     */
+    getPeakHourConfig: asyncHandler(async (_req: Request, res: Response) => {
+        const config = await peakHourService.getPeakHourConfig();
+
+        res.json({
+            success: true,
+            data: config,
+        });
+    }),
+
+    /**
+     * Update peak hour limits (US 9)
+     * PUT /api/v1/admin/peak-hour-config
+     */
+    updatePeakHourConfig: asyncHandler(async (req: Request, res: Response) => {
+        const { peakMaxBookingHours, peakMaxBookingsPerDay } = req.body;
+
+        if (peakMaxBookingHours === undefined && peakMaxBookingsPerDay === undefined) {
+            res.status(HTTP_STATUS.BAD_REQUEST).json({
+                success: false,
+                error: { message: 'At least one of peakMaxBookingHours or peakMaxBookingsPerDay is required' },
+            });
+            return;
+        }
+
+        const performedBy = (req as any).user?.userId;
+        const updated = await peakHourService.updatePeakHourConfig(performedBy, {
+            peakMaxBookingHours,
+            peakMaxBookingsPerDay,
+        });
+
+        res.json({
+            success: true,
+            data: updated,
         });
     }),
 };

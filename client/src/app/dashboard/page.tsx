@@ -707,8 +707,8 @@ export default function DashboardPage() {
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Weekly Quota</p>
                       <p className="text-2xl font-bold tracking-tight">{quotaInfo.usedHours}<span className="text-muted-foreground">/{quotaInfo.limitHours}</span> <span className="text-base font-normal text-muted-foreground">hrs</span></p>
                     </div>
-                    <div className="h-12 w-12 rounded-full bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center border-2 border-neutral-700 dark:border-neutral-300 shadow-md">
-                      <span className="text-white dark:text-black text-sm font-bold">{Math.round((quotaInfo.usedHours / quotaInfo.limitHours) * 100)}%</span>
+                    <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center border-2 border-primary/20 shadow-md">
+                      <span className="text-primary-foreground text-sm font-bold">{Math.round((quotaInfo.usedHours / quotaInfo.limitHours) * 100)}%</span>
                     </div>
                   </div>
                 )}
@@ -724,7 +724,7 @@ export default function DashboardPage() {
                 {user?.role === "ADMIN" && (
                   <Button
                     onClick={() => router.push("/admin")}
-                    className="bg-neutral-900 dark:bg-neutral-100 dark:text-black text-white hover:bg-neutral-800 dark:hover:bg-neutral-300"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
                   >
                     Open Admin Panel →
                   </Button>
@@ -749,8 +749,8 @@ export default function DashboardPage() {
             <SheetContent side="left" className="w-80 p-0">
               <SheetHeader className="p-6 pb-4 border-b">
                 <SheetTitle className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-lg bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center">
-                    <Calendar className="h-4 w-4 text-white dark:text-black" />
+                  <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                    <Calendar className="h-4 w-4 text-primary-foreground" />
                   </div>
                   Room Filters
                 </SheetTitle>
@@ -789,8 +789,8 @@ export default function DashboardPage() {
               <div className="p-4 border-b border-border/50 bg-secondary">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center shadow-lg">
-                      <Calendar className="h-5 w-5 text-white dark:text-black" />
+                    <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg">
+                      <Calendar className="h-5 w-5 text-primary-foreground" />
                     </div>
                     <div>
                       <h3 className="font-semibold">Filters</h3>

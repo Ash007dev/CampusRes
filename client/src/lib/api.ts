@@ -482,6 +482,23 @@ export const adminApi = {
   // Send broadcast email to all users (US 2)
   sendBroadcast: (data: { subject: string; message: string }) =>
     api.post<ApiResponse<{ recipientCount: number; successCount: number; failCount: number }>>('/admin/broadcast', data),
+
+  // Get demand forecast heatmap (US 2.1)
+  getDemandForecast: (days?: number) =>
+    api.get<ApiResponse<{
+      forecast: Array<{
+        dayOfWeek: number;
+        dayName: string;
+        hourlyDemand: Array<{
+          hour: number;
+          avgBookings: number;
+          peakLabel: 'LOW' | 'MEDIUM' | 'HIGH';
+        }>;
+      }>;
+      totalBookingsAnalyzed: number;
+      periodDays: number;
+      generatedAt: string;
+    }>>('/admin/demand-forecast', { params: days ? { days } : undefined }),
 };
 
 // Holiday API (US 5.5)
@@ -647,6 +664,7 @@ export interface RoomQueryParams {
   roomType?: string;
   amenities?: string;
   building?: string;
+  includeMaintenace?: boolean;
 }
 
 export interface BestFitParams {

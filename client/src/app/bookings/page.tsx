@@ -43,6 +43,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { QRScanner } from "@/components/booking/QRScanner";
 import { RescheduleModal } from "@/components/booking/RescheduleModal";
 import { formatTimeInIst, formatDateTimeInIst } from "@/lib/dateUtils";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const STATUS_COLORS: Record<string, string> = {
     CONFIRMED: "bg-green-500",
@@ -324,6 +325,7 @@ export default function BookingsPage() {
                         <Button onClick={() => router.push("/dashboard")}>
                             New Booking
                         </Button>
+                        <ThemeToggle />
                     </div>
                 </div>
             </header>

@@ -116,6 +116,142 @@ router.get(
 );
 
 /**
+ * @openapi
+ * /api/v1/bookings/suggestions:
+ *   get:
+ *     summary: Get alternative time slots and rooms (US 2)
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: roomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: startTime
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: endTime
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: attendeeCount
+ *         schema:
+ *           type: integer
+ *           default: 1
+ */
+router.get(
+  '/suggestions',
+  authenticate,
+  bookingController.getSuggestions
+);
+
+/**
+ * @openapi
+ * /api/v1/bookings/quick-book-suggestions:
+ *   get:
+ *     summary: Get one-tap booking suggestions from recurring patterns (US 6)
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           default: 60
+ *         description: Days of history to analyze
+ */
+router.get(
+  '/quick-book-suggestions',
+  authenticate,
+  bookingController.getQuickBookSuggestions
+);
+
+/**
+ * @openapi
+ * /api/v1/bookings/room-recommend:
+ *   get:
+ *     summary: Recommend the smallest suitable room (US 7)
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: attendeeCount
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: startTime
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: endTime
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: amenities
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of required amenities
+ */
+router.get(
+  '/room-recommend',
+  authenticate,
+  bookingController.recommendRoom
+);
+
+/**
+ * @openapi
+ * /api/v1/bookings/balanced-room:
+ *   get:
+ *     summary: Get load-balanced room suggestion (US 8)
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: roomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: startTime
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: endTime
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: attendeeCount
+ *         schema:
+ *           type: integer
+ *           default: 1
+ */
+router.get(
+  '/balanced-room',
+  authenticate,
+  bookingController.getBalancedRoom
+);
+
+/**
  * =============================================================================
  * ADMIN ROUTES - Must be before /:id to avoid matching as ID
  * =============================================================================

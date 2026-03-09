@@ -34,7 +34,7 @@ export function request() {
 
 /**
  * Login as admin and cache the JWT token.
- * Uses the admin account: satheeshadwaitha@gmail.com / Password123!
+ * Uses the admin account: darun291105@gmail.com / Password123!
  */
 export async function getAdminToken(): Promise<string> {
     if (adminToken) return adminToken;
@@ -45,7 +45,7 @@ export async function getAdminToken(): Promise<string> {
 
     const res = await request()
         .post('/api/v1/auth/login')
-        .send({ email: 'satheeshadwaitha@gmail.com', password: 'Password123!' });
+        .send({ email: 'darun291105@gmail.com', password: 'Darun@29114' });
 
     // If MFA is required, we need to handle OTP — but for tests we'll
     // check if we got tokens directly (non-MFA path)
@@ -78,8 +78,8 @@ export async function getAdminToken(): Promise<string> {
 
     // Try direct sign-in with password
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: 'satheeshadwaitha@gmail.com',
-        password: 'Password123!',
+        email: 'darun291105@gmail.com',
+        password: 'Darun@29114',
     });
 
     if (authError || !authData?.session?.access_token) {
@@ -127,6 +127,16 @@ export async function authPost(path: string, body?: object): Promise<Test> {
 export async function authPatch(path: string, body?: object): Promise<Test> {
     const token = await getAdminToken();
     const req = request().patch(path).set('Authorization', `Bearer ${token}`);
+    if (body) req.send(body);
+    return req;
+}
+
+/**
+ * Make an authenticated PUT request
+ */
+export async function authPut(path: string, body?: object): Promise<Test> {
+    const token = await getAdminToken();
+    const req = request().put(path).set('Authorization', `Bearer ${token}`);
     if (body) req.send(body);
     return req;
 }

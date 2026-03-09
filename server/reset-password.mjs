@@ -32,4 +32,4 @@ async function resetUserPassword(email, newPassword) {
     }
 }
 
-resetUserPassword('satheeshadwaitha@gmail.com', 'Password123!');
+resetUserPassword('darun291105@gmail.com', 'Password123!');
