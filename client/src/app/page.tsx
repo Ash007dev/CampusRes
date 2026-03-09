@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-// import { ThemeToggle } from '@/components/ui/theme-toggle'; // Removed
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   Calendar,
   Building2,
@@ -25,7 +25,7 @@ export default function HomePage() {
             <span className="font-bold text-xl">Campus Resource Engine</span>
           </div>
           <div className="flex items-center gap-4">
-            {/* <ThemeToggle /> */}
+            <ThemeToggle />
             <Link href="/auth/login">
               <Button variant="ghost">Login</Button>
             </Link>
