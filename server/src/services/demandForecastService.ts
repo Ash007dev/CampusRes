@@ -16,7 +16,7 @@ import { GoogleGenerativeAI, Schema, SchemaType } from '@google/generative-ai';
 interface HourlyDemand {
     hour: number;
     avgBookings: number;
-    peakLabel: 'LOW' | 'MEDIUM' | 'HIGH';
+    peakLabel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CLOSED';
 }
 
 interface DayForecast {
@@ -56,9 +56,9 @@ const forecastSchema: Schema = {
                                 avgBookings: { type: SchemaType.NUMBER, description: "Predicted average bookings for this hour" },
                                 peakLabel: {
                                     type: SchemaType.STRING,
-                                    enum: ['LOW', 'MEDIUM', 'HIGH'],
+                                    enum: ['LOW', 'MEDIUM', 'HIGH', 'CLOSED'],
                                     format: 'enum',
-                                    description: "Demand intensity relative to the peak hour"
+                                    description: "Demand intensity relative to the peak hour. Use 'CLOSED' if demand is 0 or campus is closed."
                                 }
                             },
                             required: ["hour", "avgBookings", "peakLabel"]
@@ -152,8 +152,9 @@ Please analyze this data and generate a predicted 7-day × 24-hour demand matrix
 
 For the prediction:
 1. Smooth out minor anomalies from the historical data.
-2. Maintain realistic patterns (e.g., normally low demand between 10 PM and 6 AM).
+2. Maintain realistic patterns.
 3. Determine if each hour is LOW, MEDIUM, or HIGH demand relative to the overall peak hour.
+4. Assign 'CLOSED' to any hour where there is 0 demand OR the campus is closed. The campus is strictly closed before 8 AM and from 8 PM onwards (hours < 8 or >= 20). Demand for closed hours must be 0 and labeled 'CLOSED'.
 
 Historical Data:
 ${historicalContext}
@@ -205,10 +206,10 @@ ${historicalContext}
             // Number of weeks in our window for averaging
             const totalWeeks = Math.max(1, Math.ceil(days / 7));
 
-            // Find maximum average for peak labeling
+            // Find maximum average for peak labeling (only within business hours 8-20)
             let maxAvg = 0;
             for (let d = 0; d < 7; d++) {
-                for (let h = 0; h < 24; h++) {
+                for (let h = 8; h < 20; h++) {
                     const avg = counts[d][h] / totalWeeks;
                     if (avg > maxAvg) maxAvg = avg;
                 }
@@ -222,12 +223,14 @@ ${historicalContext}
                     const avgBookings = parseFloat((counts[d][h] / totalWeeks).toFixed(2));
                     const ratio = maxAvg > 0 ? avgBookings / maxAvg : 0;
 
-                    let peakLabel: 'LOW' | 'MEDIUM' | 'HIGH';
-                    if (ratio <= 0.33) peakLabel = 'LOW';
+                    let peakLabel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CLOSED';
+                    if (h < 8 || h >= 20 || avgBookings === 0) peakLabel = 'CLOSED';
+                    else if (ratio <= 0.33) peakLabel = 'LOW';
                     else if (ratio <= 0.66) peakLabel = 'MEDIUM';
                     else peakLabel = 'HIGH';
 
-                    hourlyDemand.push({ hour: h, avgBookings, peakLabel });
+                    // Zero out avgBookings if CLOSED
+                    hourlyDemand.push({ hour: h, avgBookings: peakLabel === 'CLOSED' ? 0 : avgBookings, peakLabel });
                 }
 
                 forecast.push({

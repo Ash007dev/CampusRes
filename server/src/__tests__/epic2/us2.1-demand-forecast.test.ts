@@ -67,7 +67,7 @@ describe('US 2.1: Demand Forecast', () => {
                     expect(hour.hour).toBeGreaterThanOrEqual(0);
                     expect(hour.hour).toBeLessThanOrEqual(23);
                     expect(hour.avgBookings).toBeGreaterThanOrEqual(0);
-                    expect(['LOW', 'MEDIUM', 'HIGH']).toContain(hour.peakLabel);
+                    expect(['LOW', 'MEDIUM', 'HIGH', 'CLOSED']).toContain(hour.peakLabel);
                 }
             }
 

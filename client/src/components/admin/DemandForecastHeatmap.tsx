@@ -30,7 +30,7 @@ import { adminApi } from "@/lib/api";
 interface HourlyDemand {
     hour: number;
     avgBookings: number;
-    peakLabel: "LOW" | "MEDIUM" | "HIGH";
+    peakLabel: "LOW" | "MEDIUM" | "HIGH" | "CLOSED";
 }
 
 interface DayForecast {
@@ -63,12 +63,17 @@ const PEAK_COLORS: Record<string, { bg: string; text: string; border: string }> 
         text: "text-red-700 dark:text-red-400",
         border: "border-red-500/30",
     },
+    CLOSED: {
+        bg: "bg-muted/10",
+        text: "text-muted-foreground/30",
+        border: "border-transparent",
+    }
 };
 
 // Intensity based on avgBookings relative to max
 function getIntensityStyle(avgBookings: number, maxAvg: number, peakLabel: string) {
-    if (maxAvg === 0 || avgBookings === 0) {
-        return "bg-muted/30 text-muted-foreground/50";
+    if (peakLabel === "CLOSED" || maxAvg === 0 || avgBookings === 0) {
+        return "bg-muted/10 text-muted-foreground/30";
     }
     return PEAK_COLORS[peakLabel]?.bg ?? "bg-muted/30";
 }
@@ -131,7 +136,7 @@ export function DemandForecastHeatmap() {
             for (const h of day.hourlyDemand) {
                 if (h.peakLabel === "HIGH") highCount++;
                 else if (h.peakLabel === "MEDIUM") mediumCount++;
-                else lowCount++;
+                else if (h.peakLabel === "LOW") lowCount++;
 
                 if (h.avgBookings > peakVal) {
                     peakVal = h.avgBookings;
@@ -344,11 +349,13 @@ export function DemandForecastHeatmap() {
                                                                 <span>Avg: <strong>{hour.avgBookings}</strong> bookings</span>
                                                                 <Badge
                                                                     variant={
-                                                                        hour.peakLabel === "HIGH"
-                                                                            ? "destructive"
-                                                                            : hour.peakLabel === "MEDIUM"
-                                                                                ? "warning"
-                                                                                : "success"
+                                                                        hour.peakLabel === "CLOSED"
+                                                                            ? "secondary"
+                                                                            : hour.peakLabel === "HIGH"
+                                                                                ? "destructive"
+                                                                                : hour.peakLabel === "MEDIUM"
+                                                                                    ? "warning"
+                                                                                    : "success"
                                                                     }
                                                                     className="text-[10px] px-1.5 py-0"
                                                                 >
