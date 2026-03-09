@@ -25,6 +25,14 @@ export function getCurrentIST(): Date {
 }
 
 /**
+ * Convert a Fake UTC Date (which actually holds IST time) back to real UTC Date
+ * Used for comparing stored booking times against real-world elapsed time (`new Date()`)
+ */
+export function fakeUtcToRealUtc(fakeUtc: Date): Date {
+    return addMinutes(fakeUtc, -IST_OFFSET_MINUTES);
+}
+
+/**
  * Format a date to IST string
  */
 export function formatIST(date: Date | string | number, formatStr: string = 'yyyy-MM-dd HH:mm:ss'): string {

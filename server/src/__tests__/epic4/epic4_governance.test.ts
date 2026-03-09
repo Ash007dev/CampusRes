@@ -63,6 +63,19 @@ vi.mock('../../services/configService.js', () => ({
     }
 }));
 
+vi.mock('../../services/peakHourService.js', () => ({
+    peakHourService: {
+        checkPeakHourLimits: vi.fn().mockResolvedValue(undefined),
+    }
+}));
+
+vi.mock('../../services/noiseCompatibilityService.js', () => ({
+    noiseCompatibilityService: {
+        checkNoiseCompatibility: vi.fn().mockResolvedValue({ compatible: true, conflicts: [] }),
+    }
+}));
+
+
 // We need to import constants and helper types
 import { QuotaExceededError } from '../../utils/errors.js';
 import { bookingService } from '../../services/bookingService.js';
@@ -71,8 +84,8 @@ describe('Epic 4: Governance, Fairness & Approval Workflows', () => {
     const userId = 'user-uuid';
     const roomId = 'room-uuid';
     const now = new Date('2024-05-20T10:00:00Z'); // A Monday
-    const startTime = new Date('2024-05-20T14:00:00Z');
-    const endTime = new Date('2024-05-20T15:00:00Z'); // 1 hour
+    const startTime = new Date('2024-05-20T16:00:00Z');
+    const endTime = new Date('2024-05-20T17:00:00Z'); // 1 hour
 
     beforeEach(() => {
         vi.clearAllMocks();

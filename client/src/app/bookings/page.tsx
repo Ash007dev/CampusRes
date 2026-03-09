@@ -42,7 +42,7 @@ import { bookingsApi, type Booking } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 import { QRScanner } from "@/components/booking/QRScanner";
 import { RescheduleModal } from "@/components/booking/RescheduleModal";
-import { formatTimeInIst, formatDateTimeInIst } from "@/lib/dateUtils";
+import { formatTimeInIst, formatDateTimeInIst, getCurrentIST } from "@/lib/dateUtils";
 
 const STATUS_COLORS: Record<string, string> = {
     CONFIRMED: "bg-green-500",
@@ -289,7 +289,7 @@ export default function BookingsPage() {
         const matchesStatus =
             statusFilter === "all" || booking.status === statusFilter;
         const bookingEndTime = new Date(booking.endTime);
-        const now = new Date();
+        const now = getCurrentIST(); // use Fake-UTC-aligned time for comparison
         // A booking is "upcoming/active" until its END time passes (not start time)
         // This keeps active bookings in the Upcoming tab where users can check-in, extend, etc.
         const isUpcomingOrActive = bookingEndTime.getTime() > now.getTime();
@@ -394,7 +394,7 @@ export default function BookingsPage() {
                             <CardContent className="pt-4">
                                 <div className="text-2xl font-bold text-emerald-500">
                                     {bookings.filter(b => {
-                                        const now = new Date();
+                                        const now = getCurrentIST();
                                         const start = new Date(b.startTime);
                                         const end = new Date(b.endTime);
                                         return b.checkInStatus === "CHECKED_IN" && start <= now && end > now;
@@ -443,7 +443,7 @@ export default function BookingsPage() {
                                     const roomName = booking.room?.name || booking.title || "Room";
                                     const building = booking.room?.building || "Building";
                                     const floor = booking.room?.floor || "1";
-                                    const now = new Date();
+                                    const now = getCurrentIST(); // Fake-UTC-aligned comparison
                                     const isUpcoming = isValidDate && startTime >= now;
                                     const canCancel = isUpcoming && (booking.status === "CONFIRMED" || booking.status === "PENDING") && booking.checkInStatus !== "CHECKED_IN";
 

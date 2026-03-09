@@ -38,7 +38,7 @@ vi.mock('../../config/index.js', () => ({
 }));
 
 vi.mock('../../config/logger.js', () => ({
-    logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+    logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), trace: vi.fn() },
 }));
 
 vi.mock('../../lib/socket.js', () => ({

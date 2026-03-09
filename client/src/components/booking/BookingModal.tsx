@@ -114,8 +114,15 @@ const bookingSchema = baseBookingSchema.refine(
     // Check if booking is in the future
     const now = getCurrentIST();
     const [startHour, startMin] = data.startTime.split(":").map(Number);
-    const bookingStart = new Date(data.date);
-    bookingStart.setHours(startHour, startMin, 0, 0);
+    const bookingStart = new Date(Date.UTC(
+      data.date.getFullYear(),
+      data.date.getMonth(),
+      data.date.getDate(),
+      startHour,
+      startMin,
+      0,
+      0
+    ));
     return bookingStart > now;
   },
   { message: "Booking must be scheduled for a future time", path: ["startTime"] }
@@ -198,8 +205,15 @@ export function BookingModal({
           // Check if booking is in the future
           const now = getCurrentIST();
           const [startHour, startMin] = data.startTime.split(":").map(Number);
-          const bookingStart = new Date(data.date);
-          bookingStart.setHours(startHour, startMin, 0, 0);
+          const bookingStart = new Date(Date.UTC(
+            data.date.getFullYear(),
+            data.date.getMonth(),
+            data.date.getDate(),
+            startHour,
+            startMin,
+            0,
+            0
+          ));
           return bookingStart > now;
         },
         { message: "Booking must be scheduled for a future time", path: ["startTime"] }

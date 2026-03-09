@@ -24,7 +24,8 @@ import {
 let createdHolidayId: string;
 
 // Use a far-future date to avoid conflicts with real holidays
-const testDate = '2030-12-25';
+const randomDay = Math.floor(Math.random() * 28) + 1;
+const testDate = `2099-12-${randomDay.toString().padStart(2, '0')}`;
 const testHolidayName = `Test Holiday ${Date.now()}`;
 
 beforeAll(async () => {

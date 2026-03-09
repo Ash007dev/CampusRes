@@ -15,6 +15,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import {
     request,
     authGet,
+    authPost,
     authPatch,
     getAdminToken,
 } from '../setup/testSetup.js';
@@ -24,12 +25,27 @@ let testRoomId: string;
 beforeAll(async () => {
     await getAdminToken();
 
-    // Find an existing room to use for maintenance tests
-    const res = await authGet('/api/v1/rooms');
-    const rooms = res.body?.data?.rooms || res.body?.data || [];
-    if (Array.isArray(rooms) && rooms.length > 0) {
-        // Pick the last room to minimize interference
-        testRoomId = rooms[rooms.length - 1].id;
+    // Create a new room specifically for this test to avoid parallel execution conflicts
+    const deptRes = await authGet('/api/v1/departments');
+    const departmentId = deptRes.body?.data?.[0]?.id || 'unknown';
+
+    const res = await authPost('/api/v1/rooms', {
+        name: `Maintenance Test Room ${Date.now()}`,
+        code: `MTR-${Date.now().toString().slice(-6)}`,
+        capacity: 10,
+        departmentId: departmentId,
+        roomType: 'CLASSROOM'
+    });
+
+    if (res.body?.data?.id) {
+        testRoomId = res.body.data.id;
+    } else {
+        // Fallback if room creation fails
+        const fallbackRes = await authGet('/api/v1/rooms');
+        const rooms = fallbackRes.body?.data?.rooms || fallbackRes.body?.data || [];
+        if (Array.isArray(rooms) && rooms.length > 0) {
+            testRoomId = rooms[rooms.length - 1].id;
+        }
     }
 });
 
@@ -54,6 +70,11 @@ describe('US 5.7: Room Maintenance Mode', () => {
                 reason: 'Test maintenance — AC repair',
             });
 
+            if (res.status !== 200) {
+                const fs = await import('fs');
+                fs.writeFileSync('debug-maintenance.json', JSON.stringify({ room: testRoomId, body: res.body }));
+            }
+
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
             expect(res.body.data.room).toBeDefined();
@@ -62,6 +83,11 @@ describe('US 5.7: Room Maintenance Mode', () => {
 
         it('should hide room from available search when in maintenance', async () => {
             const res = await request().get('/api/v1/rooms');
+
+            if (res.status !== 200) {
+                const fs = await import('fs');
+                fs.writeFileSync('debug-rooms.json', JSON.stringify({ body: res.body }));
+            }
 
             expect(res.status).toBe(200);
             const rooms = res.body.data.rooms || res.body.data;
@@ -84,7 +110,12 @@ describe('US 5.7: Room Maintenance Mode', () => {
         });
 
         it('should show room in search after maintenance ends', async () => {
-            const res = await request().get('/api/v1/rooms');
+            const res = await request().get('/api/v1/rooms?limit=100');
+
+            if (res.status !== 200) {
+                const fs = await import('fs');
+                fs.writeFileSync('debug-rooms-2.json', JSON.stringify({ body: res.body }));
+            }
 
             expect(res.status).toBe(200);
             const rooms = res.body.data.rooms || res.body.data;

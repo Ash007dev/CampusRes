@@ -14,7 +14,7 @@
 
 import { z } from 'zod';
 import { BOOKING_STATUS, USER_ROLES, ROOM_TYPES } from '../config/constants.js';
-import { istToUtc } from './dateUtils.js';
+import { istToUtc, getCurrentIST } from './dateUtils.js';
 
 /**
  * =============================================================================
@@ -163,7 +163,7 @@ const bookingTimeRefinements = <T extends { startTime: string; endTime: string }
   ).refine(
     (data) => {
       // Compare with current UTC time
-      return istToUtc(data.startTime) > new Date();
+      return istToUtc(data.startTime) > getCurrentIST();
     },
     {
       message: 'Booking must be in the future',
