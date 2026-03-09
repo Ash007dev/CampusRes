@@ -1,5 +1,5 @@
 // Campus Resource Engine - Service Worker
-const CACHE_NAME = 'campusres-v1';
+const CACHE_NAME = 'campusres-v3';
 const OFFLINE_URL = '/offline';
 
 // Assets to pre-cache on install
@@ -132,14 +132,17 @@ async function networkFirstWithOffline(request) {
     }
 }
 
-// Check if the request is for a static asset
+// Check if the request is for a truly static (immutable) asset.
+// JS and CSS are intentionally excluded:
+//   - In production Next.js content-hashes them, so the browser cache + Cache-Control:immutable handles staleness.
+//   - In development Turbopack rewrites chunks at the same URL on every HMR update; Cache First
+//     would serve the old stale bundle and cause 'X is not a function' errors.
 function isStaticAsset(pathname) {
     const staticExtensions = [
-        '.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg',
+        '.png', '.jpg', '.jpeg', '.gif', '.svg',
         '.ico', '.woff', '.woff2', '.ttf', '.eot', '.webp'
     ];
-    return staticExtensions.some((ext) => pathname.endsWith(ext)) ||
-        pathname.startsWith('/_next/static/');
+    return staticExtensions.some((ext) => pathname.endsWith(ext));
 }
 
 // Listen for messages from the app

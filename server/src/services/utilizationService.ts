@@ -97,15 +97,15 @@ export const utilizationService = {
             for (const room of rooms || []) {
                 const roomBookings = bookingsByRoom.get(room.id) || [];
 
-                // Total booked hours
+                // Total booked hours — clamp each duration to >= 0 to guard against bad data
                 const bookedHours = roomBookings.reduce((acc, b) => {
                     const start = new Date(b.start_time).getTime();
                     const end = new Date(b.end_time).getTime();
-                    return acc + (end - start) / (1000 * 60 * 60);
+                    return acc + Math.max(0, (end - start) / (1000 * 60 * 60));
                 }, 0);
 
                 const utilizationPercent = totalAvailableHours > 0
-                    ? parseFloat(((bookedHours / totalAvailableHours) * 100).toFixed(1))
+                    ? parseFloat((Math.min(100, Math.max(0, (bookedHours / totalAvailableHours) * 100))).toFixed(1))
                     : 0;
 
                 if (utilizationPercent < threshold) {
@@ -185,13 +185,13 @@ export const utilizationService = {
             const bookedHours = weekBookings.reduce((acc, b) => {
                 const start = new Date(b.start_time).getTime();
                 const end = new Date(b.end_time).getTime();
-                return acc + (end - start) / (1000 * 60 * 60);
+                return acc + Math.max(0, (end - start) / (1000 * 60 * 60));
             }, 0);
 
             trend.push({
                 weekStart: weekStart.toISOString().split('T')[0],
                 utilizationPercent: availableHours > 0
-                    ? parseFloat(((bookedHours / availableHours) * 100).toFixed(1))
+                    ? parseFloat((Math.min(100, Math.max(0, (bookedHours / availableHours) * 100))).toFixed(1))
                     : 0,
             });
         }
