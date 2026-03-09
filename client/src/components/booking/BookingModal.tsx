@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils";
 import { type Room } from "@/components/room/RoomCard";
 import { type ApiError, waitlistApi, bookingsApi, type BalancedRoomResult } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
-import { getISTHour, getCurrentIST } from "@/lib/dateUtils";
+import { getISTHour, getCurrentIST, utcToIstShifted } from "@/lib/dateUtils";
 
 // Validation schema
 // Generate time slots from 6 AM to 10 PM
@@ -323,8 +323,9 @@ export function BookingModal({
     // Server may return {start, end} or {startTime, endTime} — handle both
     const startRaw = slot.startTime || slot.start;
     const endRaw = slot.endTime || slot.end;
-    const start = new Date(startRaw);
-    const end = new Date(endRaw);
+    // Use utcToIstShifted so that format() extracts the correct IST hour
+    const start = utcToIstShifted(startRaw);
+    const end = utcToIstShifted(endRaw);
 
     if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
       setValue("startTime", format(start, "HH:mm"));
@@ -360,10 +361,19 @@ export function BookingModal({
       const endDateTime = new Date(dateObj);
       endDateTime.setHours(endHour, endMin, 0, 0);
 
+      // Use local ISO (no Z) so server treats these as IST (Fake UTC strategy)
+      const toFakeISO = (d: Date) => {
+        const yr = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const dy = String(d.getDate()).padStart(2, '0');
+        const hr = String(d.getHours()).padStart(2, '0');
+        const mn = String(d.getMinutes()).padStart(2, '0');
+        return `${yr}-${mo}-${dy}T${hr}:${mn}:00`;
+      };
       const response = await waitlistApi.join(
         watchRoomId,
-        startDateTime.toISOString(),
-        endDateTime.toISOString()
+        toFakeISO(startDateTime),
+        toFakeISO(endDateTime)
       );
 
       setHasJoinedWaitlist(true);
@@ -609,8 +619,9 @@ export function BookingModal({
                         // Server may return {start, end} or {startTime, endTime}
                         const startRaw = slot.startTime || slot.start;
                         const endRaw = slot.endTime || slot.end;
-                        start = new Date(startRaw);
-                        end = new Date(endRaw);
+                        // Use utcToIstShifted so format() extracts IST hours, not browser-local UTC-shifted hours
+                        start = utcToIstShifted(startRaw);
+                        end = utcToIstShifted(endRaw);
 
                         if (isNaN(start.getTime()) || isNaN(end.getTime())) {
                           return null;

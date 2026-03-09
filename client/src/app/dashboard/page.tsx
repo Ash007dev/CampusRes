@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { useBookingReminders } from "@/hooks/useBookingReminders";
 import { useBookingUpdates, type BookingUpdate } from "@/hooks/useSocket";
@@ -55,7 +56,10 @@ import {
 import { BookingModal, type BookingFormData } from "@/components/booking/BookingModal";
 import { BookingDetailsModal } from "@/components/booking/BookingDetailsModal";
 import { RescheduleModal } from "@/components/booking/RescheduleModal";
-import { FairnessPolicyModal } from "@/components/ui/fairness-policy-modal";
+const FairnessPolicyModal = dynamic(
+  () => import("@/components/ui/fairness-policy-modal").then(mod => mod.FairnessPolicyModal),
+  { ssr: false }
+);
 import { RoomFilter, useRoomFilters, type RoomFilters } from "@/components/room/RoomFilter";
 import { RoomCard, type Room } from "@/components/room/RoomCard";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -277,8 +281,10 @@ export default function DashboardPage() {
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (!token) return;
+    let cancelled = false;
     bookingsApi.getQuickBookSuggestions(60)
       .then(res => {
+        if (cancelled) return;
         const raw = res.data.data as any;
         // Service returns { suggestions: [...], analyzedBookings, periodDays }
         const list = Array.isArray(raw) ? raw : (raw?.suggestions || []);
@@ -299,7 +305,8 @@ export default function DashboardPage() {
         }));
         setQuickBookSuggestions(mapped);
       })
-      .catch(() => { /* silently ignore — feature degrades gracefully */ });
+      .catch(() => { /* degrade gracefully — suggestions are non-critical */ });
+    return () => { cancelled = true; };
   }, []);
 
   // US 3.3: Live occupancy - listen for real-time booking updates via WebSocket
@@ -1176,8 +1183,8 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
                   <span>
-                    {format(new Date(waitlistConfirm.startTime), "EEE, MMM d · h:mm a")} –{" "}
-                    {format(new Date(waitlistConfirm.endTime), "h:mm a")}
+                    {format(utcToIstShifted(waitlistConfirm.startTime), "EEE, MMM d · h:mm a")} –{" "}
+                    {format(utcToIstShifted(waitlistConfirm.endTime), "h:mm a")}
                   </span>
                 </div>
               </div>

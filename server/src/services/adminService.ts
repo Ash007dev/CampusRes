@@ -53,11 +53,12 @@ export const adminService = {
                 const totalBookedHours = recentBookings.reduce((acc: number, b: any) => {
                     const start = new Date(b.start_time).getTime();
                     const end = new Date(b.end_time).getTime();
-                    return acc + (end - start) / (1000 * 60 * 60);
+                    // Clamp to 0 to guard against corrupted rows where end < start
+                    return acc + Math.max(0, (end - start) / (1000 * 60 * 60));
                 }, 0);
                 // Available hours = rooms * 12 hours/day * 7 days
                 const availableHours = (totalRooms || 1) * 12 * 7;
-                utilizationRate = Math.min(100, parseFloat(((totalBookedHours / availableHours) * 100).toFixed(1)));
+                utilizationRate = Math.min(100, Math.max(0, parseFloat(((totalBookedHours / availableHours) * 100).toFixed(1))));
             }
 
             // 6. No-show Rate (CANCELLED bookings vs total)
