@@ -36,7 +36,7 @@ interface RoomUpdatePayload {
 }
 
 interface WaitlistUpdatePayload {
-  type: "ADDED" | "NOTIFIED" | "SLOT_AVAILABLE";
+  type: "ADDED" | "NOTIFIED" | "SLOT_AVAILABLE" | "SLOT_EXPIRED";
   roomId: string;
   roomName: string;
   position?: number;
@@ -44,6 +44,10 @@ interface WaitlistUpdatePayload {
     startTime: string;
     endTime: string;
   };
+  /** ISO timestamp when the user's booking window expires (cascade mode) */
+  expiresAt?: string;
+  /** Minutes the user has to book before cascading to the next person */
+  windowMinutes?: number;
 }
 
 // Socket.io server instance

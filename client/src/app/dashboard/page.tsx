@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useState, useEffect, useCallback } from "react";
+import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -22,7 +23,18 @@ import {
   X,
   PanelLeftClose,
   PanelLeft,
+  Loader2,
+  MapPin,
+  Clock,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -92,6 +104,13 @@ export default function DashboardPage() {
   } | null>(null);
   const [quotaInfo, setQuotaInfo] = useState<{ usedHours: number; limitHours: number } | null>(null);
   const [notifyingRoomId, setNotifyingRoomId] = useState<string | null>(null);
+  // Waitlist confirmation dialog state
+  const [waitlistConfirm, setWaitlistConfirm] = useState<{
+    room: Room;
+    startTime: string;
+    endTime: string;
+  } | null>(null);
+  const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
   const [notificationsRead, setNotificationsRead] = useState(false);
   const { toast } = useToast();
 
@@ -188,6 +207,12 @@ export default function DashboardPage() {
           nextBookingInHours: room.nextBookingInHours,
           departmentId: room.departmentId,
           departmentName: room.departments?.name,
+          // US 3.7: Current booking info for waitlist
+          currentBooking: room.currentBooking ? {
+            id: room.currentBooking.id,
+            endTime: room.currentBooking.endTime,
+            startTime: room.currentBooking.startTime,
+          } : undefined,
         }))
       );
 
@@ -371,7 +396,36 @@ export default function DashboardPage() {
   };
 
   // Handle joining waitlist for occupied room (US 3.7)
-  const handleNotifyMe = async (room: Room) => {
+  // Step 1: Show confirmation dialog with the actual booking slot
+  const handleNotifyMe = (room: Room) => {
+    // Use the actual current booking's time if available, otherwise fall back to next hour
+    let startTime: string;
+    let endTime: string;
+
+    if ((room as any).currentBooking?.endTime) {
+      // Use the actual occupied booking's time slot
+      startTime = (room as any).currentBooking.startTime || new Date().toISOString();
+      endTime = (room as any).currentBooking.endTime;
+    } else {
+      // Fallback: next hour slot
+      const now = new Date();
+      const start = new Date(now);
+      start.setMinutes(0, 0, 0);
+      start.setHours(start.getHours() + 1);
+      const end = new Date(start);
+      end.setHours(end.getHours() + 1);
+      startTime = start.toISOString();
+      endTime = end.toISOString();
+    }
+
+    setWaitlistConfirm({ room, startTime, endTime });
+  };
+  // Step 2: Actually join the waitlist after user confirms
+  const handleConfirmWaitlist = async () => {
+    if (!waitlistConfirm) return;
+    const { room } = waitlistConfirm;
+
+    setIsJoiningWaitlist(true);
     setNotifyingRoomId(room.id);
     try {
       // Join waitlist for the next hour slot
@@ -390,9 +444,10 @@ export default function DashboardPage() {
       );
 
       toast({
-        title: "Added to Waitlist \u2713",
-        description: `You're #${response.data.data?.position || 1} in line for ${room.name}. We'll notify you when it's free!`,
+        title: "Added to Waitlist ✓",
+        description: `You're #${response.data.data?.position || 1} in line for ${room.name}. We'll notify you by email when it's free!`,
       });
+      setWaitlistConfirm(null);
     } catch (error: any) {
       toast({
         title: "Waitlist Failed",
@@ -400,9 +455,11 @@ export default function DashboardPage() {
         variant: "destructive",
       });
     } finally {
+      setIsJoiningWaitlist(false);
       setNotifyingRoomId(null);
     }
   };
+
 
   // Handle booking submission
   const handleBookingSubmit = async (
@@ -1005,6 +1062,63 @@ export default function DashboardPage() {
         booking={bookingToReschedule}
         onReschedule={handleReschedule}
       />
+
+      {/* Waitlist Confirmation Dialog (US 3.7) */}
+      <Dialog open={!!waitlistConfirm} onOpenChange={(open) => { if (!open) setWaitlistConfirm(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-amber-500" />
+              Join Waitlist
+            </DialogTitle>
+            <DialogDescription>
+              You'll be notified by <strong>email</strong> when this room becomes available.
+            </DialogDescription>
+          </DialogHeader>
+
+          {waitlistConfirm && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg border bg-secondary p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-semibold">{waitlistConfirm.room.name}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>
+                    {format(new Date(waitlistConfirm.startTime), "EEE, MMM d · h:mm a")} –{" "}
+                    {format(new Date(waitlistConfirm.endTime), "h:mm a")}
+                  </span>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                When the current booking ends early or is cancelled, you'll receive an email notification to book this room.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setWaitlistConfirm(null)}
+              disabled={isJoiningWaitlist}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmWaitlist}
+              disabled={isJoiningWaitlist}
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              {isJoiningWaitlist ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Joining...</>
+              ) : (
+                <><Bell className="mr-2 h-4 w-4" /> Notify Me</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

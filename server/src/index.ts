@@ -16,6 +16,7 @@ import { disconnectRedis, isRedisHealthy } from './lib/redis.js';
 import { initSocketServer } from './lib/socket.js';
 import { scheduleGhostKiller } from './jobs/ghostKiller.js';
 import { scheduleBookingReminder } from './jobs/bookingReminder.js';
+import { scheduleWaitlistCascade } from './jobs/waitlistCascade.js';
 import type { Server } from 'http';
 
 // Track server instance for graceful shutdown
@@ -68,6 +69,10 @@ async function startServer(): Promise<void> {
       logger.info(`  API Docs:      http://localhost:${config.port}/api-docs`);
       logger.info('='.repeat(60));
     });
+
+    // Schedule Waitlist Cascade cron job (US 3.7)
+    scheduleWaitlistCascade();
+    logger.info('🔔 Waitlist Cascade cron job enabled (cascades notification every 1 min)');
 
     // Setup graceful shutdown handlers
     setupGracefulShutdown();

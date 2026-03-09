@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { bookingsApi, type Booking } from "@/lib/api";
+import { utcToIstShifted } from "@/lib/dateUtils";
 
 /**
  * Hook for booking check-in reminders (US 3.8)
@@ -30,7 +31,7 @@ export function useBookingReminders() {
                 const bookings = response.data.data;
 
                 bookings.forEach((booking: Booking) => {
-                    const startTime = new Date(booking.startTime);
+                    const startTime = utcToIstShifted(booking.startTime);
                     const now = new Date();
                     const minutesUntilStart = (startTime.getTime() - now.getTime()) / (1000 * 60);
 

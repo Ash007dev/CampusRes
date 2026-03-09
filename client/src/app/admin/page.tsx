@@ -73,6 +73,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { withAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { roomsApi, bookingsApi, adminApi } from "@/lib/api";
+import { utcToIstShifted } from "@/lib/dateUtils";
 import { AddRoomModal } from "@/components/admin/AddRoomModal";
 import { EditRoomAmenitiesModal } from "@/components/admin/EditRoomAmenitiesModal";
 import { BulkImportTimetableModal } from "@/components/admin/BulkImportTimetableModal";
@@ -642,7 +643,7 @@ function AdminPage() {
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate">{booking.title || "Room Booking"}</p>
                             <p className="text-sm text-muted-foreground">
-                              {booking.room?.name || "Room"} • {new Date(booking.startTime).toLocaleDateString()}
+                              {booking.room?.name || "Room"} • {utcToIstShifted(booking.startTime).toLocaleDateString()}
                             </p>
                           </div>
                           <Badge variant={
@@ -1109,7 +1110,7 @@ function AdminPage() {
                         <div className="flex-1 min-w-0">
                           <p className="font-medium">{booking.title || "Room Booking"}</p>
                           <p className="text-sm text-muted-foreground">
-                            {booking.room?.name || "Room"} • {new Date(booking.startTime).toLocaleDateString()} at {new Date(booking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {booking.room?.name || "Room"} • {utcToIstShifted(booking.startTime).toLocaleDateString()} at {utcToIstShifted(booking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                         <Badge variant={
@@ -1132,8 +1133,8 @@ function AdminPage() {
                               setSelectedBooking({
                                 id: booking.id,
                                 title: booking.title || booking.purpose || "Room Booking",
-                                start: new Date(booking.startTime),
-                                end: new Date(booking.endTime),
+                                start: utcToIstShifted(booking.startTime),
+                                end: utcToIstShifted(booking.endTime),
                                 status: booking.status,
                                 roomName: booking.room?.name || "Room",
                                 userName: booking.user?.name || booking.user?.email || "User",

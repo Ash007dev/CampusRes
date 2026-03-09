@@ -107,7 +107,7 @@ export function RescheduleModal({
     const bookingStart = new Date(date);
     bookingStart.setHours(startHour, startMin, 0, 0);
 
-    const now = getCurrentIST();
+    const now = new Date();
     if (bookingStart <= now) {
       setError("Booking must be scheduled for a future time");
       return;

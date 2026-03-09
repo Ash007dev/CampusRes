@@ -131,6 +131,23 @@ describe('US 3.1: QR Code Check-In (Simplified — Room Code Entry)', () => {
             }
         });
 
+        it('should reject check-in when qrCode does not match the room', async () => {
+            if (!testBookingId) return;
+
+            const res = await authPost(
+                `/api/v1/bookings/${testBookingId}/check-in`,
+                {
+                    qrCode: 'WRONG-QR-CODE-999',
+                }
+            );
+
+            // Because the check for invalid code is now applied BEFORE the timing check,
+            // we should deterministically get a 400 with our specific error message.
+            expect(res.status).toBe(400);
+            expect(res.body.success).toBe(false);
+            expect(res.body.error.message).toMatch(/Invalid Check-In code/);
+        });
+
         it('should accept optional latitude and longitude for location verification', async () => {
             if (!testBookingId) return;
 

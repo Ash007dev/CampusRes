@@ -111,7 +111,7 @@ const bookingSchema = baseBookingSchema.refine(
 ).refine(
   (data) => {
     // Check if booking is in the future
-    const now = getCurrentIST();
+    const now = new Date();
     const [startHour, startMin] = data.startTime.split(":").map(Number);
     const bookingStart = new Date(data.date);
     bookingStart.setHours(startHour, startMin, 0, 0);
@@ -187,7 +187,7 @@ export function BookingModal({
       ).refine(
         (data) => {
           // Check if booking is in the future
-          const now = getCurrentIST();
+          const now = new Date();
           const [startHour, startMin] = data.startTime.split(":").map(Number);
           const bookingStart = new Date(data.date);
           bookingStart.setHours(startHour, startMin, 0, 0);

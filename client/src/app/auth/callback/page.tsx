@@ -27,6 +27,14 @@ export default function AuthCallback() {
           return;
         }
 
+        // Set the Supabase session so RLS-protected queries work
+        if (refreshToken) {
+          await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+        }
+
         // Decode the JWT payload to get user info (no API call needed)
         const payload = JSON.parse(atob(accessToken.split('.')[1]));
         const userId = payload.sub;
@@ -48,7 +56,7 @@ export default function AuthCallback() {
           const firstName = metadata.first_name || fullName.split(' ')[0];
           const lastName = metadata.last_name || fullName.split(' ').slice(1).join(' ') || '';
 
-          await supabase.from('users').insert({
+          const { error: insertError } = await supabase.from('users').insert({
             id: userId,
             email: email,
             first_name: firstName,
@@ -63,6 +71,12 @@ export default function AuthCallback() {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });
+
+          if (insertError) {
+            console.error('[OAuth Callback] Failed to create user profile:', insertError);
+          } else {
+            console.log('[OAuth Callback] Created user profile for:', email);
+          }
         }
 
         // Store token and user info for our app

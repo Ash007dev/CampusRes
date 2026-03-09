@@ -212,6 +212,136 @@ async function sendEmail(to: string, subject: string, html: string, codeForTesti
   }
 }
 
+/**
+ * Send waitlist notification email (Room slot is now available)
+ */
+export async function sendWaitlistNotificationEmail(
+  email: string,
+  userName: string,
+  details: {
+    roomName: string;
+    availableStartTime: string;
+    availableEndTime: string;
+  }
+): Promise<boolean> {
+  const subject = `🔔 Room Available! ${details.roomName} is now free`;
+
+  const startStr = new Date(details.availableStartTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  const endStr = new Date(details.availableEndTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .card { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .logo { font-size: 24px; font-weight: bold; color: #1a1a1a; }
+        .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; color: white; font-weight: bold; font-size: 14px; margin: 20px 0; background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .details-box { background: #f0fdf4; border-radius: 8px; padding: 20px; margin: 20px 0; border: 1px solid #86efac; }
+        .detail-item { margin-bottom: 8px; font-size: 14px; }
+        .detail-label { font-weight: bold; color: #64748b; width: 100px; display: inline-block; }
+        .message { color: #334155; line-height: 1.6; }
+        .footer { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 30px; }
+        .action-box { background: #eff6ff; border: 1px solid #3b82f6; border-radius: 8px; padding: 15px; margin-top: 20px; font-size: 14px; color: #1e40af; text-align: center; }
+        .hurry { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; margin-top: 15px; font-size: 13px; color: #92400e; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="card">
+          <div class="header">
+            <div class="logo">🏛️ Campus Resource Engine</div>
+          </div>
+          
+          <p class="message">Hello <strong>${userName}</strong>,</p>
+          
+          <p class="message">Great news! A room you were waiting for is now <strong>available</strong>. Log in quickly to book it before someone else does!</p>
+          
+          <div style="text-align: center;">
+            <div class="status-badge">🔔 ROOM AVAILABLE</div>
+          </div>
+          
+          <div class="details-box">
+            <div class="detail-item"><span class="detail-label">Room:</span> <span>${details.roomName}</span></div>
+            <div class="detail-item"><span class="detail-label">From:</span> <span>${startStr}</span></div>
+            <div class="detail-item"><span class="detail-label">To:</span> <span>${endStr}</span></div>
+          </div>
+          
+          <div class="action-box">
+            🚀 <strong>Log in to CampusRes now</strong> to book this room before it's taken!
+          </div>
+
+          <div class="hurry">
+            ⚡ Act fast — slots fill up quickly. This notification has been sent to all users on the waitlist.
+          </div>
+          
+          <div class="footer">
+            <p>This is an automated message from Campus Resource Engine.</p>
+            <p>Please do not reply to this email.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const textContent = `
+Hello ${userName},
+
+Great news! A room you were waiting for is now AVAILABLE.
+
+Room: ${details.roomName}
+From: ${startStr}
+To:   ${endStr}
+
+Log in to CampusRes now to book this room before it's taken!
+
+Act fast — slots fill up quickly.
+
+- Campus Resource Engine
+  `;
+
+  try {
+    if (config.nodeEnv === 'development') {
+      logger.info({ email, roomName: details.roomName }, '📧 Waitlist Notification email logged for development');
+      console.log('\n');
+      console.log('╔════════════════════════════════════════════════════════════╗');
+      console.log('║            🔔 WAITLIST SLOT AVAILABLE                      ║');
+      console.log('╠════════════════════════════════════════════════════════════╣');
+      console.log(`║  To: ${email.padEnd(51)} ║`);
+      console.log(`║  Room: ${(details.roomName || '').padEnd(49)} ║`);
+      console.log(`║  From: ${startStr.substring(0, 49).padEnd(49)} ║`);
+      console.log('╚════════════════════════════════════════════════════════════╝');
+      console.log('\n');
+    }
+
+    if (!config.email.user || !config.email.password) {
+      return true;
+    }
+
+    await getTransporter().sendMail({
+      from: `"${config.email.fromName}" <${config.email.fromEmail}>`,
+      to: email,
+      subject,
+      text: textContent,
+      html: htmlContent,
+    });
+
+    logger.info({ email, roomName: details.roomName }, 'Waitlist notification email sent');
+    return true;
+  } catch (error) {
+    logger.error({ email, error }, 'Failed to send waitlist notification email');
+    return false;
+  }
+}
+
+/**
+ * Verify SMTP connection
+ */
 export async function verifyEmailConnection(): Promise<boolean> {
   try {
     if (!config.email.user || !config.email.password) return false;
@@ -230,5 +360,6 @@ export const emailService = {
   sendBookingCancellationEmail,
   sendBookingReminderEmail,
   sendBroadcastEmail,
+  sendWaitlistNotificationEmail,
   verifyEmailConnection,
 };

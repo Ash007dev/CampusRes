@@ -35,6 +35,7 @@ import {
   InsufficientCreditsError,
   RecurringBookingConflictError,
   AppError,
+  GeolocationError,
 } from '../utils/errors.js';
 import { getCache, setCache, deleteCache } from '../lib/redis.js';
 import { emailService } from './emailService.js';
@@ -57,6 +58,24 @@ interface BookingWithRelations {
   is_peak_hours: boolean;
   rooms: any;
   users: any;
+}
+
+/**
+ * Haversine formula — returns distance in metres between two GPS coordinates.
+ * Accurate to within ~0.5% for distances up to a few kilometres.
+ */
+function haversineMeters(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number
+): number {
+  const R = 6_371_000; // Earth radius in metres
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 export class BookingService {
@@ -786,6 +805,10 @@ export class BookingService {
       throw new AppError('You can only check in to your own bookings', 403);
     }
 
+    if (qrCode !== booking.rooms?.code && qrCode !== booking.rooms?.name && qrCode !== booking.room_id && qrCode !== booking.id) {
+      throw new AppError('Invalid Check-In code. Please make sure you are checking into the correct room.', 400);
+    }
+
     if (booking.status !== 'CONFIRMED') {
       throw new AppError(`Cannot check in to a ${booking.status} booking`, 400);
     }
@@ -807,6 +830,51 @@ export class BookingService {
     if (now > checkInWindowEnd) {
       throw new AppError('Check-in window has expired', 400);
     }
+
+    // =========================================================================
+    // US 3.9 — GPS Location Verification
+    // =========================================================================
+    // Determine whether the performing user is an admin (admins bypass GPS).
+    const { data: performer } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    const isAdmin =
+      performer?.role === USER_ROLES.ADMIN ||
+      performer?.role === USER_ROLES.LAB_ADMIN;
+
+    if (!isAdmin && latitude !== undefined && longitude !== undefined) {
+      const roomLat: number | null = booking.rooms?.latitude ?? null;
+      const roomLng: number | null = booking.rooms?.longitude ?? null;
+
+      if (roomLat !== null && roomLng !== null) {
+        const distance = haversineMeters(latitude, longitude, roomLat, roomLng);
+        const allowedRadius = config.checkIn.radiusMeters; // default 50 m
+
+        logger.info(
+          { bookingId, userId, distance: Math.round(distance), allowedRadius },
+          'GPS proximity check'
+        );
+
+        if (distance > allowedRadius) {
+          throw new GeolocationError(
+            `You are too far to check in — you are ${Math.round(distance)}m away (max ${allowedRadius}m). Please go to the venue.`,
+            { distance: Math.round(distance), allowedRadius }
+          );
+        }
+      } else {
+        // Room has no GPS configured — skip the distance check
+        logger.debug({ bookingId }, 'Room has no GPS coordinates — skipping proximity check');
+      }
+    } else if (isAdmin) {
+      logger.info({ bookingId, userId }, 'Admin bypass — GPS check skipped');
+    } else {
+      // User denied location permission — enforce soft policy: allow but log
+      logger.warn({ bookingId, userId }, 'No GPS coords provided — location check skipped (user may have denied permission)');
+    }
+    // =========================================================================
 
     const { data: updated, error: updateError } = await supabase
       .from('bookings')
@@ -1057,6 +1125,13 @@ export class BookingService {
       roomId: booking.room_id,
       roomName: booking.rooms?.name || 'Room',
     });
+
+    // US 3.7: Notify waitlisted users that the slot is now available (early checkout freed the room)
+    await waitlistService.notifyWaitlistedUsers(
+      booking.room_id,
+      parseDbDate(booking.start_time),
+      parseDbDate(booking.end_time)
+    );
 
     return { ...updated, refundedCredits: refundCredits };
   }

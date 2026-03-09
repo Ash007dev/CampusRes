@@ -18,7 +18,10 @@ import {
   FileText,
   CreditCard,
   LogOut,
+  QrCode,
+  ScanLine,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Dialog,
   DialogContent,
@@ -137,6 +140,13 @@ export function BookingDetailsModal({
   const isNow = startTime <= nowShifted && endTime >= nowShifted;
   const isCheckedIn = booking.checkInStatus === "CHECKED_IN";
 
+  // Room code for QR generation
+  // Extract from roomName pattern like "LB-101" or use roomId slice as fallback
+  const roomCode =
+    booking.roomName?.match(/([A-Z]+-\d+)/)?.[0] ||
+    booking.roomName?.toUpperCase().replace(/\s+/g, "-").slice(0, 8) ||
+    booking.id.slice(0, 8).toUpperCase();
+
   const userInitials = booking.userName
     ? booking.userName
       .split(" ")
@@ -144,6 +154,9 @@ export function BookingDetailsModal({
       .join("")
       .toUpperCase()
     : "U";
+
+  // Show QR code for CONFIRMED bookings that haven't been checked in yet
+  const showQR = booking.status === "CONFIRMED" && !isCheckedIn && booking.isOwner;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -194,6 +207,64 @@ export function BookingDetailsModal({
         </DialogHeader>
 
         <Separator />
+
+        {/* ── QR Code Section (Demo Check-In) ────────────────────────── */}
+        {showQR && (
+          <>
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold uppercase text-muted-foreground tracking-wide flex items-center gap-2">
+                <QrCode className="h-4 w-4" />
+                Room QR Code — Scan to Check In
+              </h3>
+
+              <div className="flex flex-col sm:flex-row items-center gap-6 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-6">
+                {/* QR code */}
+                <div className="flex-shrink-0 rounded-xl bg-white p-4 shadow-md border border-border">
+                  <QRCodeSVG
+                    value={roomCode}
+                    size={160}
+                    level="H"
+                    includeMargin={false}
+                  />
+                </div>
+
+                {/* Instructions */}
+                <div className="flex-1 space-y-3 text-center sm:text-left">
+                  <div>
+                    <p className="text-2xl font-bold font-mono tracking-widest text-primary">
+                      {roomCode}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Room access code
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-start gap-2">
+                      <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary text-white text-xs font-bold">1</div>
+                      <span>Click <strong>"Check In Now"</strong> below</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary text-white text-xs font-bold">2</div>
+                      <span>Camera opens — point it at this QR code</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary text-white text-xs font-bold">3</div>
+                      <span>Auto-detected → checked in instantly!</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-xs text-primary font-medium">
+                    <ScanLine className="h-3.5 w-3.5" />
+                    <span>Or use the "Enter Code" tab to type it manually</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+          </>
+        )}
 
         {/* Main content - Teams/Meet inspired layout */}
         <div className="space-y-6">
