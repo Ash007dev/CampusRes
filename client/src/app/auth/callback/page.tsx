@@ -46,17 +46,23 @@ export default function AuthCallback() {
         setStatus('Setting up your account...');
 
         // Ensure user exists in public.users table
-        const { data: existingUser } = await supabase
+        const { data: existingUser, error: fetchError } = await supabase
           .from('users')
           .select('id, role, reputation_score')
           .eq('id', userId)
           .single();
 
+        // PGRST116 = no rows found (expected for new users), anything else is a real error
+        if (fetchError && fetchError.code !== 'PGRST116') {
+          console.warn('[OAuth Callback] Error fetching user:', fetchError.message);
+        }
+
         if (!existingUser) {
           const firstName = metadata.first_name || fullName.split(' ')[0];
           const lastName = metadata.last_name || fullName.split(' ').slice(1).join(' ') || '';
 
-          const { error: insertError } = await supabase.from('users').insert({
+          // Use upsert to safely handle race conditions / duplicate sign-ins
+          const { error: upsertError } = await supabase.from('users').upsert({
             id: userId,
             email: email,
             first_name: firstName,
@@ -70,10 +76,12 @@ export default function AuthCallback() {
             no_show_count: 0,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          });
+          }, { onConflict: 'id', ignoreDuplicates: true });
 
-          if (insertError) {
-            console.error('[OAuth Callback] Failed to create user profile:', insertError);
+          if (upsertError) {
+            console.error('[OAuth Callback] Failed to create user profile:',
+              upsertError.message, '| code:', upsertError.code,
+              '| details:', upsertError.details, '| hint:', upsertError.hint);
           } else {
             console.log('[OAuth Callback] Created user profile for:', email);
           }

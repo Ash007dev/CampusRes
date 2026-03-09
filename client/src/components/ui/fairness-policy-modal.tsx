@@ -10,6 +10,7 @@
  */
 
 import * as React from "react";
+import { useState, useEffect } from "react";
 import {
     AlertCircle,
     Clock,
@@ -111,16 +112,24 @@ export function FairnessPolicyModal({
     noShowCount = 0,
 }: FairnessPolicyModalProps) {
     const quotaPercentage = Math.min(100, (quotaUsed / quotaLimit) * 100);
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
+    const triggerButton = trigger || (
+        <Button variant="ghost" size="sm">
+            <HelpCircle className="h-4 w-4 mr-2" />
+            Booking Rules
+        </Button>
+    );
+
+    // On SSR, render only the trigger button (no Dialog) to avoid
+    // Radix auto-incremented aria-controls ID mismatch between server and client
+    if (!mounted) return triggerButton;
 
     return (
         <Dialog>
             <DialogTrigger asChild>
-                {trigger || (
-                    <Button variant="ghost" size="sm">
-                        <HelpCircle className="h-4 w-4 mr-2" />
-                        Booking Rules
-                    </Button>
-                )}
+                {triggerButton}
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
                 <DialogHeader>

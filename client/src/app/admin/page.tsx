@@ -1255,7 +1255,7 @@ function AdminPage() {
                         <BarChart2 className="h-6 w-6 text-emerald-500" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl">Utilization Report (US 3)</CardTitle>
+                        <CardTitle className="text-xl">Utilization Report</CardTitle>
                         <CardDescription>Rooms below occupancy threshold with re-purposing suggestions</CardDescription>
                       </div>
                     </div>
@@ -1378,7 +1378,7 @@ function AdminPage() {
                         <UserX className="h-6 w-6 text-red-500" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl">No-Show Offenders (US 4)</CardTitle>
+                        <CardTitle className="text-xl">No-Show Offenders</CardTitle>
                         <CardDescription>Users with high no-show rates and their escalation tiers</CardDescription>
                       </div>
                     </div>

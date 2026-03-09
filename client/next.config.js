@@ -5,6 +5,9 @@ const nextConfig = {
   // Enable standalone output for Docker deployment
   output: 'standalone',
 
+  // Transpile CJS modules that Turbopack can't handle natively
+  transpilePackages: ['react-big-calendar'],
+
   // Environment variables exposed to the browser
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1',

@@ -704,7 +704,7 @@ export function BookingModal({
             <div className="space-y-2 rounded-md border border-blue-200 bg-blue-50/40 dark:bg-blue-950/20 dark:border-blue-900/50 p-3">
               <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 text-xs font-medium">
                 <Lightbulb className="h-3.5 w-3.5" />
-                <span>Smart Room Suggestion (US 7)</span>
+                <span>Smart Room Suggestion</span>
               </div>
               <div className="flex gap-2">
                 <div className="relative flex-1">
