@@ -95,7 +95,7 @@ function MobileCheckInContent() {
                             You are checking into room <strong>{roomCode}</strong>.
                             {locationStatus === "pending" && <span className="block text-xs mt-2 text-yellow-600 animate-pulse">Acquiring GPS location...</span>}
                             {locationStatus === "granted" && <span className="block text-xs mt-2 text-green-600">Location verified ✓</span>}
-                            {locationStatus === "denied" && <span className="block text-xs mt-2 text-red-500">Location denied. You must be on campus.</span>}
+                            {locationStatus === "denied" && <span className="block text-xs mt-2 text-yellow-600">Location access denied. GPS verification skipped (Soft Policy).</span>}
                         </p>
 
                         <Button

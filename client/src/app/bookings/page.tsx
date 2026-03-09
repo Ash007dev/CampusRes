@@ -42,7 +42,7 @@ import { bookingsApi, type Booking } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 import { QRScanner } from "@/components/booking/QRScanner";
 import { RescheduleModal } from "@/components/booking/RescheduleModal";
-import { formatTimeInIst, formatDateTimeInIst } from "@/lib/dateUtils";
+import { formatTimeInIst, formatDateTimeInIst, utcToIstShifted } from "@/lib/dateUtils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -160,9 +160,9 @@ export default function BookingsPage() {
         const booking = bookings.find(b => b.id === id);
         if (!booking) return;
 
-        // Extract room code from room name (e.g., "LB-101" from "Library Room 101")
         const roomName = booking.room?.name || '';
-        const extractedCode = roomName.match(/([A-Z]+-\d+)/)?.[0] || roomCode;
+        const regexMatch = roomName.match(/([A-Z]+-\d+)/)?.[0];
+        const extractedCode = roomCode || regexMatch || booking.room?.code || booking.roomId || booking.id;
 
         setSelectedBookingForCheckIn({ id, roomCode: extractedCode });
         setQrScannerOpen(true);
@@ -289,7 +289,7 @@ export default function BookingsPage() {
             (booking.description || "").toLowerCase().includes(searchQuery.toLowerCase());
         const matchesStatus =
             statusFilter === "all" || booking.status === statusFilter;
-        const bookingEndTime = new Date(booking.endTime);
+        const bookingEndTime = utcToIstShifted(booking.endTime);
         const now = new Date();
         // A booking is "upcoming/active" until its END time passes (not start time)
         // This keeps active bookings in the Upcoming tab where users can check-in, extend, etc.
@@ -397,8 +397,8 @@ export default function BookingsPage() {
                                 <div className="text-2xl font-bold text-emerald-500">
                                     {bookings.filter(b => {
                                         const now = new Date();
-                                        const start = new Date(b.startTime);
-                                        const end = new Date(b.endTime);
+                                        const start = utcToIstShifted(b.startTime);
+                                        const end = utcToIstShifted(b.endTime);
                                         return b.checkInStatus === "CHECKED_IN" && start <= now && end > now;
                                     }).length}
                                 </div>
@@ -439,8 +439,8 @@ export default function BookingsPage() {
                             ) : (
                                 filteredBookings.map((booking) => {
                                     const StatusIcon = STATUS_ICONS[booking.status] || AlertCircle;
-                                    const startTime = booking.startTime ? new Date(booking.startTime) : null;
-                                    const endTime = booking.endTime ? new Date(booking.endTime) : null;
+                                    const startTime = booking.startTime ? utcToIstShifted(booking.startTime) : null;
+                                    const endTime = booking.endTime ? utcToIstShifted(booking.endTime) : null;
                                     const isValidDate = startTime && !isNaN(startTime.getTime()) && endTime && !isNaN(endTime.getTime());
                                     const roomName = booking.room?.name || booking.title || "Room";
                                     const building = booking.room?.building || "Building";

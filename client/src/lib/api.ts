@@ -8,7 +8,18 @@
 
 import axios, { AxiosError, AxiosInstance } from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+const getApiUrl = () => {
+  if (typeof window !== 'undefined') {
+    const { hostname } = window.location;
+    // If running on a local network IP (e.g., 192.168.x.x), point to the same IP on port 3001
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return `http://${hostname}:3001/api/v1`;
+    }
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+};
+
+const API_URL = getApiUrl();
 
 /**
  * Create Axios instance with default configuration
