@@ -9,6 +9,10 @@
 
 import { Response, NextFunction } from 'express';
 import { bookingService } from '../services/bookingService.js';
+import { suggestionService } from '../services/suggestionService.js';
+import { bookingPatternService } from '../services/bookingPatternService.js';
+import { roomRecommendationService } from '../services/roomRecommendationService.js';
+import { loadBalancingService } from '../services/loadBalancingService.js';
 import { asyncHandler, type AuthenticatedRequest } from '../middleware/index.js';
 import { HTTP_STATUS } from '../config/constants.js';
 import { logger } from '../config/logger.js';
@@ -425,6 +429,126 @@ export const bookingController = {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename=bookings-export-${new Date().toISOString().split('T')[0]}.csv`);
     res.send(csv);
+  }),
+
+  /**
+   * Get alternative booking suggestions when a slot is unavailable
+   * GET /api/v1/bookings/suggestions
+   */
+  getSuggestions: asyncHandler(async (req, res: Response) => {
+    const { roomId, startTime, endTime, attendeeCount } = req.query as {
+      roomId: string;
+      startTime: string;
+      endTime: string;
+      attendeeCount?: string;
+    };
+
+    if (!roomId || !startTime || !endTime) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'roomId, startTime, and endTime are required query parameters' },
+      });
+      return;
+    }
+
+    const suggestions = await suggestionService.getAlternativeSuggestions(
+      roomId,
+      startTime,
+      endTime,
+      attendeeCount ? parseInt(attendeeCount) : 1
+    );
+
+    res.json({
+      success: true,
+      data: suggestions,
+    });
+  }),
+
+  /**
+   * Get quick-book suggestions based on recurring patterns (US 6)
+   * GET /api/v1/bookings/quick-book-suggestions
+   */
+  getQuickBookSuggestions: asyncHandler(async (req, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const days = req.query.days ? parseInt(req.query.days as string) : 60;
+
+    const result = await bookingPatternService.getQuickBookSuggestions(
+      authReq.user.userId,
+      days
+    );
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  }),
+
+  /**
+   * Get AI-powered room recommendation
+   * GET /api/v1/bookings/recommend-room
+   */
+  recommendRoom: asyncHandler(async (req, res: Response) => {
+    const { attendeeCount, startTime, endTime, amenities } = req.query as {
+      attendeeCount: string;
+      startTime: string;
+      endTime: string;
+      amenities?: string;
+    };
+
+    if (!attendeeCount || !startTime || !endTime) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'attendeeCount, startTime, and endTime are required' },
+      });
+      return;
+    }
+
+    const requiredAmenities = amenities ? amenities.split(',').map(a => a.trim()) : [];
+
+    const result = await roomRecommendationService.recommendRoom(
+      parseInt(attendeeCount),
+      startTime,
+      endTime,
+      requiredAmenities
+    );
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  }),
+
+  /**
+   * Get load-balanced room suggestion
+   * GET /api/v1/bookings/balanced-room
+   */
+  getBalancedRoom: asyncHandler(async (req, res: Response) => {
+    const { roomId, startTime, endTime, attendeeCount } = req.query as {
+      roomId: string;
+      startTime: string;
+      endTime: string;
+      attendeeCount?: string;
+    };
+
+    if (!roomId || !startTime || !endTime) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'roomId, startTime, and endTime are required' },
+      });
+      return;
+    }
+
+    const result = await loadBalancingService.getBalancedRoom(
+      roomId,
+      startTime,
+      endTime,
+      attendeeCount ? parseInt(attendeeCount) : 1
+    );
+
+    res.json({
+      success: true,
+      data: result,
+    });
   }),
 
   /**
