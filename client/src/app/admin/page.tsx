@@ -43,6 +43,10 @@ import {
   Send,
   Megaphone,
   Loader2,
+  BarChart2,
+  UserX,
+  ShieldAlert,
+  RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -72,7 +76,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useToast } from "@/components/ui/use-toast";
 import { withAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import { roomsApi, bookingsApi, adminApi } from "@/lib/api";
+import { roomsApi, bookingsApi, adminApi, type UnderutilizedRoom, type NoShowOffender, type NoShowTier } from "@/lib/api";
 import { utcToIstShifted } from "@/lib/dateUtils";
 import { AddRoomModal } from "@/components/admin/AddRoomModal";
 import { EditRoomAmenitiesModal } from "@/components/admin/EditRoomAmenitiesModal";
@@ -198,6 +202,15 @@ function AdminPage() {
   const [broadcastSubject, setBroadcastSubject] = useState('');
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [isSendingBroadcast, setIsSendingBroadcast] = useState(false);
+  // US 3 – Utilization Report
+  const [underutilizedRooms, setUnderutilizedRooms] = useState<UnderutilizedRoom[]>([]);
+  const [isLoadingUtilization, setIsLoadingUtilization] = useState(false);
+  const [utilizationLoaded, setUtilizationLoaded] = useState(false);
+  // US 4 – No-Show Report
+  const [noShowReport, setNoShowReport] = useState<NoShowOffender[]>([]);
+  const [isLoadingNoShow, setIsLoadingNoShow] = useState(false);
+  const [noShowLoaded, setNoShowLoaded] = useState(false);
+  const [resettingUserId, setResettingUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Load user from localStorage
@@ -1228,8 +1241,297 @@ function AdminPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
+              className="space-y-8"
             >
+              {/* US 1 – Demand Forecast Heatmap */}
               <DemandForecastHeatmap />
+
+              {/* US 3 – Utilization Report */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg bg-emerald-500/10">
+                        <BarChart2 className="h-6 w-6 text-emerald-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">Utilization Report (US 3)</CardTitle>
+                        <CardDescription>Rooms below occupancy threshold with re-purposing suggestions</CardDescription>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        setIsLoadingUtilization(true);
+                        try {
+                          const res = await adminApi.getUnderutilizedRooms(30, 30);
+                          // Service returns { rooms: [...], threshold, periodDays, generatedAt }
+                          const raw = res.data.data as any;
+                          const roomsList = Array.isArray(raw) ? raw : (raw?.rooms || []);
+                          // Map server shape to frontend UnderutilizedRoom interface
+                          const mapped: UnderutilizedRoom[] = roomsList.map((r: any) => ({
+                            roomId: r.roomId,
+                            roomName: r.roomName,
+                            roomCode: r.roomCode || '',
+                            building: r.building || '',
+                            capacity: r.capacity || 0,
+                            utilizationPercent: r.utilizationPercent ?? 0,
+                            totalSlots: 0,
+                            bookedSlots: 0,
+                            trend: (() => {
+                              const wt: any[] = r.weeklyTrend || [];
+                              if (wt.length < 2) return 'STABLE';
+                              const diff = wt[wt.length - 1].utilizationPercent - wt[0].utilizationPercent;
+                              if (diff > 3) return 'IMPROVING';
+                              if (diff < -3) return 'DECLINING';
+                              return 'STABLE';
+                            })(),
+                            suggestion: r.suggestion || '',
+                          }));
+                          setUnderutilizedRooms(mapped);
+                          setUtilizationLoaded(true);
+                        } catch (err: any) {
+                          toast({ title: 'Failed to load report', description: err.message, variant: 'destructive' });
+                        } finally {
+                          setIsLoadingUtilization(false);
+                        }
+                      }}
+                      disabled={isLoadingUtilization}
+                    >
+                      {isLoadingUtilization ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <BarChart2 className="h-4 w-4 mr-2" />}
+                      {utilizationLoaded ? 'Refresh Report' : 'Load Report'}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {!utilizationLoaded ? (
+                    <div className="text-center py-10 text-muted-foreground">
+                      <BarChart2 className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>Click &quot;Load Report&quot; to analyze room utilization over the past 30 days.</p>
+                    </div>
+                  ) : underutilizedRooms.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground">
+                      <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-emerald-500 opacity-60" />
+                      <p>All rooms are meeting the utilization threshold. Great job!</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Room</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Building</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Utilization</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Trend</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Capacity</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Suggestion</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {underutilizedRooms.map((room) => (
+                            <tr key={room.roomId} className="border-b hover:bg-muted/50 transition-colors">
+                              <td className="px-4 py-3">
+                                <div className="font-medium">{room.roomName}</div>
+                                <div className="text-xs text-muted-foreground">{room.roomCode}</div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">{room.building}</td>
+                              <td className="px-4 py-3">
+                                <Badge
+                                  className={cn(
+                                    room.utilizationPercent >= 50 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                                      room.utilizationPercent >= 20 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
+                                        'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                  )}
+                                >
+                                  {room.utilizationPercent.toFixed(1)}%
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-1">
+                                  {room.trend === 'IMPROVING' ? (
+                                    <TrendingUp className="h-4 w-4 text-emerald-500" />
+                                  ) : room.trend === 'DECLINING' ? (
+                                    <TrendingDown className="h-4 w-4 text-red-500" />
+                                  ) : (
+                                    <Activity className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                  <span className="text-sm">{room.trend}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm">{room.capacity} ppl</td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs">{room.suggestion}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* US 4 – No-Show Offenders Report */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg bg-red-500/10">
+                        <UserX className="h-6 w-6 text-red-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">No-Show Offenders (US 4)</CardTitle>
+                        <CardDescription>Users with high no-show rates and their escalation tiers</CardDescription>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        setIsLoadingNoShow(true);
+                        try {
+                          const res = await adminApi.getNoShowReport();
+                          const raw: any[] = (res.data.data as any) || [];
+                          // Map numeric no_show_tier (0-4) → string escalationTier
+                          const tierToLabel = (t: number): NoShowTier => {
+                            if (t <= 0) return 'NONE';
+                            if (t === 1) return 'WARNING';
+                            if (t === 2 || t === 3) return 'RESTRICTED';
+                            return 'SUSPENDED';
+                          };
+                          const mapped: NoShowOffender[] = raw.map((u) => ({
+                            userId: u.userId,
+                            userName: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
+                            userEmail: u.email,
+                            noShowCount: u.noShowCount || 0,
+                            totalBookings: u.noShowCount || 0, // server doesn't return total; use noShowCount as fallback
+                            noShowRate: 0,
+                            escalationTier: tierToLabel(u.noShowTier || 0),
+                            blockedUntil: u.blockedUntil || undefined,
+                          }));
+                          setNoShowReport(mapped);
+                          setNoShowLoaded(true);
+                        } catch (err: any) {
+                          toast({ title: 'Failed to load report', description: err.message, variant: 'destructive' });
+                        } finally {
+                          setIsLoadingNoShow(false);
+                        }
+                      }}
+                      disabled={isLoadingNoShow}
+                    >
+                      {isLoadingNoShow ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserX className="h-4 w-4 mr-2" />}
+                      {noShowLoaded ? 'Refresh Report' : 'Load Report'}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {!noShowLoaded ? (
+                    <div className="text-center py-10 text-muted-foreground">
+                      <UserX className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>Click &quot;Load Report&quot; to see users ranked by no-show frequency.</p>
+                    </div>
+                  ) : noShowReport.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground">
+                      <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-emerald-500 opacity-60" />
+                      <p>No no-show offenders found. All users are checking in on time!</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="px-4 py-3 text-left text-sm font-semibold">User</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">No-Shows</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Rate</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Tier</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Blocked Until</th>
+                            <th className="px-4 py-3 text-right text-sm font-semibold">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {noShowReport.map((offender) => (
+                            <tr key={offender.userId} className="border-b hover:bg-muted/50 transition-colors">
+                              <td className="px-4 py-3">
+                                <div className="font-medium">{offender.userName}</div>
+                                <div className="text-xs text-muted-foreground">{offender.userEmail}</div>
+                              </td>
+                              <td className="px-4 py-3 text-sm">
+                                {offender.noShowCount} / {offender.totalBookings}
+                              </td>
+                              <td className="px-4 py-3">
+                                <Badge
+                                  className={cn(
+                                    offender.noShowRate >= 0.5 ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                                      offender.noShowRate >= 0.25 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
+                                        'bg-muted text-muted-foreground'
+                                  )}
+                                >
+                                  {(offender.noShowRate * 100).toFixed(0)}%
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3">
+                                <Badge
+                                  className={cn(
+                                    offender.escalationTier === 'SUSPENDED' ? 'bg-red-500 text-white' :
+                                      offender.escalationTier === 'RESTRICTED' ? 'bg-orange-500 text-white' :
+                                        offender.escalationTier === 'WARNING' ? 'bg-amber-500 text-white' :
+                                          'bg-muted text-muted-foreground'
+                                  )}
+                                >
+                                  {offender.escalationTier === 'NONE' ? (
+                                    <><CheckCircle2 className="h-3 w-3 mr-1" />NONE</>
+                                  ) : offender.escalationTier === 'WARNING' ? (
+                                    <><AlertTriangle className="h-3 w-3 mr-1" />WARNING</>
+                                  ) : offender.escalationTier === 'RESTRICTED' ? (
+                                    <><ShieldAlert className="h-3 w-3 mr-1" />RESTRICTED</>
+                                  ) : (
+                                    <><XCircle className="h-3 w-3 mr-1" />SUSPENDED</>
+                                  )}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">
+                                {offender.blockedUntil
+                                  ? new Date(offender.blockedUntil).toLocaleDateString()
+                                  : '—'}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                {offender.escalationTier !== 'NONE' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={resettingUserId === offender.userId}
+                                    onClick={async () => {
+                                      setResettingUserId(offender.userId);
+                                      try {
+                                        await adminApi.resetNoShowTier(offender.userId);
+                                        toast({
+                                          title: 'Restrictions Reset ✓',
+                                          description: `${offender.userName}'s escalation tier has been reset.`,
+                                        });
+                                        // Refresh the report
+                                        const res = await adminApi.getNoShowReport();
+                                        setNoShowReport((res.data.data as any) || []);
+                                      } catch (err: any) {
+                                        toast({ title: 'Reset Failed', description: err.message, variant: 'destructive' });
+                                      } finally {
+                                        setResettingUserId(null);
+                                      }
+                                    }}
+                                  >
+                                    {resettingUserId === offender.userId ? (
+                                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                    ) : (
+                                      <RotateCcw className="h-3 w-3 mr-1" />
+                                    )}
+                                    Reset
+                                  </Button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </motion.div>
           )}
 

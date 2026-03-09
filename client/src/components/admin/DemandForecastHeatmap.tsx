@@ -289,7 +289,7 @@ export function DemandForecastHeatmap() {
                 </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto">
-                        <div className="min-w-[800px]">
+                        <div className="min-w-[800px] pt-16">
                             {/* Hour labels row */}
                             <div className="flex gap-[2px] mb-1 ml-[88px]">
                                 {hourLabels.map((label, i) => (
@@ -301,6 +301,7 @@ export function DemandForecastHeatmap() {
                                     </div>
                                 ))}
                             </div>
+
 
                             {/* Day rows */}
                             {data?.forecast.map((day, dayIdx) => (
@@ -332,7 +333,7 @@ export function DemandForecastHeatmap() {
                                                 onMouseEnter={() => setHoveredCell({ day: day.dayOfWeek, hour: hour.hour })}
                                                 onMouseLeave={() => setHoveredCell(null)}
                                             >
-                                                {/* Tooltip */}
+                                                {/* Tooltip — always above the cell */}
                                                 {isHovered && (
                                                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none">
                                                         <div className="bg-popover text-popover-foreground border rounded-lg shadow-lg px-3 py-2 text-xs whitespace-nowrap">

@@ -34,7 +34,7 @@ export function formatTimeInIst(utcDate: string | Date): string {
 export function formatDateTimeInIst(utcDateString: string): string {
     const date = new Date(utcDateString);
     return date.toLocaleString('en-IN', {
-        timeZone: 'Asia/Kolkata', // Properly convert UTC to IST
+        timeZone: 'UTC', // Fake UTC: the stored value IS already the correct IST time
         year: 'numeric',
         month: 'short',
         day: 'numeric',

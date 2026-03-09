@@ -14,7 +14,7 @@ import { config } from '../config/index.js';
 import { emitBookingUpdate, emitRoomUpdate, sendNotification } from '../lib/socket.js';
 import { waitlistService } from './waitlistService.js';
 import { logAudit } from '../utils/auditLogger.js';
-import { getCurrentIST, getISTHour, getISTStartOfDay, isISTPeakHour, istToUtc, parseDbDate } from '../utils/dateUtils.js';
+import { getCurrentIST, getISTHour, getISTStartOfDay, isISTPeakHour, istToUtc, parseDbDate, fakeUtcToRealUtc } from '../utils/dateUtils.js';
 import {
   BOOKING_STATUS,
   APPROVAL_REQUIRED_ROOM_TYPES,
@@ -979,17 +979,35 @@ export class BookingService {
       new_state: { status: newStatus, reason: reason || null },
     });
 
-    // Send notification email (US 4.2 & 4.3)
+    // Send notification email + real-time socket event (US 1, US 4.2 & 4.3)
     const user = updated.users as any;
     if (user && user.email) {
       const userName = `${user.first_name} ${user.last_name}`;
+      const roomName = updated.rooms?.name || 'Room';
+
+      // Email notification (fire-and-forget)
       emailService.sendBookingStatusEmail(user.email, userName, {
-        roomName: updated.rooms?.name || 'Room',
+        roomName,
         startTime: updated.start_time,
         endTime: updated.end_time,
         status: approved ? 'CONFIRMED' : 'REJECTED',
         reason: reason || (approved ? undefined : 'Booking rejected by admin')
       }).catch(err => logger.error({ err }, 'Failed to send booking status email'));
+
+      // Real-time socket notification (US 1)
+      if (approved) {
+        sendNotification(
+          booking.user_id,
+          `✅ Your booking for ${roomName} on ${new Date(booking.start_time).toLocaleString()} has been approved!`,
+          'success'
+        );
+      } else {
+        sendNotification(
+          booking.user_id,
+          `❌ Your booking for ${roomName} on ${new Date(booking.start_time).toLocaleString()} has been rejected.${reason ? ` Reason: ${reason}` : ''}`,
+          'warning'
+        );
+      }
     }
 
     return updated;
@@ -1543,19 +1561,21 @@ export class BookingService {
     }
 
     // Must be within the grace window: between start_time and start_time + gracePeriod
+    // Convert the database's Fake UTC string back to a real UTC Date for accurate comparison
     const now = new Date();
-    const startTime = parseDbDate(booking.start_time);
+    const parsedStart = parseDbDate(booking.start_time);
+    const startTimeRealUtc = fakeUtcToRealUtc(parsedStart);
     const gracePeriodMs = config.ghostKiller.gracePeriodMinutes * TIME.MINUTE;
-    const graceDeadline = new Date(startTime.getTime() + gracePeriodMs);
+    const graceDeadlineRealUtc = new Date(startTimeRealUtc.getTime() + gracePeriodMs);
 
-    if (now < startTime) {
+    if (now < startTimeRealUtc) {
       throw new AppError(
         'You can only mark running late after the booking start time',
         400
       );
     }
 
-    if (now > graceDeadline) {
+    if (now > graceDeadlineRealUtc) {
       throw new AppError(
         'The grace period has already expired',
         400

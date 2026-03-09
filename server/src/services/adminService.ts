@@ -45,7 +45,7 @@ export const adminService = {
             const { data: recentBookings, error: recentError } = await supabase
                 .from('bookings')
                 .select('start_time, end_time')
-                .in('status', ['CONFIRMED', 'CHECKED_IN', 'COMPLETED'])
+                .in('status', ['CONFIRMED', 'COMPLETED'])
                 .gte('start_time', sevenDaysAgo.toISOString());
 
             let utilizationRate = 0;

@@ -26,6 +26,7 @@ import {
   Loader2,
   MapPin,
   Clock,
+  Zap,
 } from "lucide-react";
 import {
   Dialog,
@@ -67,7 +68,7 @@ import {
 } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { roomsApi, bookingsApi, authApi, waitlistApi } from "@/lib/api";
+import { roomsApi, bookingsApi, authApi, waitlistApi, type QuickBookSuggestion } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { SlotInfo } from "react-big-calendar";
 import { utcToIstShifted, getCurrentIST } from "@/lib/dateUtils";
@@ -112,6 +113,8 @@ export default function DashboardPage() {
   } | null>(null);
   const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
   const [notificationsRead, setNotificationsRead] = useState(false);
+  // US 6 – Quick Book suggestions
+  const [quickBookSuggestions, setQuickBookSuggestions] = useState<QuickBookSuggestion[]>([]);
   const { toast } = useToast();
 
   const { filters, setFilters } = useRoomFilters();
@@ -269,6 +272,35 @@ export default function DashboardPage() {
       setNotificationsRead(false); // Reset so new bookings trigger badge
     }
   }, [user?.id]);
+
+  // US 6 – Load quick book suggestions on mount
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (!token) return;
+    bookingsApi.getQuickBookSuggestions(60)
+      .then(res => {
+        const raw = res.data.data as any;
+        // Service returns { suggestions: [...], analyzedBookings, periodDays }
+        const list = Array.isArray(raw) ? raw : (raw?.suggestions || []);
+        // Map server property names to QuickBookSuggestion interface
+        const mapped = list.map((s: any) => ({
+          roomId: s.roomId,
+          roomName: s.roomName,
+          roomCode: s.roomCode || '',
+          building: s.building || '',
+          floor: s.prefilled?.floor || s.room?.floor || 1,
+          capacity: s.prefilled?.attendeeCount || s.room?.capacity || 0,
+          typicalStartTime: s.prefilled?.startTime || s.startTime || '',
+          typicalEndTime: s.prefilled?.endTime || s.endTime || '',
+          dayOfWeek: s.dayOfWeek,
+          dayName: s.dayName,
+          occurrences: s.frequency || s.occurrences || 1,
+          confidence: Math.min(1, (s.frequency || 1) / 5),
+        }));
+        setQuickBookSuggestions(mapped);
+      })
+      .catch(() => { /* silently ignore — feature degrades gracefully */ });
+  }, []);
 
   // US 3.3: Live occupancy - listen for real-time booking updates via WebSocket
   const handleBookingUpdate = useCallback((update: BookingUpdate) => {
@@ -862,6 +894,64 @@ export default function DashboardPage() {
 
           {/* Main Content */}
           <main className="flex-1">
+            {/* US 6 – Quick Book / Frequently Booked Section */}
+            {quickBookSuggestions.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mb-6"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-6 w-6 rounded bg-primary/10 flex items-center justify-center">
+                    <Zap className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <h2 className="text-base font-semibold">Quick Book</h2>
+                  <span className="text-xs text-muted-foreground">Based on your booking history</span>
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                  {quickBookSuggestions.slice(0, 6).map((s, idx) => {
+                    const start = new Date(s.typicalStartTime);
+                    const end = new Date(s.typicalEndTime);
+                    const timeLabel = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                    return (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="flex-shrink-0 rounded-xl border bg-card p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer min-w-[200px] max-w-[220px]"
+                        onClick={() => {
+                          // Pre-fill booking modal with suggestion
+                          const room = rooms.find(r => r.id === s.roomId) || {
+                            id: s.roomId, name: s.roomName, code: s.roomCode,
+                            building: s.building, floor: String(s.floor),
+                            capacity: s.capacity, type: '', amenities: [],
+                            isAvailable: true, availabilityStatus: 'AVAILABLE' as const,
+                          };
+                          setSelectedRoom(room as any);
+                          setSelectedSlot({ date: start, startTime: start });
+                          setIsBookingModalOpen(true);
+                        }}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <span className="text-sm font-semibold line-clamp-1">{s.roomName}</span>
+                          <Badge variant="outline" className="text-[10px] ml-2 flex-shrink-0">
+                            {s.occurrences}x
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-1">{s.building} · Floor {s.floor}</p>
+                        <p className="text-xs font-medium text-primary">{s.dayName}, {timeLabel}</p>
+                        <Button size="sm" variant="default" className="w-full mt-3 h-7 text-xs">
+                          Book Now
+                        </Button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+
             {/* View Controls */}
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>

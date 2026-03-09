@@ -26,6 +26,14 @@ interface BalancedRoomResult {
         building: string;
         capacity: number;
     } | null;
+    // Frontend alias: same room data keyed as 'suggestedRoom' with id/name fields
+    suggestedRoom: {
+        id: string;
+        name: string;
+        code: string;
+        building: string;
+        capacity: number;
+    } | null;
     reason: string;
     equivalentRooms: RoomBookingCount[];
 }
@@ -83,6 +91,7 @@ export const loadBalancingService = {
                         building: originalRoom.building,
                         capacity: originalRoom.capacity,
                     },
+                    suggestedRoom: null, // frontend alias
                     reason: 'No equivalent rooms found; using the originally requested room.',
                     equivalentRooms: [],
                 };
@@ -99,7 +108,7 @@ export const loadBalancingService = {
                 .from('bookings')
                 .select('room_id')
                 .in('room_id', equivalentIds)
-                .in('status', ['CONFIRMED', 'CHECKED_IN', 'PENDING'])
+                .in('status', ['CONFIRMED', 'PENDING'])
                 .gte('start_time', dayStart)
                 .lte('start_time', dayEnd);
 
@@ -117,7 +126,7 @@ export const loadBalancingService = {
                 .from('bookings')
                 .select('room_id')
                 .in('room_id', equivalentIds)
-                .in('status', ['CONFIRMED', 'CHECKED_IN', 'PENDING'])
+                .in('status', ['CONFIRMED', 'PENDING'])
                 .lt('start_time', endTime)
                 .gt('end_time', startTime);
 
@@ -139,6 +148,7 @@ export const loadBalancingService = {
             if (availableRooms.length === 0) {
                 return {
                     recommendedRoom: null,
+                    suggestedRoom: null, // frontend alias
                     reason: 'All equivalent rooms are occupied during this time slot.',
                     equivalentRooms: bookingCounts,
                 };
@@ -149,6 +159,15 @@ export const loadBalancingService = {
             const originalCount = countMap.get(originalRoom.id) || 0;
             const isSameAsOriginal = bestRoom.id === originalRoom.id;
 
+            // Build suggestedRoom for frontend BalancedRoomResult type
+            const suggestedRoomData = {
+                id: bestRoom.id,
+                name: bestRoom.name,
+                code: bestRoom.code,
+                building: bestRoom.building,
+                capacity: bestRoom.capacity,
+            };
+
             return {
                 recommendedRoom: {
                     roomId: bestRoom.id,
@@ -157,6 +176,7 @@ export const loadBalancingService = {
                     building: bestRoom.building,
                     capacity: bestRoom.capacity,
                 },
+                suggestedRoom: isSameAsOriginal ? null : suggestedRoomData,
                 reason: isSameAsOriginal
                     ? `Your requested room "${bestRoom.name}" already has the least bookings today (${bestCount}).`
                     : `Recommending "${bestRoom.name}" (${bestCount} bookings today) instead of "${originalRoom.name}" (${originalCount} bookings today) for better load distribution.`,

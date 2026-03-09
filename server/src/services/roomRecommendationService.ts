@@ -81,7 +81,7 @@ export const roomRecommendationService = {
             const { data: overlappingBookings } = await supabase
                 .from('bookings')
                 .select('room_id')
-                .in('status', ['CONFIRMED', 'CHECKED_IN', 'PENDING'])
+                .in('status', ['CONFIRMED', 'PENDING'])
                 .lt('start_time', endTime)
                 .gt('end_time', startTime);
 

@@ -55,9 +55,9 @@ export const bookingPatternService = {
             // Fetch completed/confirmed bookings for this user
             const { data: bookings, error } = await supabase
                 .from('bookings')
-                .select('room_id, start_time, end_time, title, attendee_count, rooms(id, name, code, building)')
+                .select('room_id, start_time, end_time, title, attendee_count, rooms(id, name, code, building, floor, capacity)')
                 .eq('user_id', userId)
-                .in('status', ['CONFIRMED', 'CHECKED_IN', 'COMPLETED'])
+                .in('status', ['CONFIRMED', 'COMPLETED'])
                 .gte('start_time', startDate.toISOString())
                 .order('start_time', { ascending: false });
 

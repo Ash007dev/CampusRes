@@ -379,6 +379,24 @@ export const bookingsApi = {
   // Get emergency overrides for calendar display (all users)
   getEmergencyOverrides: (params?: { startDate?: string; endDate?: string }) =>
     api.get<ApiResponse<any[]>>('/bookings/emergency-overrides', { params }),
+
+  // US 6: Get one-tap booking suggestions from recurring patterns
+  getQuickBookSuggestions: (days?: number) =>
+    api.get<ApiResponse<QuickBookSuggestion[]>>('/bookings/quick-book-suggestions', {
+      params: days ? { days } : undefined,
+    }),
+
+  // US 7: Recommend the smallest suitable room based on group size and equipment
+  recommendRoom: (attendeeCount: number, startTime: string, endTime: string, amenities?: string) =>
+    api.get<ApiResponse<Room[]>>('/bookings/room-recommend', {
+      params: { attendeeCount, startTime, endTime, ...(amenities ? { amenities } : {}) },
+    }),
+
+  // US 8: Get load-balanced alternative room suggestion
+  getBalancedRoom: (roomId: string, startTime: string, endTime: string, attendeeCount?: number) =>
+    api.get<ApiResponse<BalancedRoomResult>>('/bookings/balanced-room', {
+      params: { roomId, startTime, endTime, ...(attendeeCount ? { attendeeCount } : {}) },
+    }),
 };
 
 // Rooms
@@ -509,6 +527,37 @@ export const adminApi = {
   // Get emergency overrides for calendar display
   getEmergencyOverrides: (params?: { startDate?: string; endDate?: string }) =>
     api.get<ApiResponse<any[]>>('/admin/emergency-overrides', { params }),
+
+  // Get demand forecast heatmap (US 2.1)
+  getDemandForecast: (days?: number) =>
+    api.get<ApiResponse<{
+      forecast: Array<{
+        dayOfWeek: number;
+        dayName: string;
+        hourlyDemand: Array<{
+          hour: number;
+          avgBookings: number;
+          peakLabel: 'LOW' | 'MEDIUM' | 'HIGH';
+        }>;
+      }>;
+      totalBookingsAnalyzed: number;
+      periodDays: number;
+      generatedAt: string;
+    }>>('/admin/demand-forecast', { params: days ? { days } : undefined }),
+
+  // US 3: Get underutilized rooms with historical trends and re-purposing suggestions
+  getUnderutilizedRooms: (days?: number, threshold?: number) =>
+    api.get<ApiResponse<UnderutilizedRoom[]>>('/admin/underutilized-rooms', {
+      params: { ...(days ? { days } : {}), ...(threshold !== undefined ? { threshold } : {}) },
+    }),
+
+  // US 4: Get no-show frequency report with escalation tiers
+  getNoShowReport: () =>
+    api.get<ApiResponse<NoShowOffender[]>>('/admin/no-show-report'),
+
+  // US 4: Reset a user's no-show escalation tier
+  resetNoShowTier: (userId: string) =>
+    api.post<ApiResponse<{ message: string }>>(`/admin/no-show-reset/${userId}`),
 };
 
 // Holiday API (US 5.5)
@@ -836,4 +885,64 @@ export const configApi = {
   clearCache: () =>
     api.post<ApiResponse<void>>('/config/cache/clear'),
 };
+
+// ============================================================================
+// US 6 – Quick Book Suggestion type
+// ============================================================================
+export interface QuickBookSuggestion {
+  roomId: string;
+  roomName: string;
+  roomCode: string;
+  building: string;
+  floor: number;
+  capacity: number;
+  typicalStartTime: string; // ISO datetime for the next occurrence
+  typicalEndTime: string;
+  dayOfWeek: number;        // 0 = Sunday … 6 = Saturday
+  dayName: string;
+  occurrences: number;      // How many times user has booked this pattern
+  confidence: number;       // 0–1
+}
+
+// ============================================================================
+// US 8 – Balanced Room Result type
+// ============================================================================
+export interface BalancedRoomResult {
+  originalRoomId: string;
+  suggestedRoom: Room | null;
+  reason: string;
+  utilizationDifference?: number;
+}
+
+// ============================================================================
+// US 3 – Underutilized Room type
+// ============================================================================
+export interface UnderutilizedRoom {
+  roomId: string;
+  roomName: string;
+  roomCode: string;
+  building: string;
+  capacity: number;
+  utilizationPercent: number;
+  totalSlots: number;
+  bookedSlots: number;
+  trend: 'IMPROVING' | 'DECLINING' | 'STABLE';
+  suggestion: string;
+}
+
+// ============================================================================
+// US 4 – No-Show Offender type
+// ============================================================================
+export type NoShowTier = 'NONE' | 'WARNING' | 'RESTRICTED' | 'SUSPENDED';
+
+export interface NoShowOffender {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  noShowCount: number;
+  totalBookings: number;
+  noShowRate: number;
+  escalationTier: NoShowTier;
+  blockedUntil?: string;
+}
 
