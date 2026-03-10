@@ -14,6 +14,14 @@
     "db:generate": "pnpm --filter @campus/server prisma:generate",
     "db:push": "pnpm --filter @campus/server exec prisma db push",
     "db:seed": "pnpm --filter @campus/server exec prisma db seed",
+    "test": "pnpm -r test:ci",
+    "test:watch": "pnpm -r test:watch",
+    "test:unit": "pnpm -r test:unit",
+    "test:integration": "pnpm -r test:integration",
+    "test:regression": "pnpm run -r test:regression --filter=server",
+    "test:e2e": "pnpm run -r test:e2e --filter=client",
+    "test:performance": "pnpm run -r performance:test",
+    "test:all": "pnpm test:unit && pnpm test:integration && pnpm test:regression && pnpm test:e2e",
     "test:epic3": "npm run test:epic3 --prefix server"
   },
   "engines": {
@@ -24,5 +32,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",
     "lucide-react": "^0.563.0"
+  },
+  "devDependencies": {
+    "artillery": "^2.0.8"
   }
 }
