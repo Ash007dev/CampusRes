@@ -4,6 +4,7 @@ dockerfilePath = "server/Dockerfile"
 buildContext = "."
 
 [deploy]
+startCommand = "node dist/index.js"
 healthcheckPath = "/api/v1/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
