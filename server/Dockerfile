@@ -52,7 +52,7 @@ WORKDIR /app
 
 # Enable pnpm via corepack for the runner if required
 # Or just copy the whole app
-RUN corepack enable && corepack prepare pnpm@10 --activate
+RUN npm install -g pnpm
 
 # Set production environment
 ENV NODE_ENV=production
