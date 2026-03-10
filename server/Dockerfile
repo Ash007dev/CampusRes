@@ -27,7 +27,7 @@ RUN cd server && pnpm run build
 
 # Create a standalone production bundle with properly resolved node_modules
 # (pnpm deploy eliminates symlinks so the runner stage is fully self-contained)
-RUN pnpm deploy --filter @campus/server --prod /deploy
+RUN pnpm deploy --filter @campus/server --prod --legacy /deploy
 
 # pnpm deploy copies source files but not the compiled dist — copy it manually
 RUN cp -r server/dist /deploy/dist
