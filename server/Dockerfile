@@ -2,7 +2,7 @@
 # Campus Resource Engine - Server Dockerfile (Production)
 # =============================================================================
 # Multi-stage build for optimized production image
-# Build context: server/
+# Build context: repo root (.)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -15,11 +15,12 @@ WORKDIR /app
 # Enable pnpm via corepack
 RUN corepack enable && corepack prepare pnpm@10 --activate
 
-# Copy package files
-COPY package.json pnpm-lock.yaml* ./
+# Copy workspace-level files (lockfile lives at root)
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY server/package.json ./server/
 
-# Install all dependencies (including devDeps needed for build)
-RUN pnpm install --frozen-lockfile
+# Install server dependencies only
+RUN pnpm install --frozen-lockfile --filter @campus/server
 
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
@@ -30,13 +31,16 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@10 --activate
 
-# Copy dependencies from deps stage
+# Copy workspace files and dependencies
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/server/node_modules ./server/node_modules
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 
-# Copy source code
-COPY . .
+# Copy server source
+COPY server ./server
 
 # Build TypeScript
+WORKDIR /app/server
 RUN pnpm run build
 
 # -----------------------------------------------------------------------------
@@ -54,9 +58,9 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 expressjs
 
 # Copy only what's needed to run
-COPY --from=builder --chown=expressjs:nodejs /app/dist ./dist
-COPY --from=builder --chown=expressjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=expressjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=expressjs:nodejs /app/server/dist ./dist
+COPY --from=builder --chown=expressjs:nodejs /app/server/node_modules ./node_modules
+COPY --from=builder --chown=expressjs:nodejs /app/server/package.json ./package.json
 
 # Switch to non-root user
 USER expressjs
