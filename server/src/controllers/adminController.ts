@@ -125,8 +125,6 @@ export const adminController = {
             return;
         }
 
-        logger.info({ userCount: users.length, subject }, '≡ƒôó Sending broadcast email to all users');
-
         // Deduplicate by email to avoid sending multiple emails to the same address
         const seenEmails = new Set<string>();
         const uniqueUsers = users.filter((user: any) => {
@@ -136,45 +134,47 @@ export const adminController = {
             return true;
         });
 
-        logger.info({ uniqueCount: uniqueUsers.length, totalRows: users.length }, '≡ƒôó Deduplicated user list');
+        logger.info({ uniqueCount: uniqueUsers.length, totalRows: users.length, subject }, '📢 Broadcast queued');
 
-        // Send email to each user
-        let successCount = 0;
-        let failCount = 0;
-
-        const emailPromises = uniqueUsers.map(async (user: any) => {
-            const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User';
-            try {
-                const sent = await sendBroadcastEmail(user.email, userName, { subject, message });
-                if (sent) successCount++;
-                else failCount++;
-            } catch (err) {
-                failCount++;
-                logger.error({ userId: user.id, error: err }, 'Broadcast: Failed to send to user');
-            }
-        });
-
-        await Promise.all(emailPromises);
-
-        // Audit log
         const performedBy = (req as any).user?.id;
-        await logAudit({
-            action: 'BROADCAST_SENT',
-            entity_type: 'system',
-            entity_id: 'broadcast',
-            performed_by_id: performedBy,
-            details: { subject, recipientCount: users.length, successCount, failCount },
-        });
 
-        logger.info({ successCount, failCount, total: users.length }, '≡ƒôó Broadcast complete');
-
+        // Respond immediately so the client never times out
         res.json({
             success: true,
             data: {
-                recipientCount: users.length,
-                successCount,
-                failCount,
+                recipientCount: uniqueUsers.length,
+                message: `Broadcast is being sent to ${uniqueUsers.length} recipients.`,
             },
+        });
+
+        // Fire-and-forget: process emails after response is sent
+        setImmediate(async () => {
+            let successCount = 0;
+            let failCount = 0;
+
+            const emailPromises = uniqueUsers.map(async (user: any) => {
+                const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User';
+                try {
+                    const sent = await sendBroadcastEmail(user.email, userName, { subject, message });
+                    if (sent) successCount++;
+                    else failCount++;
+                } catch (err) {
+                    failCount++;
+                    logger.error({ userId: user.id, error: err }, 'Broadcast: Failed to send to user');
+                }
+            });
+
+            await Promise.all(emailPromises);
+
+            await logAudit({
+                action: 'BROADCAST_SENT',
+                entity_type: 'system',
+                entity_id: 'broadcast',
+                performed_by_id: performedBy,
+                details: { subject, recipientCount: uniqueUsers.length, successCount, failCount },
+            });
+
+            logger.info({ successCount, failCount, total: uniqueUsers.length }, '📢 Broadcast complete');
         });
     }),
 

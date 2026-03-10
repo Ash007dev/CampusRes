@@ -62,10 +62,13 @@ export function EmergencyOverrideForm({ rooms, toast, fetchData }: EmergencyOver
   // Compute end date/time when duration or start changes
   const applyDuration = (dur: number, sDate: string, sTime: string) => {
     if (!sDate || !sTime || dur === 0) return;
-    const start = new Date(`${sDate}T${sTime}`);
+    const start = new Date(`${sDate}T${sTime}:00`);
     const end = new Date(start.getTime() + dur * 60000);
-    setEndDate(end.toISOString().split("T")[0]);
-    setEndTime(end.toTimeString().slice(0, 5));
+    // Use local date/time parts so buildDateTime can do UTC conversion correctly
+    const localDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+    const localTime = `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
+    setEndDate(localDate);
+    setEndTime(localTime);
   };
 
   const handleDurationChange = (dur: number) => {
@@ -83,10 +86,12 @@ export function EmergencyOverrideForm({ rooms, toast, fetchData }: EmergencyOver
     if (duration > 0) applyDuration(duration, startDate, val);
   };
 
-  // Build ISO strings for API
+  // Build UTC ISO strings for API
+  // The browser input is local time (e.g. IST), but the DB stores UTC.
+  // new Date(localString).toISOString() converts local → UTC correctly.
   const buildDateTime = (date: string, time: string) => {
     if (!date || !time) return "";
-    return `${date}T${time}:00`;
+    return new Date(`${date}T${time}:00`).toISOString();
   };
 
   // Selected room names for display

@@ -83,13 +83,15 @@ export class BookingService {
      * Emergency override: cancel all bookings for selected rooms and date range, notify affected users
      */
     async emergencyOverrideBookings({ startDate, endDate, roomIds, adminUserId, reason }: { startDate: string; endDate: string; roomIds: string[]; adminUserId: string; reason?: string }): Promise<{ cancelled: number; affected: any[] }> {
-      // Find all bookings in the range for the selected rooms
+      // Find all bookings that OVERLAP the date range for the selected rooms.
+      // Overlap condition: booking.start_time < endDate AND booking.end_time > startDate
+      // (Catches bookings fully inside, partially overlapping, or spanning the entire range)
       const { data: bookings, error } = await supabase
         .from('bookings')
         .select('*, rooms(*), users(id, email, first_name, last_name)')
         .in('room_id', roomIds)
-        .gte('start_time', startDate)
-        .lte('end_time', endDate)
+        .lt('start_time', endDate)
+        .gt('end_time', startDate)
         .not('status', 'in', '("CANCELLED","NO_SHOW")');
 
       if (error) {

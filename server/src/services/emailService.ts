@@ -14,6 +14,19 @@ import { logger } from '../config/logger.js';
 
 let transporter: Transporter | null = null;
 
+/**
+ * Returns true only when SMTP is actually configured with real credentials
+ * and a non-placeholder host. Falls back to console-only mode otherwise.
+ */
+function isEmailConfigured(): boolean {
+  return !!(
+    config.email.user &&
+    config.email.password &&
+    config.email.host &&
+    config.email.host !== 'smtp.example.com'
+  );
+}
+
 function getTransporter(): Transporter {
   if (!transporter) {
     transporter = nodemailer.createTransport({
@@ -24,6 +37,10 @@ function getTransporter(): Transporter {
         user: config.email.user,
         pass: config.email.password,
       },
+      // Prevent indefinite hangs when SMTP host is unreachable
+      connectionTimeout: 5000,  // 5s to establish TCP connection
+      greetingTimeout: 5000,    // 5s to receive SMTP greeting
+      socketTimeout: 10000,     // 10s of inactivity before abort
     });
   }
   return transporter;
@@ -196,7 +213,7 @@ async function sendEmail(to: string, subject: string, html: string, codeForTesti
       }
     }
 
-    if (!config.email.user || !config.email.password) return true;
+    if (!isEmailConfigured()) return true;
 
     await getTransporter().sendMail({
       from: `"${config.email.fromName}" <${config.email.fromEmail}>`,
@@ -319,7 +336,7 @@ Act fast — slots fill up quickly.
       console.log('\n');
     }
 
-    if (!config.email.user || !config.email.password) {
+    if (!isEmailConfigured()) {
       return true;
     }
 
