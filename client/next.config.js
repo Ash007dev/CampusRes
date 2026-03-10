@@ -2,9 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
 
-  // Enable standalone output for Docker deployment
-  output: 'standalone',
-
   // Transpile CJS modules that Turbopack can't handle natively
   transpilePackages: ['react-big-calendar'],
 
@@ -57,8 +54,9 @@ const nextConfig = {
     ];
   },
 
-  // Redirect API calls to Express backend in development
+  // Redirect API calls to Express backend in development only
   async rewrites() {
+    if (process.env.NODE_ENV === 'production') return [];
     return [
       {
         source: '/api/:path*',
