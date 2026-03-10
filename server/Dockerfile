@@ -2,6 +2,7 @@
 # Campus Resource Engine - Server Dockerfile (Production)
 # =============================================================================
 # Multi-stage build for optimized production image
+# Build context: server/
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -11,12 +12,14 @@ FROM node:20-alpine AS deps
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json* ./
-COPY server/package.json server/package-lock.json* ./server/
+# Enable pnpm via corepack
+RUN corepack enable && corepack prepare pnpm@10 --activate
 
-# Install dependencies
-RUN cd server && npm ci --only=production
+# Copy package files
+COPY package.json pnpm-lock.yaml* ./
+
+# Install all dependencies (including devDeps needed for build)
+RUN pnpm install --frozen-lockfile
 
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
@@ -25,19 +28,16 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files and node_modules from deps stage
-COPY --from=deps /app/server/node_modules ./server/node_modules
-COPY server ./server
+RUN corepack enable && corepack prepare pnpm@10 --activate
 
-# Install dev dependencies for building
-WORKDIR /app/server
-RUN npm ci
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
 
-# Generate Prisma client
-RUN npx prisma generate
+# Copy source code
+COPY . .
 
 # Build TypeScript
-RUN npm run build
+RUN pnpm run build
 
 # -----------------------------------------------------------------------------
 # Stage 3: Production
@@ -53,14 +53,10 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 expressjs
 
-# Copy built application
-COPY --from=builder --chown=expressjs:nodejs /app/server/dist ./dist
-COPY --from=builder --chown=expressjs:nodejs /app/server/node_modules ./node_modules
-COPY --from=builder --chown=expressjs:nodejs /app/server/package.json ./package.json
-COPY --from=builder --chown=expressjs:nodejs /app/server/prisma ./prisma
-
-# Generate Prisma client for production
-RUN npx prisma generate
+# Copy only what's needed to run
+COPY --from=builder --chown=expressjs:nodejs /app/dist ./dist
+COPY --from=builder --chown=expressjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=expressjs:nodejs /app/package.json ./package.json
 
 # Switch to non-root user
 USER expressjs
