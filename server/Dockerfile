@@ -50,6 +50,10 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
+# Enable pnpm via corepack for the runner if required
+# Or just copy the whole app
+RUN corepack enable && corepack prepare pnpm@10 --activate
+
 # Set production environment
 ENV NODE_ENV=production
 
@@ -73,4 +77,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/v1/health || exit 1
 
 # Start the server
-CMD ["node", "dist/index.js"]
+CMD ["node", "./dist/index.js"]
