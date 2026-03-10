@@ -1,80 +1,58 @@
 # =============================================================================
 # Campus Resource Engine - Server Dockerfile (Production)
 # =============================================================================
-# Multi-stage build for optimized production image
 # Build context: repo root (.)
+# Uses pnpm deploy to correctly resolve workspace symlinks for production
 # =============================================================================
 
-# -----------------------------------------------------------------------------
-# Stage 1: Dependencies
-# -----------------------------------------------------------------------------
-FROM node:20-alpine AS deps
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Enable pnpm via corepack
+# Enable pnpm
 RUN corepack enable && corepack prepare pnpm@10 --activate
 
-# Copy workspace-level files (lockfile lives at root)
+# Copy workspace manifest files (lockfile lives at repo root)
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY server/package.json ./server/
 
-# Install server dependencies only
-RUN pnpm install --frozen-lockfile --filter @campus/server
+# Install all dependencies (devDeps needed to compile TypeScript)
+RUN pnpm install --frozen-lockfile
 
-# -----------------------------------------------------------------------------
-# Stage 2: Builder
-# -----------------------------------------------------------------------------
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-RUN corepack enable && corepack prepare pnpm@10 --activate
-
-# Copy workspace files and dependencies
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/server/node_modules ./server/node_modules
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-
-# Copy server source
+# Copy server source code
 COPY server ./server
 
-# Build TypeScript
-WORKDIR /app/server
-RUN pnpm run build
+# Compile TypeScript → outputs to server/dist/
+RUN cd server && pnpm run build
 
-# -----------------------------------------------------------------------------
-# Stage 3: Production
-# -----------------------------------------------------------------------------
+# Create a standalone production bundle with properly resolved node_modules
+# (pnpm deploy eliminates symlinks so the runner stage is fully self-contained)
+RUN pnpm deploy --filter @campus/server --prod /deploy
+
+# pnpm deploy copies source files but not the compiled dist — copy it manually
+RUN cp -r server/dist /deploy/dist
+
+# =============================================================================
+# Production runner
+# =============================================================================
 FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Enable pnpm via corepack for the runner if required
-# Or just copy the whole app
-RUN npm install -g pnpm
-
-# Set production environment
 ENV NODE_ENV=production
 
-# Create non-root user for security
+# Non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 expressjs
 
-# Copy only what's needed to run
-COPY --from=builder --chown=expressjs:nodejs /app/server/dist ./dist
-COPY --from=builder --chown=expressjs:nodejs /app/server/node_modules ./node_modules
-COPY --from=builder --chown=expressjs:nodejs /app/server/package.json ./package.json
+# Copy the self-contained deployment bundle
+COPY --from=build --chown=expressjs:nodejs /deploy ./
 
-# Switch to non-root user
 USER expressjs
 
-# Expose port
 EXPOSE 3001
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/v1/health || exit 1
 
-# Start the server
-CMD ["node", "./dist/index.js"]
+CMD ["node", "dist/index.js"]
