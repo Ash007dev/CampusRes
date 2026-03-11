@@ -37,10 +37,10 @@ function getTransporter(): Transporter {
         user: config.email.user,
         pass: config.email.password,
       },
-      // Prevent indefinite hangs when SMTP host is unreachable
-      connectionTimeout: 5000,  // 5s to establish TCP connection
-      greetingTimeout: 5000,    // 5s to receive SMTP greeting
-      socketTimeout: 10000,     // 10s of inactivity before abort
+      // Prevent indefinite hangs when SMTP host is unreachable, increased for cloud envs
+      connectionTimeout: 20000, // 20s to establish TCP connection
+      greetingTimeout: 20000,   // 20s to receive SMTP greeting
+      socketTimeout: 30000,     // 30s of inactivity before abort
     });
   }
   return transporter;

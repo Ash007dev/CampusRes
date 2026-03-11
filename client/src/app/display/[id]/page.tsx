@@ -39,11 +39,24 @@ export default function DisplayModePage() {
     // Fetch room and booking data
     const fetchData = useCallback(async () => {
         try {
+            const now = new Date();
+            const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+            const formatFakeUTC = (d: Date) => {
+                const yr = d.getFullYear();
+                const mo = String(d.getMonth() + 1).padStart(2, '0');
+                const dy = String(d.getDate()).padStart(2, '0');
+                const hr = String(d.getHours()).padStart(2, '0');
+                const mn = String(d.getMinutes()).padStart(2, '0');
+                const sc = String(d.getSeconds()).padStart(2, '0');
+                return `${yr}-${mo}-${dy}T${hr}:${mn}:${sc}`;
+            };
+
             const [roomResponse, bookingsResponse] = await Promise.all([
                 roomsApi.getById(roomId),
                 bookingsApi.getCalendarBookings({
-                    startDate: new Date().toISOString(),
-                    endDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                    startDate: formatFakeUTC(now),
+                    endDate: formatFakeUTC(tomorrow),
                 }),
             ]);
 

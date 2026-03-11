@@ -91,7 +91,7 @@ export function EmergencyOverrideForm({ rooms, toast, fetchData }: EmergencyOver
   // new Date(localString).toISOString() converts local → UTC correctly.
   const buildDateTime = (date: string, time: string) => {
     if (!date || !time) return "";
-    return new Date(`${date}T${time}:00`).toISOString();
+    return `${date}T${time}:00`;
   };
 
   // Selected room names for display

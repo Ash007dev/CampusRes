@@ -322,11 +322,18 @@ export class AuthService {
     console.log(`[AuthService] 📧 Sending OTP to ${email}: ${otp}`);
 
     try {
-      await emailService.sendOtpEmail(email, otp, userName);
+      const sent = await emailService.sendOtpEmail(email, otp, userName);
+      if (!sent) {
+        throw new Error('Email service returned false (ETIMEDOUT or similar)');
+      }
       console.log(`[AuthService] ✅ OTP sent successfully`);
     } catch (emailError) {
       console.log(`[AuthService] ⚠️ Email service unavailable - OTP: ${otp}`);
       logger.warn({ error: emailError }, 'Email service unavailable');
+      // If we cannot deliver the OTP in production, we must fail the login attempt
+      // Otherwise the user will be stuck waiting for an OTP they will never receive
+      if (emailError instanceof AppError) throw emailError;
+      throw new AppError('Failed to send OTP email. Please try again later.', 503);
     }
 
     logger.info({ email, sessionId: otpSession.id }, 'OTP session created');
