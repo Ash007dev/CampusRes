@@ -50,7 +50,7 @@ jobs:
             ${{ runner.os }}-pnpm-server-
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
         working-directory: .
 
       - name: TypeScript compile check
@@ -59,10 +59,10 @@ jobs:
       - name: Run server tests
         run: npm test || true
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || 'placeholder-key' }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY || 'placeholder-service-key' }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NODE_ENV: test
 
   # ──────────────────────────────────────────────────────────
@@ -98,7 +98,7 @@ jobs:
             ${{ runner.os }}-pnpm-client-
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
         working-directory: .
 
       - name: Lint
@@ -107,8 +107,8 @@ jobs:
       - name: Build (type check + bundle)
         run: npm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_API_URL: http://localhost:5000/api
 
   # ──────────────────────────────────────────────────────────
@@ -133,7 +133,7 @@ jobs:
           version: 9
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Audit server dependencies
         run: cd server && pnpm audit --audit-level=high || true

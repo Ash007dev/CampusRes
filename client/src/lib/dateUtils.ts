@@ -74,8 +74,12 @@ export function dateToApiFormat(date: Date): string {
  */
 export function getCurrentIST(): Date {
     const now = new Date();
-    // Shift by 5.5 hours to match server side
-    return new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+    // Shift by 5.5 hours to get the actual IST time footprint
+    const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+    // Convert to ISO string to preserve the IST time values in UTC representation
+    const iso = istTime.toISOString();
+    // Strip the Z to parse as a local Date - aligns perfectly with utcToIstShifted
+    return new Date(iso.replace('Z', ''));
 }
 
 /**
