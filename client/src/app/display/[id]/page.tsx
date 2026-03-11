@@ -75,8 +75,6 @@ export default function DisplayModePage() {
                 }))
                 .sort((a: DisplayBooking, b: DisplayBooking) => a.startTime.getTime() - b.startTime.getTime());
 
-            const now = new Date();
-
             // Find current booking (now is between start and end)
             const current = roomBookings.find(
                 (b: DisplayBooking) => isBefore(b.startTime, now) && isAfter(b.endTime, now)
