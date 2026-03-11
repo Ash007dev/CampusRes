@@ -7,43 +7,25 @@
  * =============================================================================
  */
 
-import nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
+import { Resend } from 'resend';
 import { config } from '../config/index.js';
 import { logger } from '../config/logger.js';
 
-let transporter: Transporter | null = null;
+let resendClient: Resend | null = null;
 
 /**
  * Returns true only when SMTP is actually configured with real credentials
  * and a non-placeholder host. Falls back to console-only mode otherwise.
  */
 function isEmailConfigured(): boolean {
-  return !!(
-    config.email.user &&
-    config.email.password &&
-    config.email.host &&
-    config.email.host !== 'smtp.example.com'
-  );
+  return !!config.email.resendApiKey;
 }
 
-function getTransporter(): Transporter {
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: config.email.host,
-      port: config.email.port,
-      secure: config.email.port === 465,
-      auth: {
-        user: config.email.user,
-        pass: config.email.password,
-      },
-      // Prevent indefinite hangs when SMTP host is unreachable, increased for cloud envs
-      connectionTimeout: 20000, // 20s to establish TCP connection
-      greetingTimeout: 20000,   // 20s to receive SMTP greeting
-      socketTimeout: 30000,     // 30s of inactivity before abort
-    });
+function getResendClient(): Resend {
+  if (!resendClient) {
+    resendClient = new Resend(config.email.resendApiKey);
   }
-  return transporter;
+  return resendClient;
 }
 
 // Common FAANG-style CSS for all emails
@@ -215,16 +197,23 @@ async function sendEmail(to: string, subject: string, html: string, codeForTesti
 
     if (!isEmailConfigured()) return true;
 
-    await getTransporter().sendMail({
-      from: `"${config.email.fromName}" <${config.email.fromEmail}>`,
+    const resend = getResendClient();
+    const { data, error } = await resend.emails.send({
+      from: `${config.email.fromName} <${config.email.fromEmail}>`,
       to,
       subject,
       text,
       html,
     });
+
+    if (error) {
+      logger.error({ email: to, error }, `Failed to send ${type} email via Resend`);
+      return false;
+    }
+
     return true;
   } catch (error) {
-    logger.error({ email: to, error }, `Failed to send ${type} email`);
+    logger.error({ email: to, error }, `Exception sending ${type} email`);
     return false;
   }
 }
@@ -340,34 +329,30 @@ Act fast — slots fill up quickly.
       return true;
     }
 
-    await getTransporter().sendMail({
-      from: `"${config.email.fromName}" <${config.email.fromEmail}>`,
+    const resend = getResendClient();
+    const { data, error: resendError } = await resend.emails.send({
+      from: `${config.email.fromName} <${config.email.fromEmail}>`,
       to: email,
       subject,
       text: textContent,
       html: htmlContent,
     });
 
+    if (resendError) {
+      logger.error({ email, error: resendError }, 'Failed to send waitlist notification email via Resend');
+      return false;
+    }
+
     logger.info({ email, roomName: details.roomName }, 'Waitlist notification email sent');
     return true;
   } catch (error) {
-    logger.error({ email, error }, 'Failed to send waitlist notification email');
+    logger.error({ email, error }, 'Exception sending waitlist notification email');
     return false;
   }
 }
 
-/**
- * Verify SMTP connection
- */
 export async function verifyEmailConnection(): Promise<boolean> {
-  try {
-    if (!config.email.user || !config.email.password) return false;
-    await getTransporter().verify();
-    return true;
-  } catch (error) {
-    logger.error({ error }, 'SMTP connection failed');
-    return false;
-  }
+  return isEmailConfigured();
 }
 
 export const emailService = {

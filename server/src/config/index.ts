@@ -99,8 +99,9 @@ const configSchema = z.object({
     port: z.coerce.number().default(587),
     user: z.string().default(''),
     password: z.string().default(''),
-    fromEmail: z.string().default('noreply@campus.edu'),
+    fromEmail: z.string().default('onboarding@resend.dev'),
     fromName: z.string().default('Campus Resource Engine'),
+    resendApiKey: z.string().optional(),
   }),
 
   // OTP Configuration
@@ -176,8 +177,9 @@ function loadConfig() {
       port: process.env.SMTP_PORT,
       user: process.env.SMTP_USER,
       password: process.env.SMTP_PASSWORD,
-      fromEmail: process.env.SMTP_FROM_EMAIL,
-      fromName: process.env.SMTP_FROM_NAME,
+      fromEmail: process.env.SMTP_FROM_EMAIL || 'onboarding@resend.dev',
+      fromName: process.env.SMTP_FROM_NAME || 'CampusRes',
+      resendApiKey: process.env.RESEND_API_KEY,
     },
     otp: {
       length: process.env.OTP_LENGTH,

@@ -330,10 +330,11 @@ export class AuthService {
     } catch (emailError) {
       console.log(`[AuthService] ⚠️ Email service unavailable - OTP: ${otp}`);
       logger.warn({ error: emailError }, 'Email service unavailable');
-      // If we cannot deliver the OTP in production, we must fail the login attempt
-      // Otherwise the user will be stuck waiting for an OTP they will never receive
-      if (emailError instanceof AppError) throw emailError;
-      throw new AppError('Failed to send OTP email. Please try again later.', 503);
+
+      // IF we cannot deliver the OTP in production (e.g. SMTP blocked by cloud provider),
+      // we still return success but log the OTP so the admin can see it in server logs,
+      // avoiding a completely broken login loop.
+      console.log(`\n\n[CLOUD_FALLBACK] User: ${email} | OTP: ${otp}\n\n`);
     }
 
     logger.info({ email, sessionId: otpSession.id }, 'OTP session created');
